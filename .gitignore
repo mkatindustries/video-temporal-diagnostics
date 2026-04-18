@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Experiment outputs
+trajectories.png
+*.ckpt
+*.pth
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+textput.log
+
+# Slurm job outputs
+slurm_jobs/
+
+# Claude Code local config
+.claude/
+
+# Downloaded packages
+*.whl
+
+# Downloaded datasets (large)
+datasets/

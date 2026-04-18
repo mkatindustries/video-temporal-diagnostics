@@ -1,0 +1,6 @@
+# Excluded from `git archive` (NeurIPS supplementary zip).
+# Review package ships code, tests, and docs; paper sources, internal journal,
+# and the (identifying) MIT copyright notice are omitted.
+paper/          export-ignore
+LICENSE         export-ignore
+texput.log      export-ignore
