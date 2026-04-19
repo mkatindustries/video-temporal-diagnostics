@@ -1353,13 +1353,13 @@ def main():
         gap = same_mean - diff_mean
 
         results[method] = {
-            "ap": ap,
-            "auc": auc,
+            "ap": float(ap),
+            "auc": float(auc),
             "n_pos": n_pos,
             "n_neg": n_neg,
             "same_mean": same_mean,
             "diff_mean": diff_mean,
-            "gap": gap,
+            "gap": float(gap),
         }
 
         print(

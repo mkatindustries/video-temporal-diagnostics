@@ -132,7 +132,7 @@ def bootstrap_ap(scores, labels, n_resamples=2000, ci=0.95, seed=42, device=None
         degenerate = (pos_counts == 0) | (pos_counts == n)
 
         boot_aps = _ap_gpu_batch(boot_scores, boot_labels)
-        boot_aps[degenerate] = point_ap
+        boot_aps[degenerate] = float(point_ap)
 
         boot_aps_np = boot_aps.cpu().numpy()
     else:
@@ -178,7 +178,7 @@ def bootstrap_auc(scores, labels, n_resamples=2000, ci=0.95, seed=42, device=Non
         degenerate = (pos_counts == 0) | (pos_counts == n)
 
         boot_aucs = _auc_gpu_batch(boot_scores, boot_labels)
-        boot_aucs[degenerate] = point_auc
+        boot_aucs[degenerate] = float(point_auc)
 
         boot_aucs_np = boot_aucs.cpu().numpy()
     else:

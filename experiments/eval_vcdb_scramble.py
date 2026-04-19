@@ -431,7 +431,7 @@ def evaluate_method(
 
     ap = average_precision_score(y_true, y_score)
     auc = roc_auc_score(y_true, y_score)
-    return {"ap": ap, "auc": auc, "n_pos": n_pos, "n_neg": n_neg}
+    return {"ap": float(ap), "auc": float(auc), "n_pos": n_pos, "n_neg": n_neg}
 
 
 # ---------------------------------------------------------------------------

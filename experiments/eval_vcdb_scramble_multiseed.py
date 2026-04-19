@@ -23,6 +23,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import cv2
 import matplotlib.pyplot as plt
@@ -139,7 +140,7 @@ def parse_timestamp(ts: str) -> float:
     return h * 3600 + m * 60 + s
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -243,7 +244,8 @@ def load_frames_for_vjepa2(
     container = av.open(video_path)
     stream = container.streams.video[0]
     video_fps = float(stream.average_rate or 30)
-    duration = float(stream.duration * stream.time_base) if stream.duration else 60.0
+    dur = stream.duration
+    duration = float(dur * stream.time_base) if dur is not None and stream.time_base is not None else 60.0
 
     target_fps = VJEPA2_NUM_FRAMES / max(duration, 1.0)
     container.close()
@@ -292,7 +294,7 @@ def load_frames_for_vjepa2(
 
 def extract_vjepa2_features(
     model: torch.nn.Module,
-    processor: object,
+    processor: Any,
     vid_base_dir: str,
     video_relpaths: list[str],
     device: torch.device,
@@ -428,7 +430,7 @@ def scramble_vjepa2_residual(
 
 def evaluate_method(
     scores: dict[tuple[str, str], float],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, float]:
     """Compute AP for a method."""
     y_true = []
@@ -447,7 +449,7 @@ def evaluate_method(
         return {"ap": float("nan"), "n_pos": n_pos, "n_neg": n_neg}
 
     ap = average_precision_score(y_true, y_score)
-    return {"ap": ap, "n_pos": n_pos, "n_neg": n_neg}
+    return {"ap": float(ap), "n_pos": n_pos, "n_neg": n_neg}
 
 
 # ---------------------------------------------------------------------------
@@ -458,7 +460,7 @@ def evaluate_method(
 def compute_order_invariant_similarities(
     features_a: dict[str, dict],
     features_b: dict[str, dict],
-    pairs_to_compute: set[tuple[str, str]],
+    pairs_to_compute: set[tuple[str, ...]],
     vjepa2_a: dict[str, dict] | None = None,
     vjepa2_b: dict[str, dict] | None = None,
 ) -> dict[str, dict[tuple[str, str], float]]:
@@ -510,7 +512,7 @@ def compute_order_invariant_similarities(
 def compute_sequence_aware_similarities(
     features_a: dict[str, dict],
     features_b_scrambled: dict[str, dict],
-    pairs_to_compute: set[tuple[str, str]],
+    pairs_to_compute: set[tuple[str, ...]],
     methods: list[str],
     vjepa2_a: dict[str, dict] | None = None,
     vjepa2_b_scrambled: dict[str, dict] | None = None,
@@ -896,7 +898,7 @@ def main():
     n = len(keys)
     key_to_idx = {k: i for i, k in enumerate(keys)}
 
-    pairs_to_compute = set()
+    pairs_to_compute: set[tuple[str, ...]] = set()
     for a, b in copy_pairs:
         if a in key_to_idx and b in key_to_idx:
             pairs_to_compute.add((a, b))
