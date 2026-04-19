@@ -230,8 +230,10 @@ def main():
     for family, results in all_results.items():
         print(f"\n{family}:")
         for strategy, r in results.items():
-            delta = r["mlp_mean"] - r["linear_mean"]
-            flag = "***" if r["mlp_mean"] > 0.55 else ""
+            mlp_mean: float = r["mlp_mean"]  # pyrefly: ignore
+            linear_mean: float = r["linear_mean"]  # pyrefly: ignore
+            delta = mlp_mean - linear_mean
+            flag = "***" if mlp_mean > 0.55 else ""
             print(
                 f"  {strategy:>20s}:  "
                 f"linear={r['linear_mean']:.3f}  "

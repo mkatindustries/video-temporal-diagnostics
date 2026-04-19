@@ -604,12 +604,12 @@ def bootstrap_ap_ci(
         boot_aps.append(average_precision_score(y_true_b, y_score_b))
 
     if len(boot_aps) < 10:
-        return ap, float("nan"), float("nan")
+        return float(ap), float("nan"), float("nan")
 
     boot_aps = np.array(boot_aps)
     ci_lo = float(np.percentile(boot_aps, 2.5))
     ci_hi = float(np.percentile(boot_aps, 97.5))
-    return ap, ci_lo, ci_hi
+    return float(ap), ci_lo, ci_hi
 
 
 # ---------------------------------------------------------------------------

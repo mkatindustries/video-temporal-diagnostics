@@ -233,7 +233,7 @@ POOLING_STRATEGIES = [
 
 
 def evaluate_linear_probe(
-    features: dict[str, np.ndarray | None],
+    features: dict[str, np.ndarray | torch.Tensor | None],
     labels: np.ndarray,
     groups: np.ndarray,
     n_folds: int = 5,
@@ -262,10 +262,12 @@ def evaluate_linear_probe(
     results: dict[str, dict | None] = {}
     gkf = GroupKFold(n_splits=n_folds)
 
-    for strategy, X in features.items():
-        if X is None:
+    for strategy, X_raw in features.items():
+        if X_raw is None:
             results[strategy] = None
             continue
+
+        X: np.ndarray = X_raw.numpy() if isinstance(X_raw, torch.Tensor) else X_raw
 
         best_result = None
         best_mean_acc = -1.0
@@ -349,7 +351,7 @@ def _gpu_logistic_regression(
 
 
 def evaluate_linear_probe_gpu(
-    features: dict[str, torch.Tensor | None],
+    features: dict[str, torch.Tensor | np.ndarray | None],
     labels: torch.Tensor,
     groups: np.ndarray,
     n_folds: int = 5,
@@ -363,11 +365,12 @@ def evaluate_linear_probe_gpu(
     gkf = GroupKFold(n_splits=n_folds)
     labels_np = labels.cpu().numpy()
 
-    for strategy, X in features.items():
-        if X is None:
+    for strategy, X_raw in features.items():
+        if X_raw is None:
             results[strategy] = None
             continue
 
+        X = X_raw if isinstance(X_raw, torch.Tensor) else torch.from_numpy(X_raw)
         X_np = X.cpu().numpy()
         best_result = None
         best_mean_acc = -1.0
@@ -632,8 +635,9 @@ def main():
         print(f"  Total samples: {n_samples} ({n_samples // 2} fwd + {n_samples // 2} rev)")
 
         # Stack into matrices, dropping strategies where some samples failed
+        feature_matrices_gpu: dict[str, torch.Tensor | None] = {}
+        feature_matrices: dict[str, np.ndarray | None] = {}
         if use_gpu_probe:
-            feature_matrices_gpu: dict[str, torch.Tensor | None] = {}
             for strategy in POOLING_STRATEGIES:
                 vecs = strategy_features[strategy]
                 if any(v is None for v in vecs):
@@ -648,7 +652,6 @@ def main():
                     feature_matrices_gpu[strategy] = torch.stack(vecs)
             labels_t = torch.tensor(labels_np, device=device, dtype=torch.long)
         else:
-            feature_matrices: dict[str, np.ndarray | None] = {}
             for strategy in POOLING_STRATEGIES:
                 vecs = strategy_features[strategy]
                 if any(v is None for v in vecs):

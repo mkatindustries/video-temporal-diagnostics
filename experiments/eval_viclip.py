@@ -62,7 +62,7 @@ def load_viclip(model_dir: str, device: torch.device):
     # Add model dir to path so imports work
     sys.path.insert(0, model_dir)
 
-    from viclip import ViCLIP
+    from viclip import ViCLIP  # pyrefly: ignore
 
     weight_path = os.path.join(model_dir, "ViClip-InternVid-10M-FLT.pth")
     if not os.path.exists(weight_path):
@@ -96,7 +96,8 @@ def extract_frames_uniform(
     total_frames = stream.frames
     if total_frames == 0:
         # Estimate from duration
-        duration = float(stream.duration * stream.time_base) if stream.duration else 10.0
+        dur = stream.duration
+        duration = float(dur * stream.time_base) if dur is not None and stream.time_base is not None else 10.0
         fps = float(stream.average_rate or 30)
         total_frames = int(duration * fps)
 
