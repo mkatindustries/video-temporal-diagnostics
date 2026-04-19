@@ -18,7 +18,7 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 **Hardware:** NVIDIA GPU (A100/H100/H200 recommended). Most experiments require 1 GPU; VLM experiments require 1-2 GPUs depending on model size. Probes (linear + MLP) and bootstrap CIs are CPU-only.
 
-**Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path.
+**Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude 4.6 Opus and Gemini 3.1 Pro are API-only (see experiments 32--33).
 
 ## Table and Figure Reference Map
 
@@ -433,7 +433,19 @@ python experiments/eval_epic_claude_probe.py \
 
 **Output:** `datasets/epic_kitchens/claude_probe_results.json`
 
-### 33. ViCLIP Evaluation — Table 6, §5
+### 33. Gemini 3.1 Pro Generative Probe — §3.3, Table 4
+
+Reasoning-model temporal order probe via OpenAI-compatible API. Same protocol as Claude. Requires `GEMINI_API_KEY` environment variable.
+
+```bash
+export GEMINI_API_KEY="Bearer YOUR_API_KEY"
+python experiments/eval_epic_gemini_probe.py \
+    --epic-dir /path/to/epic_kitchens
+```
+
+**Output:** `datasets/epic_kitchens/gemini_probe_results.json`
+
+### 34. ViCLIP Evaluation — Table 6, §5
 
 ViCLIP (ViT-L, InternVid-10M) as a video-native single-vector baseline across VCDB, HDD, and EPIC-Kitchens. Tests whether contrastive video-text pretraining changes the temporal blindness story.
 
@@ -486,6 +498,7 @@ python experiments/eval_viclip.py \
 | `datasets/hdd/left_right_results.json` | §3.2 (left-vs-right AP) |
 | `datasets/hdd/optical_flow_results.json` | §3.2 (optical flow baseline) |
 | `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 4 (Claude probe) |
+| `datasets/epic_kitchens/gemini_probe_results.json` | §3.3, Table 4 (Gemini probe) |
 | `datasets/viclip_results.json` | Table 6, §5 (ViCLIP) |
 
 ## Paper Compilation
