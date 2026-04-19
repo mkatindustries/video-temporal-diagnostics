@@ -49,9 +49,11 @@ three Video-LLMs, Claude~4.6 Opus, and Gemini~3.1 Pro localize where temporal si
 per-frame vision features achieve perfect forward/reverse separation under
 sequence-aware comparators (by construction), but mean-pooling erases this signal
 ($s_\text{rev} \approx 1.0$), and neither linear nor nonlinear probes recover
-temporal order from LLM hidden states (126 configurations). No method spans both
-copy detection and motion retrieval, exposing a sensitivity--invariance trade-off
-that current architectures do not resolve.
+temporal order from LLM hidden states (126 configurations). Across all evaluated
+methods, no single approach spans both copy detection and motion retrieval,
+exposing a sensitivity--invariance trade-off that current architectures do not
+resolve. We release \textsc{TemporalDiag}, an open-source toolkit that packages
+the scramble gradient and reversal tests for reuse.
 \end{abstract}
 
 \section{Introduction}
@@ -68,7 +70,7 @@ However, BoF representations discard temporal order entirely. A growing literatu
 
 We evaluate these cases using DINOv3~\cite{dinov3} (BoF and DTW attention trajectories), V-JEPA~2~\cite{vjepa2} (spatiotemporal prediction residuals), ViCLIP~\cite{viclip} (video-native contrastive baseline), and three Video-LLMs (Qwen3-VL~\cite{qwen3vl}, Gemma~4~\cite{gemma4}, LLaVA-Video~\cite{llavavideo}), across six benchmarks: VCDB~\cite{vcdb}, Nymeria~\cite{nymeria}, MUVR~\cite{muvr}, Honda HDD~\cite{honda_hdd}, nuScenes~\cite{nuscenes}, and EPIC-Kitchens-100~\cite{epickitchens}.
 
-\textbf{Contributions.} (1)~A \emph{temporal scramble gradient} that continuously stress-tests temporal sensitivity in retrieval embeddings, cleanly separating method classes on VCDB. (2)~A \emph{feature-vs-comparator decomposition} and embedding probes across the VLM pipeline that localize where order signal is lost (on HDD, 89\% in the comparator, not the encoder), extending the temporal blindness diagnosis from generative QA to retrieval embeddings. (3)~A controlled sampling-density analysis on Honda HDD that characterizes how the residual advantage scales with temporal dilution. (4)~An open-source diagnostic toolkit (\texttt{temporal-diag}) that packages the scramble gradient and reversal test as reusable evaluation components.
+\textbf{Contributions.} (1)~A \emph{temporal scramble gradient} that continuously stress-tests temporal sensitivity in retrieval embeddings, cleanly separating method classes on VCDB (Figure~\ref{fig:scramble_gradient}). (2)~A \emph{feature-vs-comparator decomposition} and embedding probes across the VLM pipeline that localize where order signal is lost (on HDD, 89\% in the comparator, not the encoder), extending the temporal blindness diagnosis from generative QA to retrieval embeddings. (3)~A controlled sampling-density analysis on Honda HDD that characterizes how the residual advantage scales with temporal dilution. (4)~\textsc{TemporalDiag}, an open-source diagnostic framework (CLI: \texttt{temporal-diag}) that packages the scramble gradient and reversal test as reusable evaluation components.
 
 \section{Methods}
 
@@ -360,11 +362,11 @@ No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): B
 
 \textbf{Limitations.} All evaluations use pairwise similarity; DTW is not indexable ($O(T^2)$); probes train on 400 samples ($p \gg n$); ViCLIP's 8-frame input confounds its comparison with 64-frame V-JEPA~2 (Section~\ref{sec:context_sweep} provides a partial control).
 
-\textbf{Practitioner recommendations.} (1)~Test your pipeline with the scramble gradient at $K \in \{1, 4, 16\}$: if AP is flat across $K$, the system is temporally blind. (2)~For copy detection, BoF is optimal; adding temporal methods hurts. (3)~For motion-sensitive retrieval, a two-stage pipeline (BoF pre-filter $\to$ DTW rerank on top-$k$) is practical at ${\sim}100$\,ms overhead per query (Appendix~\ref{sec:computational_costs}).
+\textbf{Practitioner recommendations.} (1)~Test your pipeline with the scramble gradient at $K \in \{1, 4, 16\}$ using \textsc{TemporalDiag} (\texttt{temporal-diag report}): if AP is flat across $K$, the system is temporally blind. (2)~For copy detection, BoF is optimal; adding temporal methods hurts. (3)~For motion-sensitive retrieval, a two-stage pipeline (BoF pre-filter $\to$ DTW rerank on top-$k$) is practical at ${\sim}100$\,ms overhead per query (Appendix~\ref{sec:computational_costs}).
 
 \section{Conclusion}
 
-Across six benchmarks, semantic pooling, trajectory tracking, and spatiotemporal residuals each dominate a distinct retrieval regime; no method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}). The temporal scramble gradient cleanly separates method classes. The feature-vs-comparator decomposition places 89\% of the gap in the matching function on HDD; on nuScenes, the comparator alone (encoder-sequence DTW) surpasses the residual transform entirely (AP\,=\,0.867 vs.\ 0.815). VLM embedding probes confirm that pooling erases order information present in per-frame encoders (126 probe configurations at chance). Efficient order-sensitive comparators remain the key open problem.\footnote{%
+Across six benchmarks, semantic pooling, trajectory tracking, and spatiotemporal residuals each dominate a distinct retrieval regime; across all methods we evaluate, no single approach spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}). The temporal scramble gradient cleanly separates method classes. The feature-vs-comparator decomposition places 89\% of the gap in the matching function on HDD; on nuScenes, the comparator alone (encoder-sequence DTW) surpasses the residual transform entirely (AP\,=\,0.867 vs.\ 0.815). VLM embedding probes confirm that pooling erases order information present in per-frame encoders (126 probe configurations at chance). Efficient order-sensitive comparators remain the key open problem.\footnote{%
 \ifdefined\neuripssubmission
 Code and data: included in supplementary material. All datasets and model weights are publicly available; see \texttt{REPRODUCIBILITY.md}.%
 \else
