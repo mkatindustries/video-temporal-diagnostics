@@ -410,7 +410,7 @@ def main():
     print(f"    Qwen3-VL-8B:      ~0.50 balanced acc")
     print(f"    Gemma-4-31B:      ~0.50 balanced acc")
     print(f"    LLaVA-Video-7B:   ~0.54 balanced acc")
-    print(f"    Claude 4.6 Opus:  ~0.52 balanced acc")
+    print(f"    Claude 4.6 Opus:  ~0.545 balanced acc")
     print(f"    Gemini 3.1 Pro:    {mean_balanced_acc:.2f} balanced acc  {'<- at chance' if mean_balanced_acc < 0.56 else '<- ABOVE CHANCE'}")
 
     # ------------------------------------------------------------------
