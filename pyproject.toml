@@ -43,6 +43,9 @@ dev = [
 where = ["."]
 include = ["video_retrieval*"]
 
+[project.scripts]
+temporal-diag = "video_retrieval.diagnostics.cli:main"
+
 [tool.ruff]
 line-length = 100
 

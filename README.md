@@ -27,6 +27,7 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM reversal (3 VLMs, EPIC-Kitchens) | All at chance | 0.50--0.54 bal. acc. |
 | VLM reversal (Claude 4.6 Opus, EPIC) | At chance | ~0.52 bal. acc. |
+| VLM reversal (Gemini 3.1 Pro, EPIC) | Marginal | ~0.60 bal. acc. |
 | VLM vision tower s_rev | Order-invariant | ~1.0 |
 | VLM vision sequence DTW s_rev | Order-sensitive | ~0.49 |
 | VLM LLM hidden state (VCDB) | Strong copy detector | AP 0.84--0.92 |
@@ -38,7 +39,7 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | Raw-frame scramble (V-JEPA 2, VCDB) | Monotonic degradation | AP 0.705→0.652 |
 | ViCLIP (InternVid-10M, all benchmarks) | Order-invariant | VCDB 0.907, HDD 0.542, s_rev 0.996 |
 
-Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling — no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW — symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude 4.6 Opus) fares no better than 7B open-weight models. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
+Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling — no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW — symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude 4.6 Opus) fares no better than 7B open-weight models; a reasoning model (Gemini 3.1 Pro) shows marginal improvement (~0.60 balanced accuracy) but remains far from reliable. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
 
 ## Methods
 
@@ -63,6 +64,35 @@ pip install -e '.[vlm]'            # + VLM experiment support
 
 Requires Python 3.10+, CUDA GPU recommended.
 
+## Diagnostic Toolkit
+
+The `temporal-diag` CLI packages the scramble gradient and reversal test as reusable evaluation components (see paper Section 5).
+
+**Python API:**
+
+```python
+from video_retrieval.diagnostics import temporal_report
+
+report = temporal_report(emb_a, emb_b, pairs, similarity_fn)
+print(report["scramble_gradient"]["verdict"])  # "order-sensitive" or "order-invariant"
+```
+
+**CLI:**
+
+```bash
+temporal-diag scramble-gradient \
+    --embeddings-a features_a.pt --embeddings-b features_b.pt \
+    --pairs pairs.csv --similarity cosine --k-values 1 4 16
+
+temporal-diag s-rev --embeddings features.pt --similarity dtw
+
+temporal-diag report \
+    --embeddings-a features_a.pt --embeddings-b features_b.pt \
+    --pairs pairs.csv --similarity cosine --output report.json
+```
+
+Embeddings are `{video_id: (T, D)}` dicts saved as `.pt` files. Pairs are CSVs with columns `id_a, id_b, label`.
+
 ## Quick Start
 
 ```bash
@@ -80,6 +110,7 @@ python experiments/eval_epic_temporal_order.py   # EPIC-Kitchens multi-VLM probe
 python experiments/eval_epic_linear_probe.py     # Linear probe on LLM hidden states
 python experiments/eval_mlp_probe.py              # MLP probe on LLM hidden states (GroupKFold)
 python experiments/eval_epic_claude_probe.py     # Claude 4.6 Opus API probe
+python experiments/eval_epic_gemini_probe.py     # Gemini 3.1 Pro API probe
 python experiments/eval_hdd_left_vs_right.py     # Left-vs-right only HDD evaluation
 python experiments/eval_hdd_encoder_seq.py       # V-JEPA 2 encoder-seq DTW ablation on HDD
 python experiments/eval_hdd_optical_flow.py      # Optical flow (RAFT) baseline on HDD
@@ -111,6 +142,7 @@ python experiments/eval_viclip.py                # ViCLIP video-native baseline 
 | Gemma 4 31B | `google/gemma-4-31B-it` | VLM (SigLIP vision + Gemma LLM) |
 | LLaVA-Video 7B | `llava-hf/LLaVA-Video-7B-Qwen2-hf` | VLM (CLIP vision + Qwen2 LLM) |
 | Claude 4.6 Opus | API-only (`claude-4-6-opus-genai`) | Proprietary VLM (generative probe only) |
+| Gemini 3.1 Pro | API-only (`gemini-3-1-pro-preview-genai`) | Proprietary reasoning VLM (generative probe only) |
 | ViCLIP ViT-L | `OpenGVLab/ViCLIP` (local weights) | Video-native contrastive (InternVid-10M, 768-dim) |
 
 ## Paper
