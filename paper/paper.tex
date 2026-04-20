@@ -193,33 +193,14 @@ Two encoders trained with explicit temporal objectives reinforce the comparator 
 \subsubsection{Sampling Density: Context Window Sweep}
 \label{sec:context_sweep}
 
-The FPS downsample experiment (Appendix~\ref{sec:fps_invariance}) confounds sampling density with padding. We fix the backbone and pair set on HDD and sweep clip duration via \texttt{context\_sec} $\in \{1.0, 2.0, 3.0, 4.0, 6.5, 8.0\}$ while always extracting 64 unique frames ($\text{fps}_\text{eff} = 64 / d$).
+We fix the backbone and pair set on HDD and sweep clip duration via \texttt{context\_sec} $\in \{1.0, \ldots, 8.0\}$ while always extracting 64 unique frames ($\text{fps}_\text{eff} = 64 / d$), avoiding the padding confound of the FPS downsample experiment (Appendix~\ref{sec:fps_invariance}).
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/hdd_context_sweep.png}
-    \caption{V-JEPA~2 context sweep on Honda HDD (1{,}687 maneuvers, 128 sessions). Temporal residual remains substantially more robust than BoT across all settings. The ``knee'' around 4--6.5\,s marks a regime change where both signals degrade sharply.}
+    \caption{V-JEPA~2 context sweep on Honda HDD (1{,}687 maneuvers, 128 sessions). Temporal residual degrades more slowly than BoT; the gap grows from $+0.038$ at 1\,s to $+0.224$ at 8\,s (full table in Appendix~\ref{sec:context_sweep_table}).}
     \label{fig:context_sweep}
 \end{figure}
-
-\begin{table}[ht]
-\centering
-\caption{Context sweep on HDD (1{,}687 maneuvers, 64 unique frames, no padding). $\text{fps}_\text{eff} = 64\,/\,d$ where $d$ is clip duration in seconds.}
-\begin{tabular}{rcccc}
-\toprule
-\textbf{context\_sec} & \textbf{fps\textsubscript{eff}} & \textbf{Temporal Residual AP} & \textbf{BoT AP} & \textbf{$\Delta$ (Res.\ $-$ BoT)} \\
-\midrule
-1.0 & 11.1 & 0.962 & 0.924 & +0.038 \\
-2.0 & 8.1 & 0.963 & 0.877 & +0.086 \\
-3.0 & 6.4 & 0.956 & 0.825 & +0.131 \\
-4.0 & 5.3 & 0.940 & 0.774 & +0.166 \\
-6.5 & 3.8 & 0.872 & 0.663 & +0.209 \\
-8.0 & 3.2 & 0.838 & 0.614 & +0.224 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Both signals degrade as the window widens, but temporal residual degrades more slowly. The gap grows with sparser sampling ($+0.224$ AP at 8\,s): the residual holds up under temporal dilution where spatial content alone does not.
 
 \subsubsection{Cross-Dataset Validation: nuScenes}
 \label{sec:nuscenes}
@@ -254,12 +235,12 @@ Gemini 3.1 Pro & 0.585 & 0.608 & 0.603 & $0.599 \pm 0.010$ \\
 \end{tabular}
 \end{table}
 
-All three open-weight VLMs perform at chance. Claude~4.6 Opus~\cite{claude4opus} (200 sequences, 16 frames via API) achieves $0.545 \pm 0.055$, no better. Gemini~3.1 Pro~\cite{gemini31pro}, a reasoning model that expends thinking tokens before answering, reaches $0.599 \pm 0.010$---marginally above chance but far from reliable temporal perception. Answers across all five models are driven by prompt phrasing, not temporal direction (Appendix~\ref{sec:integrity_probe} and~\ref{sec:prompt_details}).
+All five models perform at or near chance; Gemini~3.1 Pro~\cite{gemini31pro} (a reasoning model) reaches $0.599 \pm 0.010$---marginally above chance but far from reliable. Answers are driven by prompt phrasing, not temporal direction (Appendix~\ref{sec:integrity_probe} and~\ref{sec:prompt_details}).
 
 \subsubsection{Embedding Probes: Where Temporal Signal Dies}
 \label{sec:vlm_embedding}
 
-The generative results show that VLMs \emph{output} answers that carry no temporal information. We probe whether temporal signal is present in internal representations but discarded.
+VLMs \emph{output} answers carrying no temporal information. We probe whether temporal signal persists in internal representations but is discarded.
 
 \begin{table}[ht]
 \centering
@@ -488,6 +469,28 @@ FPS Cap & \% Active & Mean Unique & Mean Dup\% & Effect \\
 \end{table}
 
 Segment durations range from 7.0\,s to 46.0\,s (mean 10.1\,s), yielding $\text{target\_fps} \in [1.39, 9.14]$ (mean 6.66). All values fall below the lowest non-trivial cap (10\,FPS), so meaningful degradation occurs only when the cap drops below the native target rate.
+
+\section{Context Sweep Table}
+\label{sec:context_sweep_table}
+
+\begin{table}[h]
+\centering
+\caption{Context sweep on HDD (1{,}687 maneuvers, 64 unique frames, no padding). $\text{fps}_\text{eff} = 64\,/\,d$ where $d$ is clip duration in seconds.}
+\begin{tabular}{rcccc}
+\toprule
+\textbf{context\_sec} & \textbf{fps\textsubscript{eff}} & \textbf{Temporal Residual AP} & \textbf{BoT AP} & \textbf{$\Delta$ (Res.\ $-$ BoT)} \\
+\midrule
+1.0 & 11.1 & 0.962 & 0.924 & +0.038 \\
+2.0 & 8.1 & 0.963 & 0.877 & +0.086 \\
+3.0 & 6.4 & 0.956 & 0.825 & +0.131 \\
+4.0 & 5.3 & 0.940 & 0.774 & +0.166 \\
+6.5 & 3.8 & 0.872 & 0.663 & +0.209 \\
+8.0 & 3.2 & 0.838 & 0.614 & +0.224 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both signals degrade as the window widens, but temporal residual degrades more slowly. The gap grows with sparser sampling ($+0.224$ AP at 8\,s): the residual holds up under temporal dilution where spatial content alone does not.
 
 \section{VLM Layer Ablation}
 \label{sec:layer_ablation}
