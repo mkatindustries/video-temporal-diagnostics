@@ -459,6 +459,30 @@ python experiments/eval_viclip.py \
 
 **Output:** `datasets/viclip_results.json`
 
+### 35. TARA Evaluation (Honda HDD) — Table 2, Table 6
+
+TARA (Tarsier-7B MLLM trained with chiral negatives) as a single-vector encoder on HDD. Tests whether temporal training helps under cosine similarity.
+
+```bash
+python experiments/eval_hdd_tara.py \
+    --hdd-dir /path/to/hdd \
+    --model-path ~/src/TARA
+```
+
+**Output:** `datasets/tara_hdd_results.json`
+
+### 36. PL-Stitch Evaluation (Honda HDD) — Table 2, Table 6
+
+PL-Stitch (ViT-Base with Plackett-Luce temporal ranking) as a per-frame encoder on HDD. Enables feature-vs-comparator decomposition with 4 similarity methods (BoF, Chamfer, temporal derivative DTW, raw DTW).
+
+```bash
+python experiments/eval_hdd_pl_stitch.py \
+    --hdd-dir /path/to/hdd \
+    --weights ~/src/PL-Stitch/pl_lemon.pth
+```
+
+**Output:** `datasets/pl_stitch_hdd_results.json`
+
 ## Output Artifact Index
 
 | Artifact | Paper Reference |
@@ -500,6 +524,8 @@ python experiments/eval_viclip.py \
 | `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 4 (Claude probe) |
 | `datasets/epic_kitchens/gemini_probe_results.json` | §3.3, Table 4 (Gemini probe) |
 | `datasets/viclip_results.json` | Table 6, §5 (ViCLIP) |
+| `datasets/tara_hdd_results.json` | Table 2, Table 6 (TARA) |
+| `datasets/pl_stitch_hdd_results.json` | Table 2, Table 6 (PL-Stitch) |
 
 ## Paper Compilation
 
