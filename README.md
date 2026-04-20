@@ -38,6 +38,9 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | V-JEPA 2 Encoder-Seq DTW (HDD) | Disentangles feature vs comparator | AP 0.942 |
 | Raw-frame scramble (V-JEPA 2, VCDB) | Monotonic degradation | AP 0.705→0.652 |
 | ViCLIP (InternVid-10M, all benchmarks) | Order-invariant | VCDB 0.907, HDD 0.542, s_rev 0.996 |
+| TARA (chiral, cosine, HDD) | Chiral training does not help under cosine | AP 0.547, s_rev 0.955 |
+| PL-Stitch BoF (HDD) | At chance despite temporal pretraining | AP 0.478, s_rev 1.000 |
+| PL-Stitch DTW raw (HDD) | Encodes order but lacks capacity | AP 0.540, s_rev 0.006 |
 
 Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling — no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW — symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude 4.6 Opus) fares no better than 7B open-weight models; a reasoning model (Gemini 3.1 Pro) shows marginal improvement (~0.60 balanced accuracy) but remains far from reliable. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
 
@@ -119,6 +122,8 @@ python experiments/eval_vcdb_scramble_raw.py     # Raw-frame scramble (V-JEPA 2 
 python experiments/eval_vjepa2_vcdb_bootstrap.py # V-JEPA 2 VCDB bootstrap CIs
 python experiments/eval_cluster_bootstrap.py     # Cluster-level block bootstrap CIs
 python experiments/eval_viclip.py                # ViCLIP video-native baseline (all benchmarks)
+python experiments/eval_hdd_tara.py              # TARA chiral-trained MLLM on HDD
+python experiments/eval_hdd_pl_stitch.py         # PL-Stitch temporal ranking on HDD
 ```
 
 ## Benchmarks
@@ -144,6 +149,8 @@ python experiments/eval_viclip.py                # ViCLIP video-native baseline 
 | Claude 4.6 Opus | API-only (`claude-4-6-opus-genai`) | Proprietary VLM (generative probe only) |
 | Gemini 3.1 Pro | API-only (`gemini-3-1-pro-preview-genai`) | Proprietary reasoning VLM (generative probe only) |
 | ViCLIP ViT-L | `OpenGVLab/ViCLIP` (local weights) | Video-native contrastive (InternVid-10M, 768-dim) |
+| TARA (Tarsier-7B) | `bpiyush/TARA` (local weights) | Chiral-trained MLLM (16 frames, 4096-dim) |
+| PL-Stitch ViT-B | `visurg/PL-Stitch` (`pl_lemon.pth`) | Temporal ranking pretrained (per-frame, 768-dim) |
 
 ## Paper
 
