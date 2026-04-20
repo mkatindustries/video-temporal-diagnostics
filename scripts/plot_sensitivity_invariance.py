@@ -22,12 +22,17 @@ methods = [
     ("V-JEPA 2 Temp. Res.", 0.301, 0.698, 0.956, "^", "#2ca02c"),
     ("ViCLIP", 0.004, 0.907, 0.542, "h", "#d62728"),
     ("X-CLIP", 0.020, 0.960, None, "P", "#9467bd"),
+    ("TARA (chiral)", 0.045, None, 0.547, "h", "#e377c2"),
+    ("PL-Stitch BoF", 0.000, None, 0.478, "o", "#bcbd22"),
+    ("PL-Stitch DTW", 0.994, None, 0.540, "^", "#bcbd22"),
 ]
 
 fig, ax = plt.subplots(figsize=(9, 6.5))
 
 # ── Plot points ──────────────────────────────────────────────────────
 for label, ts, vcdb, hdd, marker, color in methods:
+    if vcdb is None:
+        continue  # HDD-only methods plotted separately below
     size = 200 if hdd is not None else 140
     ax.scatter(
         ts,
@@ -81,7 +86,7 @@ ax.text(
 )
 ax.text(
     0.88,
-    0.62,
+    0.68,
     "Temporally sensitive\n(manipulation detection)",
     fontsize=9,
     fontstyle="italic",
@@ -106,6 +111,23 @@ ax.annotate(
     fontstyle="italic",
     bbox=dict(
         boxstyle="round,pad=0.4", facecolor="#f0f0f0", edgecolor="#cccccc", alpha=0.85
+    ),
+)
+
+# ── Temporal-training baselines (HDD-only, no VCDB) ─────────────────
+ax.annotate(
+    "Temporal-training baselines (HDD only, no VCDB data)\n"
+    "TARA (chiral): HDD 0.547, $s_{\\mathrm{rev}}$ 0.955\n"
+    "PL-Stitch BoF: HDD 0.478, $s_{\\mathrm{rev}}$ 1.000\n"
+    "PL-Stitch DTW: HDD 0.540, $s_{\\mathrm{rev}}$ 0.006",
+    xy=(0.55, 0.635),
+    fontsize=7.5,
+    ha="left",
+    va="top",
+    color="#666666",
+    fontstyle="italic",
+    bbox=dict(
+        boxstyle="round,pad=0.4", facecolor="#fdf6ec", edgecolor="#cccccc", alpha=0.85
     ),
 )
 
