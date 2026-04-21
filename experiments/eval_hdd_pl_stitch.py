@@ -22,7 +22,7 @@ Usage:
         --weights ~/src/PL-Stitch/pl_lemon.pth
 
     python experiments/eval_hdd_pl_stitch.py \\
-        --weights /checkpoint/dream/arjangt/video_retrieval/PL-Stitch/pl_lemon.pth
+        --weights /path/to/PL-Stitch/pl_lemon.pth
 """
 
 import argparse
