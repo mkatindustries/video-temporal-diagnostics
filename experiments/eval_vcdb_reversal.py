@@ -65,12 +65,12 @@ VJEPA2_METHODS = [
 ]
 
 METHOD_COLORS = {
-    "bag_of_frames": "#e74c3c",
-    "chamfer": "#1abc9c",
-    "temporal_derivative": "#2ecc71",
-    "attention_trajectory": "#3498db",
-    "vjepa2_bag_of_tokens": "#9b59b6",
-    "vjepa2_temporal_residual": "#f39c12",
+    "bag_of_frames": "#1f77b4",
+    "chamfer": "#1f77b4",
+    "temporal_derivative": "#ff7f0e",
+    "attention_trajectory": "#ff7f0e",
+    "vjepa2_bag_of_tokens": "#2ca02c",
+    "vjepa2_temporal_residual": "#2ca02c",
 }
 
 METHOD_LABELS = {
