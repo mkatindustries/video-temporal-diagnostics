@@ -102,15 +102,3 @@ The VCDB scramble gradient figure and the `s_rev` rows of the cross-method
 summary table were produced by these same functions, called from scripts under
 `experiments/`. See `REPRODUCIBILITY.md` at the repo root for the end-to-end
 pipeline (data download, embedding extraction, evaluation).
-
-## Citation
-
-If you use this toolkit, please cite:
-
-```
-@article{talattof2026temporal,
-  title  = {The Temporal Blind Spot in Video Retrieval: Diagnosing Temporal Sensitivity},
-  author = {Talattof, Arjang},
-  year   = {2026}
-}
-```

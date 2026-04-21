@@ -18,7 +18,7 @@ Usage:
 
     # With explicit checkpoint directory
     python experiments/eval_hdd_tara.py \\
-        --model-path /checkpoint/dream/arjangt/video_retrieval/TARA
+        --model-path /path/to/TARA
 """
 
 import argparse
