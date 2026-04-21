@@ -85,14 +85,14 @@ ax.text(
     transform=ax.transData,
 )
 ax.text(
-    0.88,
-    0.68,
+    0.98,
+    0.80,
     "Temporally sensitive\n(manipulation detection)",
     fontsize=9,
     fontstyle="italic",
     color="#bb6622",
     ha="right",
-    va="bottom",
+    va="top",
     transform=ax.transData,
 )
 
@@ -135,7 +135,7 @@ ax.annotate(
 ax.set_xlabel("Temporal Sensitivity  $(1 - s_{\\mathrm{rev}})$", fontsize=12)
 ax.set_ylabel("Copy Robustness  (VCDB AP)", fontsize=12)
 ax.set_xlim(-0.05, 1.0)
-ax.set_ylim(0.60, 1.05)
+ax.set_ylim(0.55, 1.05)
 ax.grid(True, alpha=0.25, linestyle="--")
 ax.set_title(
     "Sensitivity–Invariance Trade-off in Video Retrieval",

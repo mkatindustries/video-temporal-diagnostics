@@ -14,44 +14,41 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 fig_dir = project_root / "figures"
 
+# ── Colors ───────────────────────────────────────────────────────────
+# DINOv3 (4 bars): shades of orange/red via Oranges colormap
+# V-JEPA 2 (3 bars): shades of green via Greens colormap
+oranges = plt.get_cmap("Oranges")
+greens  = plt.get_cmap("Greens")
+dino_colors   = [oranges(0.45), oranges(0.60), oranges(0.75), oranges(0.90)]
+jepa_colors   = [greens(0.50),  greens(0.70),  greens(0.90)]
+viclip_color  = "#377eb8"   # blue  (own)
+tara_color    = "#984ea3"   # purple (own)
+
 # ── Collect results ──────────────────────────────────────────────────
 # Order matches Table 2 in the paper
 methods = [
-    ("DINOv3\nTemp. Deriv.", 0.498, 0.526, "#ff7f0e"),
-    ("DINOv3\nAttn. Traj.", 0.507, 0.541, "#ff7f0e"),
-    ("DINOv3\nBoF", 0.530, 0.542, "#1f77b4"),
-    ("DINOv3\nChamfer", 0.559, 0.577, "#1f77b4"),
-    ("ViCLIP", 0.542, 0.549, "#d62728"),
-    ("TARA\n(chiral)", 0.547, 0.600, "#e377c2"),
+    ("DINOv3\nTemp. Deriv.", 0.498, 0.526, dino_colors[0]),
+    ("DINOv3\nAttn. Traj.",  0.507, 0.541, dino_colors[1]),
+    ("DINOv3\nBoF",          0.530, 0.542, dino_colors[2]),
+    ("DINOv3\nChamfer",      0.559, 0.577, dino_colors[3]),
+    ("ViCLIP",               0.542, 0.549, viclip_color),
+    ("TARA\n(chiral)",       0.547, 0.600, tara_color),
 ]
-
-# Load PL-Stitch results
-pl_path = project_root / "datasets" / "pl_stitch_hdd_results.json"
-if pl_path.exists():
-    with open(pl_path) as f:
-        pl = json.load(f)
-    methods.extend([
-        ("PL-Stitch\nBoF", pl["hdd"]["bag_of_frames"]["ap"], pl["hdd"]["bag_of_frames"]["auc"], "#bcbd22"),
-        ("PL-Stitch\nChamfer", pl["hdd"]["chamfer"]["ap"], pl["hdd"]["chamfer"]["auc"], "#bcbd22"),
-        ("PL-Stitch\nTemp. Deriv.", pl["hdd"]["temporal_derivative"]["ap"], pl["hdd"]["temporal_derivative"]["auc"], "#bcbd22"),
-        ("PL-Stitch\nDTW", pl["hdd"]["dtw_raw"]["ap"], pl["hdd"]["dtw_raw"]["auc"], "#bcbd22"),
-    ])
 
 # Load TARA results (overwrite placeholder if JSON available)
 tara_path = project_root / "datasets" / "tara_hdd_results.json"
 if tara_path.exists():
     with open(tara_path) as f:
         tara = json.load(f)
-    # Update TARA entry
     for i, (name, ap, auc, color) in enumerate(methods):
         if "TARA" in name:
             methods[i] = (name, tara["hdd"]["ap"], tara["hdd"]["auc"], color)
 
 # Add V-JEPA 2 methods (always last, best performers)
 methods.extend([
-    ("V-JEPA 2\nBoT", 0.825, 0.836, "#2ca02c"),
-    ("V-JEPA 2\nEnc-Seq DTW", 0.942, 0.935, "#2ca02c"),
-    ("V-JEPA 2\nTemp. Res.", 0.956, 0.952, "#2ca02c"),
+    ("V-JEPA 2\nBoT",         0.825, 0.836, jepa_colors[0]),
+    ("V-JEPA 2\nEnc-Seq DTW", 0.942, 0.935, jepa_colors[1]),
+    ("V-JEPA 2\nTemp. Res.",  0.956, 0.952, jepa_colors[2]),
 ])
 
 labels = [m[0] for m in methods]
