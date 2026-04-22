@@ -124,6 +124,11 @@ python experiments/eval_cluster_bootstrap.py     # Cluster-level block bootstrap
 python experiments/eval_viclip.py                # ViCLIP video-native baseline (all benchmarks)
 python experiments/eval_hdd_tara.py              # TARA chiral-trained MLLM on HDD
 python experiments/eval_hdd_pl_stitch.py         # PL-Stitch temporal ranking on HDD
+python experiments/eval_hdd_ordered_maxsim.py    # OrderedMaxSim comparator ablation (DINOv3, HDD)
+python experiments/eval_hdd_ordered_maxsim_vjepa2.py # OrderedMaxSim comparator ablation (V-JEPA 2, HDD)
+python experiments/eval_vcdb_ordered_maxsim.py   # OrderedMaxSim on VCDB (both backbones, cached features)
+python experiments/vcdb_violation_diagnostic.py  # Monotonicity violation count (positive pairs)
+python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positive vs negative pairs
 ```
 
 ## Benchmarks

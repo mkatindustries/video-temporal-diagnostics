@@ -483,6 +483,50 @@ python experiments/eval_hdd_pl_stitch.py \
 
 **Output:** `datasets/pl_stitch_hdd_results.json`
 
+### 37. OrderedMaxSim Comparator Ablation — DINOv3 on HDD (Supplementary)
+
+Tests whether a monotonicity-penalised late-interaction comparator (OrderedMaxSim) on frozen DINOv3 per-frame CLS tokens can close the comparator gap on HDD.
+
+```bash
+python experiments/eval_hdd_ordered_maxsim.py \
+    --hdd-dir /path/to/hdd
+```
+
+**Output:** `/path/to/hdd/ordered_maxsim_ablation_results.json`, `datasets/dinov3_hdd_frame_features.pt` (cached features)
+
+### 38. OrderedMaxSim Comparator Ablation — V-JEPA 2 on HDD (Supplementary)
+
+Same comparator suite on V-JEPA 2 encoder-sequence tokens (32×1024 per segment). Includes DTW as reference upper bound.
+
+```bash
+python experiments/eval_hdd_ordered_maxsim_vjepa2.py \
+    --hdd-dir /path/to/hdd
+```
+
+**Output:** `/path/to/hdd/ordered_maxsim_vjepa2_ablation_results.json`, `datasets/vjepa2_hdd_encoder_features.pt` (cached features)
+
+### 39. OrderedMaxSim on VCDB — Both Backbones (Supplementary)
+
+Runs the full comparator suite on VCDB copy detection using pre-cached DINOv3 and V-JEPA 2 features. No feature extraction needed.
+
+```bash
+python experiments/eval_vcdb_ordered_maxsim.py \
+    --vcdb-dir /path/to/vcdb/core_dataset
+```
+
+**Output:** `/path/to/vcdb/core_dataset/ordered_maxsim_ablation_results.json`
+
+### 40. Monotonicity Violation Diagnostic (Supplementary)
+
+Counts MaxSim argmax monotonicity violations per VCDB pair to explain why OrderedMaxSim = Chamfer.
+
+```bash
+python experiments/vcdb_violation_pos_neg.py \
+    --vcdb-dir /path/to/vcdb/core_dataset
+```
+
+**Output:** Console (no saved artifact)
+
 ## Output Artifact Index
 
 | Artifact | Paper Reference |
@@ -526,6 +570,9 @@ python experiments/eval_hdd_pl_stitch.py \
 | `datasets/viclip_results.json` | Table 6, §5 (ViCLIP) |
 | `datasets/tara_hdd_results.json` | Table 2, Table 6 (TARA) |
 | `datasets/pl_stitch_hdd_results.json` | Table 2, Table 6 (PL-Stitch) |
+| `datasets/hdd/ordered_maxsim_ablation_results.json` | Supplementary (DINOv3 OrderedMaxSim ablation) |
+| `datasets/hdd/ordered_maxsim_vjepa2_ablation_results.json` | Supplementary (V-JEPA 2 OrderedMaxSim ablation) |
+| `datasets/vcdb/ordered_maxsim_ablation_results.json` | Supplementary (VCDB OrderedMaxSim ablation) |
 
 ## Paper Compilation
 
