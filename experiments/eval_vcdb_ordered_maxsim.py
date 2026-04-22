@@ -14,7 +14,7 @@ Uses the paper's 1:1 negative sampling protocol (seed=42).
 
 Usage:
     python experiments/eval_vcdb_ordered_maxsim.py \
-        --vcdb-dir /checkpoint/dream/arjangt/video_retrieval/vcdb/core_dataset
+        --vcdb-dir /path/to/vcdb/core_dataset
 """
 
 import argparse
@@ -290,7 +290,7 @@ def main():
     )
     parser.add_argument(
         "--vcdb-dir", type=str,
-        default="/checkpoint/dream/arjangt/video_retrieval/vcdb/core_dataset",
+        default=None,
     )
     parser.add_argument("--device", type=str, default="cuda")
     args = parser.parse_args()

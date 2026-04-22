@@ -18,7 +18,7 @@ it is genuinely order-sensitive.
 
 Usage:
     python experiments/eval_hdd_ordered_maxsim.py \
-        --hdd-dir /checkpoint/dream/arjangt/video_retrieval/hdd
+        --hdd-dir /path/to/hdd
 """
 
 import argparse
@@ -291,7 +291,7 @@ def main():
     )
     parser.add_argument(
         "--hdd-dir", type=str,
-        default="/checkpoint/dream/arjangt/video_retrieval/hdd",
+        default=None,
     )
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--max-clusters", type=int, default=50)
