@@ -6,7 +6,7 @@ between copy pairs and non-copy pairs.
 
 Usage:
     python experiments/vcdb_violation_pos_neg.py \
-        --vcdb-dir /checkpoint/dream/arjangt/video_retrieval/vcdb/core_dataset
+        --vcdb-dir /path/to/vcdb/core_dataset
 """
 
 import argparse
@@ -97,7 +97,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--vcdb-dir", type=str,
-        default="/checkpoint/dream/arjangt/video_retrieval/vcdb/core_dataset",
+        default=None,
     )
     args = parser.parse_args()
 
