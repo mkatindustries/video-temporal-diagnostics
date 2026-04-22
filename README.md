@@ -2,6 +2,10 @@
 
 Diagnostic code for *The Temporal Blind Spot in Video Retrieval: Diagnosing Temporal Sensitivity*. Video deduplication and retrieval using **non-semantic temporal signals**. Semantic embeddings alone can't distinguish videos that share content but represent different recordings — this project explores signals that capture *how* a video moves through content space, not just *what* it contains.
 
+## Abstract
+
+Temporal blindness in video models is well-documented for generative QA, but its consequences for *retrieval embeddings* — where failures are silent — remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks spanning copy detection, temporal manipulation, and high-overlap motion retrieval. A feature-vs-comparator decomposition reveals that the matching stage (per-frame representation and sequence-aware similarity), not the encoder, governs temporal sensitivity: on Honda HDD this switch explains 89% of the performance gap (a non-DTW set-matching aggregation already closes 76%); on nuScenes the matching stage alone is on par with the learned residual transform (AP = 0.867 vs. 0.815; CIs overlap). A *temporal scramble gradient* (K ∈ {1, …, 16}) cleanly separates order-invariant from sequence-aware methods. Embedding probes across three open-weight Video-LLMs localize where temporal signal is lost: per-frame vision features separate forward from reverse perfectly under sequence-aware comparators (by construction), but mean-pooling erases this signal (s_rev ≈ 1.0). Generative probes on Claude 4.6 Opus and Gemini 3.1 Pro fare no better than the open-weight models. Neither linear nor nonlinear probes recover temporal order from LLM hidden states (126 configurations). Across all evaluated methods, no single approach spans both copy detection and motion retrieval, exposing a sensitivity–invariance trade-off that current architectures do not resolve. We release **TemporalDiag**, an open-source toolkit packaging the scramble gradient and reversal tests.
+
 ## The Problem
 
 Two cyclists record themselves biking through New York City. Both pass through Central Park, producing similar frame-level embeddings. A naive semantic deduplication system flags them as duplicates — but they're entirely different videos.
@@ -26,7 +30,7 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM reversal (3 VLMs, EPIC-Kitchens) | All at chance | 0.50--0.54 bal. acc. |
-| VLM reversal (Claude 4.6 Opus, EPIC) | At chance | ~0.52 bal. acc. |
+| VLM reversal (Claude 4.6 Opus, EPIC) | At chance | ~0.55 bal. acc. |
 | VLM reversal (Gemini 3.1 Pro, EPIC) | Marginal | ~0.60 bal. acc. |
 | VLM vision tower s_rev | Order-invariant | ~1.0 |
 | VLM vision sequence DTW s_rev | Order-sensitive | ~0.49 |
