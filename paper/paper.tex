@@ -226,6 +226,7 @@ Each model received identical frames with three semantically equivalent prompts 
 \begin{table}[ht]
 \centering
 \caption{VLM forward/reverse classification on EPIC-Kitchens (500 sequences for open-weight models, 200 for API models). All at or near chance. $\pm$ values are standard deviation across prompts (not statistical uncertainty); binomial 95\% CIs at $N\!=\!200$ are approximately $\pm 0.035$.}
+\label{tab:vlm_generative}
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Model} & \textbf{Prompt 0} & \textbf{Prompt 1} & \textbf{Prompt 2} & \textbf{Mean Bal.\ Acc.} \\
@@ -324,7 +325,7 @@ Optical Flow (RAFT) DTW & --- & 0.478 & --- & --- & --- \\
 
 \begin{table}[ht]
 \centering
-\caption{VLM embedding probes across all tasks, grouped by pipeline stage. Generative forward/reverse classification is reported separately in Section~\ref{sec:vlm_generative} (Table~3).}
+\caption{VLM embedding probes across all tasks, grouped by pipeline stage. Generative forward/reverse classification is reported separately in Section~\ref{sec:vlm_generative} (Table~\ref{tab:vlm_generative}).}
 \label{tab:summary_vlm}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
@@ -901,7 +902,7 @@ VLM LLM hidden state & ${\sim}1{,}500$--$5{,}000$ & $<$0.01 (cosine) \\
 \section{Failure-Mode Taxonomy}
 \label{sec:failure_taxonomy}
 
-The diagnostic suite's value is not individual numbers but a structured classification of \emph{why} video retrieval systems fail temporally. We categorize every failure surfaced in Sections~3 and~4 along six orthogonal axes and list a representative instance for each.
+The diagnostic suite's value is not individual numbers but a structured classification of \emph{why} video retrieval systems fail temporally. We categorize every failure surfaced in Sections~3 and~4 into six failure classes (each probed in primed/unprimed variants, yielding ten rows in Table~\ref{tab:failure_taxonomy}).
 
 \begin{table}[h]
 \centering
@@ -920,7 +921,7 @@ The diagnostic suite's value is not individual numbers but a structured classifi
 \textbf{(D$'$)} & Sampling density & Fixed low frame cap confounds cross-encoder comparison & ViCLIP 8-frame input, ${\sim}0.20$ AP drop at equivalent density \\
 \textbf{(E)} & Evaluation protocol & Pair-level CIs underestimate width under cluster-structured pairs & HDD pair-level $[0.955, 0.958]$ vs.\ cluster-level $[0.890, 0.978]$ \\
 \textbf{(E$'$)} & Evaluation protocol & Seed-dependent absolute AP masks true rank order & VCDB AP drifts ${\pm}0.06$ across negative seeds (Appendix~\ref{sec:neg_sampling}) \\
-\textbf{(F)} & Behavioral / output & Generative output obscures internal temporal signal & Gemma-4: 87\% reverse bias on prompt 0 $\to$ 73\% forward bias on prompt 2 \\
+\textbf{(F)} & Behavioral / output & Generative output obscures internal temporal signal & Gemma-4: 87\% reverse bias on prompt 0 $\to$ 73\% forward bias on prompt 2 (Appendix~\ref{sec:prompt_details}) \\
 \textbf{(F$'$)} & Behavioral / output & Pooled-readout null $\ne$ absence of signal ($p\!\gg\!n$) & LLM hidden states: 126 linear/MLP configs at chance; per-position DTW recovers order \\
 \bottomrule
 \end{tabular}
