@@ -27,7 +27,7 @@ methods = [
     ("PL-Stitch DTW", 0.994, None, 0.540, "^", "#bcbd22"),
 ]
 
-fig, ax = plt.subplots(figsize=(11, 4.05))
+fig, ax = plt.subplots(figsize=(10, 4.4))
 
 # ── Plot points ──────────────────────────────────────────────────────
 for label, ts, vcdb, hdd, marker, color in methods:
