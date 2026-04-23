@@ -360,7 +360,7 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 
 \textbf{Temporal sensitivity in video models.} Lei et al.~\cite{lei2022singleframe} established the static-bias problem. Subsequent work diagnoses this in generative VLM QA~\cite{tempcompass,bagad2023testtime,temporalbench,vbenchcomp,tomato,videozerobench,infact}. Arrow-of-time diagnostics~\cite{aot,arrowrl} and further studies~\cite{timeblindness,timeblind,vitatecs,reveal,weavetime} show the failure is structural; PL-Stitch~\cite{plstitch} and ArrowGEV~\cite{arrowgev} propose training-time fixes. NExT-GQA~\cite{nextgqa} introduces $\mathrm{GQ}@\tau$, a joint grounded-QA metric requiring both correct answers and IoU-sufficient temporal intervals---complementary to the pair-level AP we report, and a natural next step for retrieval benchmarks with segment-level ground truth. MASH-VLM~\cite{mashvlm} identifies RoPE positional bias; TIPSv2~\cite{tipsv2} shows scaling worsens alignment. We differ in \emph{domain} (retrieval) and \emph{granularity} (localizing failure to aggregation via scramble gradients and feature-vs-comparator decomposition). TGPO~\cite{tgpo} uses binary ordered-vs-shuffled RL reward; our scramble gradient extends this to a continuous $K$-parameterized diagnostic. TARA~\cite{tara} introduces chiral negatives for training; we use reversal as a diagnostic probe.
 
-\textbf{Video prediction for temporal understanding.} V-JEPA~2~\cite{vjepa2} learns spatiotemporal representations via masked prediction; Drive-JEPA~\cite{drivejepa} applies these to driving; TWLV-I~\cite{twlvi} evaluates appearance vs.\ motion across video foundation models. Li et al.~\cite{temporaltransfer} show temporal information is encoded but standard pipelines fail to surface it, matching our finding. Co-Settle~\cite{cosettle} studies the trade-off between temporal consistency and semantic separability in image-to-video transfer; our sensitivity--invariance analysis maps a related trade-off in retrieval.
+\textbf{Video prediction for temporal understanding.} V-JEPA~2~\cite{vjepa2} learns spatiotemporal representations via masked prediction; Drive-JEPA~\cite{drivejepa} applies these to driving; TWLV-I~\cite{twlvi} evaluates appearance vs.\ motion across video foundation models. Li et al.~\cite{temporaltransfer} show temporal information is encoded but standard pipelines fail to surface it, matching our finding.
 
 \textbf{Temporal alignment for retrieval.} DTW~\cite{sakoe1978dtw} remains standard; extensions include differentiable DTW~\cite{ddtw} and Drop-DTW~\cite{dropdtw}. At $T \approx 30$ frames, each comparison takes ${\sim}1$\,ms; top-100 reranking after FAISS~\cite{faiss} adds ${\sim}100$\,ms. We use DTW as a diagnostic tool; Weller et al.~\cite{weller2025limits} provide theoretical justification for multi-vector approaches.
 
@@ -396,7 +396,7 @@ Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}. All da
 
 \begin{thebibliography}{99}
 \bibitem{vjepa2} M.~Assran et al. {V-JEPA~2: Self-Supervised Video Models Enable Understanding of Complex Tasks}. \emph{arXiv:2506.09985}, 2025.
-\bibitem{vjepa21} M.~Assran et al. {V-JEPA~2.1}. \emph{arXiv:2603.14482}, 2026.
+\bibitem{vjepa21} L.~Mur-Labadia et al. {V-JEPA~2.1}. \emph{arXiv:2603.14482}, 2026.
 \bibitem{dinov3} O.~Sim\'{e}oni et al. {DINOv3: Towards Visual Foundation Models with Self-Supervised Learning}. \emph{arXiv:2508.10104}, 2025.
 \bibitem{vcdb} Y.~Jiang et al. {VCDB}. In \emph{ECCV}, 2014.
 \bibitem{honda_hdd} V.~Ramanishka et al. Toward driving scene understanding. In \emph{CVPR}, 2018.
@@ -430,7 +430,6 @@ Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}. All da
 \bibitem{reveal} T.~V.~Sethuraman et al. Stress Tests REVEAL Fragile Temporal and Visual Grounding in Video-Language Models. \emph{arXiv:2602.11244}, 2026.
 \bibitem{timeblind} B.~Li et al. TimeBlind: A Spatio-Temporal Compositionality Benchmark for Video LLMs. \emph{arXiv:2602.00288}, 2026.
 \bibitem{tgpo} Z.~Xu et al. Incentivizing Temporal-Awareness in Egocentric Video Understanding Models. \emph{arXiv:2603.27184}, 2026.
-\bibitem{cosettle} Y.~Liu et al. From Static to Dynamic: Exploring Self-supervised Image-to-Video Representation Transfer Learning. In \emph{CVPR}, 2026.
 \bibitem{tara} P.~Bagad and A.~Zisserman. TARA: Simple and Efficient Time Aware Retrieval Adaptation of MLLMs. \emph{arXiv:2512.13511}, 2025.
 \bibitem{drivejepa} L.~Wang et al. Drive-JEPA: Video JEPA Meets Multimodal Trajectory Distillation for End-to-End Driving. \emph{arXiv:2601.22032}, 2026.
 \bibitem{weller2025limits} O.~Weller, M.~Boratko, I.~Naim, and J.~Lee. On the Theoretical Limitations of Embedding-Based Retrieval. \emph{arXiv:2508.21038}, 2025.
@@ -448,7 +447,7 @@ Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}. All da
 \bibitem{vbenchcomp} B.~Feng, Z.~Lai, S.~Li, Z.~Wang, S.~Wang, P.~Huang, and M.~Cao. Breaking Down Video LLM Benchmarks: Knowledge, Spatial Perception, or True Temporal Understanding? \emph{arXiv:2505.14321}, 2025.
 \bibitem{wang2023duallevel} T.~Wang, F.~Ma, Z.~Liu, and F.~Rao. A Dual-Level Detection Method for Video Copy Detection. \emph{arXiv:2305.12361}, 2023.
 \bibitem{infact} J.~Yang, Y.~Min, J.~Zhang, S.~Shan, and X.~Chen. INFACT: A Diagnostic Benchmark for Induced Faithfulness and Factuality Hallucinations in Video-LLMs. \emph{arXiv:2603.11481}, 2026.
-\bibitem{videozerobench} J.~Meng et al. VideoZeroBench: Probing Video Understanding through Spatio-Temporal Evidence Verification. \emph{arXiv:2604.01569}, 2026.
+\bibitem{videozerobench} J.~Meng et al. VideoZeroBench: Probing the Limits of Video MLLMs with Spatio-Temporal Evidence Verification. \emph{arXiv:2604.01569}, 2026.
 \bibitem{claude4opus} Anthropic. Claude 4.6 Opus Model Card. \url{https://docs.anthropic.com/en/docs/about-claude/models}, 2026.
 \bibitem{gemini31pro} Google DeepMind. Gemini 3.1 Pro. \url{https://ai.google.dev/gemini-api/docs/models}, 2026.
 \bibitem{mashvlm} K.~Bae et al. MASH-VLM: Mitigating Action-Scene Hallucination in Video-LLMs through Disentangled Spatial-Temporal Representations. In \emph{CVPR}, 2025.

@@ -46,3 +46,8 @@ slurm_jobs/
 
 # Downloaded datasets (large)
 datasets/
+
+# Submission scratch files (delete before submission)
+paper/SUBMISSION_PUNCHLIST.md
+paper/SKILLS.md
+texput.log
