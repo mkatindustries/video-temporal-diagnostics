@@ -27,7 +27,7 @@ methods = [
     ("PL-Stitch DTW", 0.994, None, 0.540, "^", "#bcbd22"),
 ]
 
-fig, ax = plt.subplots(figsize=(9, 6.5))
+fig, ax = plt.subplots(figsize=(11, 4.0))
 
 # ── Plot points ──────────────────────────────────────────────────────
 for label, ts, vcdb, hdd, marker, color in methods:
@@ -158,7 +158,8 @@ legend_elements = [
         markersize=9,
         label=label,
     )
-    for label, _ts, _vcdb, _hdd, marker, color in methods
+    for label, _ts, vcdb, _hdd, marker, color in methods
+    if vcdb is not None  # only methods actually plotted as points
 ]
 ax.legend(
     handles=legend_elements,
