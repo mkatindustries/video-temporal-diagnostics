@@ -26,7 +26,7 @@ Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 
 
 Main body figures: Figure 1 (Reversal Attack), Figure 2 (Scramble Gradient), Figure 3 (HDD Maneuver), Figure 4 (Context Sweep), Figure 5 (Sensitivity-Invariance Trade-off).
 
-Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (Vision-Token Probes), Table 16 (Scramble Data), Table 17 (Linear+MLP Probes), Table 18 (Computational Costs), Table 19 (Licenses).
+Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (α-Invariance Sweep), Table 16 (Vision-Token Probes), Table 17 (Scramble Data), Table 18 (Linear+MLP Probes), Table 19 (Computational Costs), Table 20 (Licenses).
 
 Appendix figures: Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
@@ -532,6 +532,18 @@ python experiments/vcdb_violation_pos_neg.py \
 
 **Output:** Console (no saved artifact)
 
+### 41. DTW α-Invariance Sweep — Table 15 (Appendix)
+
+Verifies that AP ranking is invariant to the similarity-transform temperature α ∈ {0.5, 1, 2, 5, 10} across three representative cells. Uses `normalize=False` for temporal-derivative fingerprints and `normalize=True` for encoder-seq, matching the paper's evaluation protocol.
+
+```bash
+python experiments/alpha_sweep.py \
+    --hdd-dir /path/to/hdd \
+    --vcdb-dir /path/to/vcdb/core_dataset
+```
+
+**Output:** `datasets/alpha_sweep_results.json`
+
 ## Output Artifact Index
 
 | Artifact | Paper Reference |
@@ -578,6 +590,7 @@ python experiments/vcdb_violation_pos_neg.py \
 | `datasets/hdd/ordered_maxsim_ablation_results.json` | Supplementary (DINOv3 OrderedMaxSim ablation) |
 | `datasets/hdd/ordered_maxsim_vjepa2_ablation_results.json` | Supplementary (V-JEPA 2 OrderedMaxSim ablation) |
 | `datasets/vcdb/ordered_maxsim_ablation_results.json` | Supplementary (VCDB OrderedMaxSim ablation) |
+| `datasets/alpha_sweep_results.json` | Table 15 (Appendix, α-invariance sweep) |
 
 ## Paper Compilation
 

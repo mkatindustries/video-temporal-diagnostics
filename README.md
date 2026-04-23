@@ -4,7 +4,7 @@ Diagnostic code for *The Temporal Blind Spot in Video Retrieval: Diagnosing Temp
 
 ## Abstract
 
-Temporal blindness in video models is well-documented for generative QA, but its consequences for *retrieval embeddings* — where failures are silent — remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks spanning copy detection, temporal manipulation, and high-overlap motion retrieval. A feature-vs-comparator decomposition reveals that the matching stage (per-frame representation and sequence-aware similarity), not the encoder, governs temporal sensitivity: on Honda HDD this switch explains 89% of the performance gap (a non-DTW set-matching aggregation already closes 76%); on nuScenes the matching stage alone is on par with the learned residual transform (AP = 0.867 vs. 0.815; CIs overlap). A *temporal scramble gradient* (K ∈ {1, …, 16}) cleanly separates order-invariant from sequence-aware methods. Embedding probes across three open-weight Video-LLMs localize where temporal signal is lost: per-frame vision features separate forward from reverse perfectly under sequence-aware comparators (by construction), but mean-pooling erases this signal (s_rev ≈ 1.0). Generative probes on Claude 4.6 Opus and Gemini 3.1 Pro fare no better than the open-weight models. Neither linear nor nonlinear probes recover temporal order from LLM hidden states (126 configurations). Across all evaluated methods, no single approach spans both copy detection and motion retrieval, exposing a sensitivity–invariance trade-off that current architectures do not resolve. We release **TemporalDiag**, an open-source toolkit packaging the scramble gradient and reversal tests.
+Temporal blindness in video models is well-documented for generative QA, but its consequences for *retrieval embeddings* — where failures are silent — remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks spanning copy detection, temporal manipulation, and high-overlap motion retrieval. A feature-vs-comparator decomposition reveals that, within a given encoder, the matching stage (per-frame representation and sequence-aware similarity) governs temporal sensitivity: on Honda HDD this switch explains 89% of the performance gap between bag-of-tokens and the temporal residual (point estimate; cluster-level block-bootstrap CIs are wider), with a non-DTW set-matching aggregation already closing 76%; on nuScenes the matching stage alone is on par with the learned residual transform (AP = 0.867 vs. 0.815; CIs marginally overlap). A *temporal scramble gradient* (K ∈ {1, …, 16}) cleanly separates order-invariant from sequence-aware methods. Embedding probes across three open-weight Video-LLMs localize where temporal signal is lost: temporal-derivative DTW separates forward from reverse perfectly — an algebraic property of derivatives under reversal, not of the features themselves — but mean-pooling erases this signal (s_rev ≈ 1.0). Generative probes on Claude 4.6 Opus and Gemini 3.1 Pro fare no better than the open-weight models. Neither linear nor nonlinear probes recover temporal order from LLM hidden states (126 configurations, though the p ≫ n regime bounds recoverability rather than proving absence). Across all evaluated methods, no single approach spans both copy detection and motion retrieval, exposing a sensitivity–invariance trade-off that current architectures do not resolve. We release open-source code packaging the scramble gradient and reversal tests.
 
 ## The Problem
 
@@ -73,7 +73,7 @@ Requires Python 3.10+, CUDA GPU recommended.
 
 ## Diagnostic Toolkit
 
-The `temporal-diag` CLI packages the scramble gradient and reversal test as reusable evaluation components (see paper Section 5).
+The scramble gradient and reversal test are packaged as reusable evaluation components (see paper Section 5).
 
 **Python API:**
 
@@ -133,6 +133,7 @@ python experiments/eval_hdd_ordered_maxsim_vjepa2.py # OrderedMaxSim comparator 
 python experiments/eval_vcdb_ordered_maxsim.py   # OrderedMaxSim on VCDB (both backbones, cached features)
 python experiments/vcdb_violation_diagnostic.py  # Monotonicity violation count (positive pairs)
 python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positive vs negative pairs
+python experiments/alpha_sweep.py                # DTW α-invariance sweep (3 cells × 5 α values)
 ```
 
 ## Benchmarks
