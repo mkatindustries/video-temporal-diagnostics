@@ -26,7 +26,7 @@ Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 
 
 Main body figures: Figure 1 (Reversal Attack), Figure 2 (Scramble Gradient), Figure 3 (HDD Maneuver), Figure 4 (Context Sweep), Figure 5 (Sensitivity-Invariance Trade-off).
 
-Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (α-Invariance Sweep), Table 16 (Vision-Token Probes), Table 17 (Scramble Data), Table 18 (Linear+MLP Probes), Table 19 (Computational Costs), Table 20 (Licenses).
+Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (α-Invariance Sweep), Table 16 (Vision-Token Probes), Table 17 (Scramble Data), Table 18 (Linear+MLP Probes), Table 19 (Computational Costs), Table 20 (Failure-Mode Taxonomy), Table 21 (Licenses). Appendix R is the failure-mode taxonomy; Appendix S is the reproducibility scope statement; Appendix T is the license summary.
 
 Appendix figures: Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
