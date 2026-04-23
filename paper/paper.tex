@@ -368,28 +368,28 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 \section{Discussion}
 \label{sec:discussion}
 
-No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). \textbf{(ii)~Motion dynamics} (HDD, nuScenes): per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56); the residual advantage grows under sparser sampling (Section~\ref{sec:context_sweep}). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (per-frame structure with sequence-aware similarity), and on nuScenes the matching stage alone is on par with the residual transform (AP\,=\,0.867 vs.\ 0.815, marginally overlapping CIs)---within a given encoder, matching, not encoding, is the dominant driver. Video-native ViCLIP~\cite{viclip} ($s_\text{rev}\!=\!0.996$, HDD AP\,=\,0.542) and X-CLIP~\cite{xclip} ($s_\text{rev}\!=\!0.980$) do not escape the blind spot. Encoders with explicit temporal training fare no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} BoF (0.478) fail under cosine; even under DTW, PL-Stitch (0.540, $s_\text{rev}\!=\!0.006$---order \emph{is} encoded) trails DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL (DINOv3) and temporal ranking (PL-Stitch) are insufficient without capacity and scale. \textbf{(iii)~Temporal manipulation} (reversal, scrambling): implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither reaches reliable. Per-frame features separate forward/reverse under DTW; pooling erases it across all LLM layers.
+No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). \textbf{(ii)~Motion dynamics} (HDD, nuScenes): per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56); the residual advantage grows under sparser sampling (Section~\ref{sec:context_sweep}). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (per-frame structure with sequence-aware similarity), and on nuScenes the matching stage alone is on par with the residual transform (AP\,=\,0.867 vs.\ 0.815, marginally overlapping CIs)---within a given encoder, matching, not encoding, is the dominant driver. Video-native ViCLIP~\cite{viclip} ($s_\text{rev}\!=\!0.996$, HDD AP\,=\,0.542) and X-CLIP~\cite{xclip} ($s_\text{rev}\!=\!0.980$) do not escape the blind spot. Encoders with explicit temporal training fare no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} BoF (0.478) fail under cosine; even under DTW, PL-Stitch (0.540, $s_\text{rev}\!=\!0.006$---order \emph{is} encoded) trails DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL (DINOv3) and temporal ranking (PL-Stitch) are insufficient without capacity and scale. \textbf{(iii)~Temporal manipulation} (reversal, scrambling): implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither reaches reliable. Per-frame features separate forward/reverse under DTW; pooling erases it across all LLM layers. \textbf{Decision procedure.} The three tools compose prescriptively: scramble first (flat AP $\Rightarrow$ A/A$'$); if degrading, feature-vs-comparator decomposition attributes to encoder (B) vs.\ matching (C); sampling-density sweep isolates D/D$'$. E/E$'$ and F/F$'$ surface via cluster CIs and generative-vs-embedding disagreement, running Table~\ref{tab:failure_taxonomy} as a protocol rather than post-hoc classification.
 
 \begin{figure}[ht]
     \centering
     \vspace{-0.5em}
-    \includegraphics[width=0.45\textwidth]{../figures/sensitivity_invariance_tradeoff.png}
+    \includegraphics[width=0.85\textwidth]{../figures/sensitivity_invariance_tradeoff.png}
     \caption{Sensitivity--invariance trade-off: $1 - s_\text{rev}$ (EPIC) vs.\ VCDB AP. No method occupies the upper-right quadrant. \textbf{Axis caveat:} pooled and sequence $s_\text{rev}$ use different similarity functions (Eq.~\eqref{eq:srev}) and are not unit-commensurate; the quadrant claim depends only on within-family rankings.}
     \label{fig:sensitivity_invariance}
     \vspace{-0.5em}
 \end{figure}
 
-\textbf{Limitations.} DTW is not indexable ($O(T^2)$); probes train on 400 samples in $p \gg n$ ($D \approx 4{,}000$), bounding recoverability rather than proving absence; ViCLIP's 8-frame input confounds comparison with 64-frame V-JEPA~2 (${\sim}0.20$ AP drop at equivalent density, Section~\ref{sec:context_sweep}). Spatial occlusion attacks (overlays, watermarks, color perturbations) remain a separate, often more prevalent threat orthogonal to temporal blindness.
+\textbf{Limitations.} DTW is not indexable ($O(T^2)$); probes train on 400 samples in $p \gg n$ ($D \approx 4{,}000$), bounding recoverability rather than proving absence; ViCLIP's 8-frame input confounds comparison with 64-frame V-JEPA~2 (${\sim}0.20$ AP drop at equivalent density, Section~\ref{sec:context_sweep}). Spatial occlusion attacks are orthogonal to temporal blindness.
 
-\textbf{Practitioner recommendations.} (1)~Run the scramble gradient at $K\!\in\!\{1,4,16\}$: flat AP $\Rightarrow$ blind. (2)~Copy detection: high-precision actions favor BoF; soft actions accept temporal comparators. (3)~Motion retrieval: BoF $\to$ top-$k$ DTW rerank adds ${\sim}100$\,ms/query (Appendix~\ref{sec:computational_costs}).
+\textbf{Practitioner recommendations.} (1)~Copy detection: high-precision actions favor BoF; soft actions accept temporal comparators. (2)~Motion retrieval: BoF $\to$ top-$k$ DTW rerank adds ${\sim}100$\,ms/query (Appendix~\ref{sec:computational_costs}).
 
-\vspace{-0.5em}
+\vspace{-1em}
 \section{Conclusion}
-\vspace{-0.3em}
+\vspace{-0.6em}
 
-No method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}). Within an encoder, the matching stage explains 89\% of the HDD gap; pooling erases per-frame order across VLM layers. Indexable order-sensitive comparators remain the open problem. %
+No method spans copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within an encoder, matching explains 89\% of the HDD gap; pooling erases per-frame order across VLM layers. Indexable order-sensitive comparators remain open. %
 \ifdefined\neuripssubmission
-Code and data: supplementary; see \texttt{REPRODUCIBILITY.md}.%
+Code: supplementary (\texttt{REPRODUCIBILITY.md}).%
 \else
 Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.%
 \fi
@@ -909,7 +909,7 @@ The diagnostic suite's value is not individual numbers but a structured classifi
 \small
 \caption{Failure-mode taxonomy. Each row names a failure class, its symptom under our diagnostics, and a canonical instance from the six-benchmark evaluation. The classes are orthogonal: a single system can fail along multiple axes (e.g., DINOv3 BoF fails on both (A) and (B)).}
 \label{tab:failure_taxonomy}
-\begin{tabular}{llp{4.6cm}p{4.8cm}}
+\begin{tabular}{llp{4.4cm}p{4.6cm}}
 \toprule
 \textbf{Class} & \textbf{Root cause} & \textbf{Diagnostic symptom} & \textbf{Canonical instance} \\
 \midrule
