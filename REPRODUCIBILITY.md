@@ -96,6 +96,19 @@ python experiments/eval_hdd_encoder_seq.py \
 
 **Output:** `datasets/hdd/encoder_seq_results.json`
 
+### 6b. BoT→DTW Two-Stage Retriever (HDD) — Table 3 (§3.2), Appendix (full sweep + RRF)
+
+Prescriptive follow-up to the 89% decomposition: tests whether the pairwise gain composes into a cheap indexable retriever. For each query, score candidates by V-JEPA 2 BoT cosine, keep top-k, rerank survivors with encoder-sequence DTW, score non-survivors below the BoT floor. Reports survivor-AP (main body) and reciprocal-rank-fusion AP (appendix), both with recall@k.
+
+```bash
+python experiments/eval_hdd_bof_dtw_rerank.py \
+    --hdd-dir /path/to/hdd
+```
+
+Requires pre-extracted features at `datasets/vjepa2_hdd_encoder_features.pt` (produced by experiment 6 above or `eval_hdd_ordered_maxsim_vjepa2.py`). No new feature extraction.
+
+**Output:** `datasets/hdd/bof_dtw_rerank_results.json`
+
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 
 ```bash

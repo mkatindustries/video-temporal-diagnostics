@@ -148,6 +148,7 @@ BoF and Chamfer yield zero AP delta under reversal. Only attention-trajectory DT
 The gradient separates method classes (Figure~\ref{fig:scramble_gradient}; Appendix~\ref{sec:scramble_data}): order-invariant methods stay flat; attention trajectories degrade most ($-18.3\%$ relative from $K\!=\!1$ to $K\!=\!16$), consistent with gaze paths carrying the most temporal structure.
 
 \subsection{High-Overlap Motion: Honda HDD \& nuScenes}
+\label{sec:motion}
 
 To isolate motion from appearance, we clustered 128 Honda HDD~\cite{honda_hdd} driving sessions by RTK GPS, extracting 1{,}687 maneuvers at 50 mixed-direction intersections where BoF similarity averages $0.63 \pm 0.18$ regardless of turn direction (Appendix~\ref{sec:hdd_qualitative}). The full dataset is passage-dominated (${\sim}66\%$), so AP is partially inflated by easier passing-vs-turn negatives.
 
@@ -177,7 +178,26 @@ V-JEPA 2 Encoder-Seq DTW & 0.942 & 0.935 \\
 \end{tabular}
 \end{table}
 
-DINOv3 methods fail (AP $\approx$ 0.50): dashcam attention tracks salient objects identical for both turns. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy rules out a trivial intensity shortcut (Spearman $r = 0.051$; Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves only AP\,=\,0.478. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963]. Comparing encoder patches via DTW (encoder-sequence DTW) achieves AP\,=\,0.942, showing that the matching stage (pooled-cosine $\to$ per-frame DTW) explains 89\% of the BoT-to-residual gap (0.825 $\to$ 0.956; point estimate, cluster-level CIs wider, Appendix~\ref{sec:bootstrap_cis}). A pairwise \emph{symmetric-max} (Chamfer) aggregation~\cite{kordopatis2019visil} on the same V-JEPA~2 encoder-sequence patches further decomposes this: it reaches AP\,=\,0.914 without any dynamic programming, closing 76\% of the BoT$\to$Encoder-Seq-DTW gap. The remaining 24\% (0.914$\to$0.942) is attributable specifically to DTW's monotonic warping constraint. We restrict encoder-sequence DTW to motion tasks (HDD, nuScenes); on VCDB, BoF already hits AP\,=\,0.989. In practice, a practitioner tuning a motion-retrieval system should invest in the matching stage (pooled$\to$sequence-aware) before training a new encoder---the within-encoder gap is where most of the performance lives.
+DINOv3 methods fail (AP $\approx$ 0.50): dashcam attention tracks salient objects identical for both turns. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy rules out a trivial intensity shortcut (Spearman $r = 0.051$; Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves only AP\,=\,0.478. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963]. Comparing encoder patches via DTW (encoder-sequence DTW) achieves AP\,=\,0.942, showing that the matching stage (pooled-cosine $\to$ per-frame DTW) explains 89\% of the BoT-to-residual gap (0.825 $\to$ 0.956; point estimate, cluster-level CIs wider, Appendix~\ref{sec:bootstrap_cis}). A pairwise \emph{symmetric-max} (Chamfer) aggregation~\cite{kordopatis2019visil} on the same V-JEPA~2 encoder-sequence patches further decomposes this: it reaches AP\,=\,0.914 without any dynamic programming, closing 76\% of the BoT$\to$Encoder-Seq-DTW gap. The remaining 24\% (0.914$\to$0.942) is attributable specifically to DTW's monotonic warping constraint. We restrict encoder-sequence DTW to motion tasks (HDD, nuScenes); on VCDB, BoF already hits AP\,=\,0.989.
+
+\textbf{Does the decomposition indexify?} We test the standard two-stage retriever over the full 1{,}687-segment corpus: V-JEPA~2 BoT top-$k$ pre-filter, encoder-sequence DTW rerank on survivors, non-survivors scored by a sentinel below the BoT floor (full sweep and RRF alternative in Appendix~\ref{sec:rerank_appendix}). The budget is harsher than a naive reading of the 89\% gap would predict: at $k\!=\!100$ the rerank collapses (AP\,=\,0.638) because pre-filter recall is only 0.35; at $k\!=\!1000$ ($\sim\!60\%$ of the corpus) AP reaches 0.934---within 0.008 of full DTW, so the two-stage pipeline \emph{is} lossless at sufficient candidate budget. The pre-filter's similarity (appearance) is orthogonal to the task's (maneuver): same-intersection opposite-turn pairs crowd the top-$k$ and evict true positives. The decomposition is clean pairwise but does not decompose into a cheap indexable retriever via appearance-based filters; motion-aware first-stage filtering remains open.
+
+\begin{table}[ht]
+\centering
+\caption{BoT$\to$DTW rerank on HDD. Non-survivors scored below the BoT floor (sentinel); full-sweep and RRF alternative in Appendix~\ref{sec:rerank_appendix}.}
+\label{tab:rerank_hdd}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{AP} & \textbf{recall@$k$} & \textbf{DTW ops / query} \\
+\midrule
+V-JEPA~2 BoT only & 0.825 & --- & 0 \\
+\; + DTW rerank, $k\!=\!100$ & 0.638 & 0.350 & 100 \\
+\; + DTW rerank, $k\!=\!500$ & 0.862 & 0.776 & 500 \\
+\; + DTW rerank, $k\!=\!1000$ & \textbf{0.934} & 0.957 & 1{,}000 \\
+V-JEPA~2 Encoder-Seq DTW (full) & 0.942 & 1.000 & $\sim$1{,}687 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 TARA~\cite{tara}, a 7B MLLM trained with chiral negatives, hits AP\,=\,0.547 under cosine---indistinguishable from ViCLIP (0.542) despite ${\sim}23\times$ more parameters. PL-Stitch~\cite{plstitch} (ViT-Base, Plackett-Luce ranking) supports the same decomposition: BoF yields AP\,=\,0.478, DTW on raw embeddings 0.540---both near chance, and below DINOv3 Chamfer (0.559), possibly reflecting a capacity (86M vs.\ 300M) and pretraining-scale gap rather than a comparator effect. Yet $s_\text{rev}\!=\!0.006$ under raw DTW confirms PL-Stitch \emph{does} encode frame order---the features are not discriminative enough for maneuver retrieval.
 
@@ -349,11 +369,11 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 
 \textbf{Scene matching} (VCDB, Nymeria, MUVR). BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). Order-invariance is a feature here, not a bug.
 
-\textbf{Motion dynamics} (HDD, nuScenes). Per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}); on nuScenes the split inverts---encoder-sequence DTW (0.867) exceeds the residual (0.815, marginally overlapping CIs), so matching alone accounts for the full BoT$\to$best-method gap there. The HDD 89\% is a single-dataset point estimate; what replicates across datasets is the direction (matching dominates), not the precise share. ViCLIP~\cite{viclip} and X-CLIP~\cite{xclip} do not escape the blind spot; explicit temporal training fares no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} under DTW (0.540, $s_\text{rev}\!=\!0.006$) trail DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL and temporal-ranking objectives alone are insufficient without adequate capacity and pretraining scale.
+\textbf{Motion dynamics} (HDD, nuScenes). Per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}); on nuScenes the split inverts---encoder-sequence DTW (0.867) exceeds the residual (0.815, marginally overlapping CIs), so matching alone accounts for the full BoT$\to$best-method gap there---direction replicates, magnitude does not. ViCLIP~\cite{viclip} and X-CLIP~\cite{xclip} do not escape the blind spot; explicit temporal training fares no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} under DTW (0.540, $s_\text{rev}\!=\!0.006$) trail DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL and temporal-ranking objectives alone are insufficient without adequate capacity and pretraining scale.
 
 \textbf{Temporal manipulation} (reversal, scrambling). Implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither is reliable. Per-frame features separate forward/reverse under DTW; pooling erases this across every VLM layer we probed.
 
-\textbf{Architecture implications.} Temporal blindness is a choice of aggregator, not a deficiency of the encoder. Indexable order-sensitive retrieval at scale will require learned permutation-sensitive pooling, trajectory tokenization compatible with inverted-file indexes, or two-stage BoF$\to$sequence-aware rerankers. The decomposition says where to intervene; the how remains open.
+\textbf{Architecture implications.} Temporal blindness is a choice of aggregator, not a deficiency of the encoder. Indexable order-sensitive retrieval at scale will require learned permutation-sensitive pooling, trajectory tokenization compatible with inverted-file indexes, or two-stage rerankers whose first stage is \emph{motion-aware}---naive appearance pre-filters lose recall to intersection-identity collisions (Section~\ref{sec:motion}).
 
 \begin{algorithm}[h]
 \caption{Temporal Sensitivity Diagnostic Protocol}
@@ -379,13 +399,13 @@ Table~\ref{tab:failure_taxonomy} is thus the classifier, not a post-hoc label.
 
 \textbf{Limitations.} DTW is not indexable ($O(T^2)$); probes train on 400 samples in $p \gg n$ ($D \approx 4{,}000$), bounding recoverability rather than proving absence; ViCLIP's 8-frame input confounds comparison with 64-frame V-JEPA~2 (${\sim}0.20$ AP drop at equivalent density, Section~\ref{sec:context_sweep}). Spatial occlusion attacks are orthogonal to temporal blindness.
 
-\textbf{Practitioner recommendations.} (1)~Copy detection: high-precision actions favor BoF; soft actions accept temporal comparators. (2)~Motion retrieval: BoF $\to$ top-$k$ DTW rerank adds ${\sim}100$\,ms/query (Appendix~\ref{sec:computational_costs}).
+\textbf{Practitioner recommendations.} (1)~Copy detection: high-precision actions favor BoF; soft actions accept temporal comparators. (2)~Motion retrieval: BoT$\to$DTW rerank recovers 99\% of full-DTW AP at $k\!\approx\!1000$ on HDD ($\sim$40\% compute saving); at small $k$, pre-filter recall is binding (Table~\ref{tab:rerank_hdd}).
 
 \vspace{-1em}
 \section{Conclusion}
 \vspace{-0.6em}
 
-No method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within a given encoder, matching---not encoding---explains 89\% of the HDD gap (single-dataset point estimate; nuScenes yields a directionally consistent but smaller split with overlapping CIs), and pooling erases per-frame order across every VLM layer we probed. These failures compose into a ten-class taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}), letting a practitioner classify a new system's failure in one pass. The open problem is constructive: designing indexable, order-sensitive comparators that preserve the per-frame signal current aggregators discard.%
+No method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within a given encoder, matching---not encoding---explains 89\% of the HDD gap (nuScenes corroborates direction, not magnitude; Section~\ref{sec:discussion}), and pooling erases per-frame order across every VLM layer we probed. These failures compose into a ten-class taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}); the open problem is constructive: designing indexable, order-sensitive comparators that preserve the per-frame signal current aggregators discard.%
 \ifdefined\neuripssubmission
 \else
 \footnote{Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.}%
@@ -780,6 +800,32 @@ Complementing the quantitative results, we present qualitative evidence that V-J
 \caption{Pairwise similarity distributions on HDD intersection clusters. BoF similarities overlap heavily regardless of maneuver match, while V-JEPA~2 temporal residual scores separate same- vs.\ cross-direction pairs.}
 \label{fig:hdd_qualitative}
 \end{figure}
+
+\section{BoT$\to$DTW Rerank: Full Sweep and RRF Alternative}
+\label{sec:rerank_appendix}
+
+Table~\ref{tab:rerank_full} reports the full $k$-sweep for the two-stage retriever test of Section~\ref{sec:motion}, including a reciprocal-rank-fusion (RRF) composition as an alternative to the sentinel rule used in the main body. RRF computes, for each pair, $1/(60 + \mathrm{rank}_\text{BoT}) + \mathrm{[pair in top-}k\mathrm{]}/(60 + \mathrm{rank}_\text{DTW})$; it is robust to the BoT/DTW score-scale mismatch but more conservative than the sentinel rule because the BoT rank term still influences the composite when DTW is confident.
+
+\begin{table}[h]
+\centering
+\caption{BoT$\to$DTW rerank on Honda HDD (43{,}673 in-cluster pairs; 1{,}687 segments across 50 mixed-direction clusters). \textbf{Survivor AP}: non-survivors assigned a sentinel below the BoT floor so they rank last. \textbf{RRF AP}: rank-fusion composition (see text). \textbf{recall@$k$}: fraction of positive pairs where at least one end survives the top-$k$ BoT filter. 95\% bootstrap CIs in brackets (1{,}000 resamples). Full DTW ceiling = 0.9416; BoT-only floor = 0.8246.}
+\label{tab:rerank_full}
+\begin{tabular}{rcccc}
+\toprule
+$k$ & recall@$k$ & Survivor AP & RRF AP & positives reranked \\
+\midrule
+10 & 0.094 & 0.499 [0.496, 0.502] & 0.825 [0.822, 0.828] & 4{,}101 / 43{,}673 \\
+25 & 0.163 & 0.536 [0.533, 0.540] & 0.826 [0.823, 0.829] & 7{,}100 \\
+50 & 0.238 & 0.578 [0.574, 0.581] & 0.829 [0.826, 0.832] & 10{,}382 \\
+100 & 0.350 & 0.638 [0.635, 0.642] & 0.835 [0.832, 0.838] & 15{,}264 \\
+250 & 0.568 & 0.755 [0.752, 0.758] & 0.855 [0.852, 0.858] & 24{,}802 \\
+500 & 0.776 & 0.862 [0.860, 0.865] & 0.883 [0.880, 0.885] & 33{,}898 \\
+1000 & 0.957 & \textbf{0.934 [0.933, 0.936]} & 0.910 [0.907, 0.912] & 41{,}783 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both curves are monotonically non-decreasing in $k$ until the approach to the ceiling. Survivor-AP is the cleaner measurement because it is the \emph{end-to-end retriever} AP: pairs not surviving the pre-filter are scored below every survivor, which is faithful to the deployment semantics of a two-stage pipeline. RRF never reaches the full-DTW ceiling by construction---the BoT rank component pulls the composite down when DTW is already confident---but it never falls below BoT-only either, making it a safer drop-in when reranker calibration is uncertain. The reproducibility of these numbers depends on the feature cache used by Section~\ref{sec:motion} (see the \texttt{eval\_hdd\_bof\_dtw\_rerank.py} script in supplementary material).
 
 \section{nuScenes Cross-Dataset Visualization}
 \label{sec:nuscenes_figure}
