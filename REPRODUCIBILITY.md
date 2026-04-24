@@ -24,11 +24,11 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (VLM Generative), Table 4 (VLM Embedding s_rev), Table 5 (Cross-Method Summary: Encoders), Table 6 (Cross-Method Summary: VLM).
 
-Main body figures: Figure 1 (Reversal Attack), Figure 2 (Scramble Gradient), Figure 3 (HDD Maneuver), Figure 4 (Context Sweep), Figure 5 (Sensitivity-Invariance Trade-off).
+Main body figures: Figure 1 (Scramble Gradient), Figure 2 (Sensitivity-Invariance Trade-off).
 
 Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (α-Invariance Sweep), Table 16 (Vision-Token Probes), Table 17 (Scramble Data), Table 18 (Linear+MLP Probes), Table 19 (Computational Costs), Table 20 (Failure-Mode Taxonomy), Table 21 (Licenses). Appendix R is the failure-mode taxonomy; Appendix S is the reproducibility scope statement; Appendix T is the license summary.
 
-Appendix figures: Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
+Appendix figures: Figure 3 (Reversal Attack bar chart), Figure 4 (HDD Maneuver bar chart), Figure 5 (Context Sweep), Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
 ## Headline Results
 
@@ -41,7 +41,7 @@ python experiments/eval_vcdb.py \
 
 **Output:** `datasets/vcdb/eval_results.json`, `figures/vcdb_benchmark.png`
 
-### 2. Reversal Attack (VCDB) — Table 1, Figure 1
+### 2. Reversal Attack (VCDB) — Table 1, Figure 3 (Appendix)
 
 ```bash
 python experiments/eval_vcdb_reversal.py \
@@ -50,7 +50,7 @@ python experiments/eval_vcdb_reversal.py \
 
 **Output:** `datasets/vcdb/reversal_attack_results.json`, `figures/vcdb_reversal_attack.png`
 
-### 3. Temporal Scramble Gradient (VCDB) — Table 16 (Appendix M), Figure 2
+### 3. Temporal Scramble Gradient (VCDB) — Table 16 (Appendix), Figure 1
 
 ```bash
 python experiments/eval_vcdb_scramble.py \
@@ -59,7 +59,7 @@ python experiments/eval_vcdb_scramble.py \
 
 **Output:** `datasets/vcdb/scramble_gradient_results.json`, `figures/vcdb_scramble_gradient.png`
 
-### 4. Maneuver Discrimination (Honda HDD) — Table 2, Figure 3
+### 4. Maneuver Discrimination (Honda HDD) — Table 2, Figure 4 (Appendix)
 
 ```bash
 python experiments/eval_hdd_intersections.py \
@@ -68,7 +68,7 @@ python experiments/eval_hdd_intersections.py \
 
 **Output:** `figures/hdd_maneuver_discrimination.png`, `figures/hdd_similarity_distributions.png`
 
-### 5. Context Window Sweep (Honda HDD) — Table 8 (Appendix B), Figure 4
+### 5. Context Window Sweep (Honda HDD) — Table 8 (Appendix), Figure 5 (Appendix)
 
 ```bash
 python experiments/eval_hdd_intersections.py \
@@ -560,13 +560,13 @@ python experiments/alpha_sweep.py \
 | `datasets/epic_kitchens/temporal_order_results*.json` | Tables 3-4, Table 9 (Appendix C) |
 | `datasets/epic_kitchens/linear_probe_*.json` | Table 17 (Appendix O) |
 | `datasets/epic_kitchens/mlp_probe_results.json` | Table 17 (Appendix O, MLP columns) |
-| `figures/vcdb_reversal_attack.png` | Figure 1 |
-| `figures/vcdb_scramble_gradient.png` | Figure 2 |
-| `figures/epic_temporal_order_sensitivity.png` | Figure 6 (Appendix C) |
-| `figures/hdd_maneuver_discrimination.png` | Figure 3 |
-| `figures/hdd_context_sweep.png` | Figure 4 |
-| `figures/nuscenes_maneuver_discrimination.png` | Figure 8 (Appendix L) |
-| `figures/sensitivity_invariance_tradeoff.png` | Figure 5 |
+| `figures/vcdb_reversal_attack.png` | Figure 3 (Appendix) |
+| `figures/vcdb_scramble_gradient.png` | Figure 1 |
+| `figures/epic_temporal_order_sensitivity.png` | Figure 6 (Appendix) |
+| `figures/hdd_maneuver_discrimination.png` | Figure 4 (Appendix) |
+| `figures/hdd_context_sweep.png` | Figure 5 (Appendix) |
+| `figures/nuscenes_maneuver_discrimination.png` | Figure 8 (Appendix) |
+| `figures/sensitivity_invariance_tradeoff.png` | Figure 2 |
 | `datasets/nuscenes/vlm_bridge_*_results.json` | Table 6 (nuScenes column) |
 | `datasets/nuscenes/cluster_bootstrap_cis.json` | Table 14 footnote (Appendix J) |
 | `datasets/vcdb/vlm_bridge_*_results.json` | Table 6 (VCDB column) |
