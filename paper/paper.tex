@@ -37,44 +37,36 @@
 
 \begin{abstract}
 Video retrieval systems are temporally blind: reversed videos return identical
-embeddings, and no downstream signal flags the failure. While this blindness
-is well-documented for generative QA, its consequences for \emph{retrieval
-embeddings} remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks
-spanning copy detection, temporal manipulation, and high-overlap motion retrieval.
-A feature-vs-comparator decomposition reveals that, within a given encoder,
-the matching stage (per-frame representation and sequence-aware similarity)
-governs temporal sensitivity: on Honda HDD this switch explains 89\% of the
-performance gap between bag-of-tokens and the temporal residual (point estimate;
-cluster-level block-bootstrap CIs are wider), with a non-DTW set-matching
-aggregation already closing 76\%; on nuScenes the matching stage alone is on
-par with the learned residual transform (AP\,=\,0.867 vs.\ 0.815; CIs
-marginally overlap). A \emph{temporal scramble gradient}
-($K \in \{1, \ldots, 16\}$) cleanly separates order-invariant from
-sequence-aware methods. Embedding probes across three open-weight Video-LLMs
-localize where temporal signal is lost: temporal-derivative DTW separates
-forward from reverse perfectly---an algebraic property of derivatives under
-reversal, not of the features themselves---but mean-pooling erases this signal
-($s_\text{rev} \approx 1.0$). Generative probes on Claude~4.6 Opus and
-Gemini~3.1 Pro fare no better than the open-weight models. Neither linear nor
-nonlinear probes recover temporal order from LLM hidden states
-(126 configurations, though the $p \gg n$ regime bounds recoverability rather
-than proving absence). Across all evaluated methods, no single approach spans
-both copy detection and motion retrieval, exposing a sensitivity--invariance
+embeddings, and no downstream signal flags the failure. This blindness is
+well-documented for generative question answering but uncharacterized for
+\emph{retrieval embeddings}, where failures are silent. We diagnose temporal
+sensitivity across six benchmarks. A feature-vs-comparator decomposition
+shows that, within a given encoder, the matching stage---not the encoder---governs
+temporal sensitivity: on Honda HDD, switching from pooled-cosine to per-frame
+dynamic time warping explains 89\% of the gap between bag-of-tokens and the
+V-JEPA~2 temporal residual (cluster-level CIs wider). A \emph{temporal
+scramble gradient} cleanly separates order-invariant from sequence-aware
+methods. Probing three open-weight Video-LLMs localizes where temporal signal
+is lost: per-frame vision features retain order, but mean-pooling erases it;
+LLM hidden states remain order-invariant under every pooled readout we tested
+(126 configurations, $p\!\gg\!n$). Generative probes on Claude~Opus~4.6 and
+Gemini~3.1 Pro fare no better than 7B open-weight models. No single approach
+spans both copy detection and motion retrieval, exposing a sensitivity--invariance
 trade-off that current architectures do not resolve. We release open-source
 code packaging the scramble gradient and reversal tests.
 \end{abstract}
 
 \section{Introduction}
 
-Modern video retrieval represents videos as mean-pooled frame embeddings from pretrained encoders. This \emph{bag-of-frames} (BoF) approach excels at Video Copy Detection (VCD)---identifying re-encoded, cropped, or camcorded copies---because visual semantics survive frame reordering, enabling billion-scale nearest-neighbor search~\cite{faiss, semdedup}.
+Video retrieval embeddings fail silently under temporal manipulation: reversed videos return identical vectors, left turns match right turns, and no downstream signal flags the error. This is a consequence of architecture, not a bug. Modern systems represent videos via the \emph{bag-of-frames} (BoF) approach---mean-pooling frame embeddings from pretrained encoders~\cite{faiss, semdedup}. BoF dominates Video Copy Detection (VCD; finding re-encoded, cropped, or camcorded copies) because visual semantics survive frame reordering, and order-invariance enables billion-scale nearest-neighbor search. The same property that makes BoF fast makes it blind.
 
-BoF discards temporal order entirely. A growing literature documents this ``temporal blindness'' in Video-LLMs~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: generative probes show near-chance temporal QA; frame shuffling leaves benchmark scores intact. These diagnoses target generative QA, where failures surface in text. In retrieval, failures are silent---reversed videos return identical embeddings, left turns match right turns---and no downstream signal flags them. We fill this gap with three test cases:
+Temporal blindness in video models is well documented for generative \emph{question answering} (QA)~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: generative probes score near chance on temporal tasks, and frame shuffling leaves benchmark scores intact. These diagnoses surface in text. In retrieval, they surface in nothing---the vector database returns the same neighbor, and the user never sees the failure. We study three regimes where the value of temporal order flips:
 
-\textbf{1. Copy Detection \& Scene Retrieval:} when the discriminative signal is visual background (VCD; activities in different rooms), semantic pooling suffices.
+\textbf{1. Scene matching (order irrelevant):} for VCD and scene retrieval (e.g., ``activities in different rooms''), the signal is visual background. Semantic pooling suffices; temporal invariance is a feature.
 
-\textbf{2. Temporal Manipulation (Trust \& Safety):} reversed video yields BoF similarity of 1.0, evading embedding-based copy retrieval~\cite{fojcik2025}.
+\textbf{2. Temporal manipulation (order detects adversaries):} a reversed video yields BoF similarity $1.0$ to its source, silently evading embedding-based copy-detection takedowns~\cite{fojcik2025}.
 
-\textbf{3. High-Overlap Motion Retrieval (Dashcam Fleets):} querying a fleet for ``left turns at Intersection X'' requires encoding motion dynamics; static background dominates the BoF embedding, conflating left and right turns.
+\textbf{3. High-overlap motion retrieval (order is the signal):} querying a dashcam fleet for ``left turns at Intersection X'' requires encoding motion dynamics. Left and right turns share the same intersection (the static background), so BoF collapses them to the same point.
 
 We evaluate these cases using DINOv3~\cite{dinov3} (BoF and DTW attention trajectories), V-JEPA~2~\cite{vjepa2} (spatiotemporal prediction residuals), ViCLIP~\cite{viclip} (video-native contrastive baseline), TARA~\cite{tara} (chiral-trained MLLM), PL-Stitch~\cite{plstitch} (temporal ranking pretraining), and three Video-LLMs (Qwen3-VL~\cite{qwen3vl}, Gemma~4~\cite{gemma4}, LLaVA-Video~\cite{llavavideo}), across six benchmarks: VCDB~\cite{vcdb}, Nymeria~\cite{nymeria}, MUVR~\cite{muvr}, Honda HDD~\cite{honda_hdd}, nuScenes~\cite{nuscenes}, and EPIC-Kitchens-100~\cite{epickitchens}.
 
@@ -82,8 +74,8 @@ We evaluate these cases using DINOv3~\cite{dinov3} (BoF and DTW attention trajec
 
 \section{Methods}
 
-\textbf{Symmetric aggregation implies permutation-invariance.}
-Mean-pooling, max-pooling, and Chamfer matching are symmetric aggregators: they satisfy $g(f_1, \ldots, f_T) = g(f_{\pi(1)}, \ldots, f_{\pi(T)})$ for all permutations $\pi$~\cite{deepsets}. BoF order-invariance therefore follows from the aggregation operator, independent of encoder capacity or training objective.
+\textbf{Why BoF is blind.}
+Mean-pooling reversed frames gives the same vector as mean-pooling the original: the operator discards the indices. More generally, mean-pooling, max-pooling, and Chamfer matching are \emph{symmetric aggregators}---their output is invariant to any permutation of the inputs, $g(f_1, \ldots, f_T) = g(f_{\pi(1)}, \ldots, f_{\pi(T)})$~\cite{deepsets}. BoF order-invariance therefore follows from the aggregation operator, independent of encoder capacity or training objective. The diagnostics below distinguish systems whose blindness is architectural (the aggregator) from systems whose blindness is learned (the encoder).
 
 \textbf{DINOv3 \& Attention Trajectories.} We extract 1024-d CLS embeddings per frame from DINOv3 ViT-L~\cite{dinov3}. \emph{BoF} mean-pools frame embeddings into a single vector, compared via cosine similarity. \emph{Chamfer similarity}~\cite{kordopatis2019visil} computes the pairwise frame similarity matrix and averages the symmetric maximum: $\frac{1}{2}\bigl(\mathrm{mean}_i \max_j S_{ij} + \mathrm{mean}_j \max_i S_{ij}\bigr)$, remaining order-invariant while retaining per-frame structure. For structural tracking, we compute the spatial center-of-mass of the CLS$\to$patch attention map (last layer, averaged across heads) per frame, yielding a 2D trajectory compared via DTW. Temporal derivatives of CLS embeddings capture frame-to-frame transition dynamics, also compared via DTW.
 
@@ -99,7 +91,7 @@ Mean-pooling, max-pooling, and Chamfer matching are symmetric aggregators: they 
 
 \textbf{PL-Stitch.} PL-Stitch~\cite{plstitch} pretrains a ViT-Base (86M params) with Plackett-Luce temporal ranking, producing per-frame 768-d CLS-token embeddings that support the same feature-vs-comparator decomposition as DINOv3: BoF, Chamfer, temporal derivative DTW, and DTW on raw embeddings.
 
-\textbf{VLM Embedding Probes.} We extract three intermediate representations from VLM pipelines: (1)~\emph{vision pooled}---mean-pooled vision tower output (BoF over frame$\times$patch tokens); (2)~\emph{vision sequence}---per-frame pooled vision tokens as a $(T, D)$ sequence, compared via temporal derivative DTW; (3)~\emph{LLM hidden state}---mean-pooled last-layer hidden state over all input tokens. We measure $s_\text{rev}$, the similarity between forward and reversed representations of the same clip:
+\textbf{VLM Embedding Probes.} These are \emph{diagnostic procedures}, not new models: each probe reads a representation from an existing VLM pipeline and emits two metrics ($s_\text{rev}$ and balanced accuracy on forward/reverse classification). We probe three stages: (1)~\emph{vision pooled}---mean-pooled vision tower output (BoF over frame$\times$patch tokens); (2)~\emph{vision sequence}---per-frame pooled vision tokens as a $(T, D)$ sequence, compared via temporal derivative DTW; (3)~\emph{LLM hidden state}---mean-pooled last-layer hidden state over all input tokens. $s_\text{rev}$ is the similarity between forward and reversed representations of the same clip:
 \begin{equation}
 s_\text{rev} =
 \begin{cases}
@@ -108,7 +100,7 @@ s_\text{rev} =
 \end{cases}
 \label{eq:srev}
 \end{equation}
-where $\alpha$ follows the DTW $\alpha$ schedule defined below. $s_\text{rev} \approx 1.0$ indicates order-invariance; lower values indicate order sensitivity. Raw $s_\text{rev}$ values exceeding 1.0 (from f32 cosine precision) are clamped to 1.000 in all tables and figures; affected entries are marked $^\dagger$. Because the two cases use different similarity functions, pooled and sequence $s_\text{rev}$ values are not directly comparable (see Discussion).
+where $\alpha$ follows the DTW $\alpha$ schedule defined below. $s_\text{rev} \approx 1.0$ indicates order-invariance; lower values indicate order sensitivity. Raw $s_\text{rev}$ values exceeding 1.0 (from f32 cosine precision) are clamped to 1.000 in all tables and figures; affected entries are marked $^\dagger$. \textbf{Cross-family caveat.} Pooled and sequence $s_\text{rev}$ use different similarity functions (cosine vs.\ $\exp(-\alpha d_\text{DTW})$) and are not directly comparable: rankings are valid \emph{within} each family, not across. Figure~\ref{fig:sensitivity_invariance} plots both on one axis as a presentational convenience.
 
 \textbf{DTW Implementation.} All DTW comparisons use unconstrained warping with L2 cost matrices, path-length normalization ($d / (T_1 + T_2)$), and GPU-vectorized anti-diagonal wavefront processing~\cite{ddtw}. Similarity is $\exp(-\alpha \cdot d_\text{DTW})$ with $\alpha = 1$ for derivatives/residuals, $\alpha = 5$ for attention trajectories (min-max normalized to $[0,1]$). Because $\exp(-\alpha \cdot d)$ is monotone in $d$, rankings are $\alpha$-invariant; we verified this across three representative cells with $\alpha \in \{0.5, 1, 2, 5, 10\}$ (max AP spread $< 10^{-3}$).
 
