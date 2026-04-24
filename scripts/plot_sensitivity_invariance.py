@@ -33,7 +33,7 @@ fig, ax = plt.subplots(figsize=(10, 5.0))
 for label, ts, vcdb, hdd, marker, color in methods:
     if vcdb is None:
         continue  # HDD-only methods plotted separately below
-    size = 320 if hdd is not None else 220
+    size = 140 if hdd is not None else 100
     ax.scatter(
         ts,
         vcdb,
@@ -155,7 +155,7 @@ legend_elements = [
         markerfacecolor=color,
         markeredgecolor="black",
         markeredgewidth=0.8,
-        markersize=12,
+        markersize=7,
         label=label,
     )
     for label, _ts, vcdb, _hdd, marker, color in methods
