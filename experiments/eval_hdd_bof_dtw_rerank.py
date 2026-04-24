@@ -9,16 +9,15 @@ recover most of the full-DTW AP at a fraction of the compute.
 Pipeline per query q over the full corpus of segments:
     1. Rank all other segments by BoT cosine similarity.
     2. Keep the top-k candidates (the "rerank set").
-    3. For each in-cluster pair (a, b) in the paper's eval protocol:
-         - score = DTW similarity  if  b in topk_BoT(a) or a in topk_BoT(b)
-         - score = BoT cosine      otherwise
+    3. Score rerank survivors with DTW; push non-survivors to the bottom.
     4. Compute AP, AUC, and recall@k = fraction of positive pairs where
        at least one end survives the top-k filter.
 
-Limits:
-    k = 1  -> effectively BoT only  (reproduces AP = 0.825)
-    k = N  -> effectively full DTW  (reproduces AP = 0.942)
-    k between traces the compute/accuracy frontier.
+Two scoring strategies:
+    - Survivor-only: survivors get DTW score, non-survivors get a sentinel
+      below BoT's minimum (honest two-stage retriever evaluation).
+    - RRF (Reciprocal Rank Fusion): rank-based fusion of BoT and DTW
+      rankings, sidestepping the score-scale mismatch.
 
 Usage (assumes cached features from eval_hdd_ordered_maxsim_vjepa2.py):
     python experiments/eval_hdd_bof_dtw_rerank.py --hdd-dir datasets/hdd
@@ -90,24 +89,55 @@ def build_bot_topk(
 
 
 # ---------------------------------------------------------------------------
-# Composite scoring: BoT fallback + DTW for rerank survivors
+# Scoring strategies
 # ---------------------------------------------------------------------------
 
 
-def composite_scores(
+def survivor_scores(
     pair_a: list[int],
     pair_b: list[int],
     bot_scores: np.ndarray,
     dtw_scores: np.ndarray,
     topk_neighbors: dict[int, set[int]],
 ) -> np.ndarray:
-    """Score[pair] = DTW if rerank survivor, else BoT."""
-    scores = np.empty_like(bot_scores)
+    """Survivors get DTW score; non-survivors get a sentinel below all DTW values.
+
+    This is the honest two-stage retriever: non-survivors are strictly ranked
+    last, so AP is capped by recall@k.
+    """
+    sentinel = float(dtw_scores.min()) - 1.0
+    scores = np.full_like(bot_scores, sentinel)
     for i, (a, b) in enumerate(zip(pair_a, pair_b)):
         if b in topk_neighbors.get(a, set()) or a in topk_neighbors.get(b, set()):
             scores[i] = dtw_scores[i]
-        else:
-            scores[i] = bot_scores[i]
+    return scores
+
+
+def rrf_scores(
+    pair_a: list[int],
+    pair_b: list[int],
+    bot_scores: np.ndarray,
+    dtw_scores: np.ndarray,
+    topk_neighbors: dict[int, set[int]],
+    rrf_k: int = 60,
+) -> np.ndarray:
+    """Reciprocal Rank Fusion of BoT and DTW rankings.
+
+    All pairs get a BoT rank contribution.  Survivor pairs additionally get a
+    DTW rank contribution; non-survivors get only the BoT term.
+    """
+    n = len(bot_scores)
+    # Ranks: 0 = highest score.
+    bot_rank = np.empty(n, dtype=np.float64)
+    bot_rank[np.argsort(-bot_scores)] = np.arange(n)
+
+    dtw_rank = np.empty(n, dtype=np.float64)
+    dtw_rank[np.argsort(-dtw_scores)] = np.arange(n)
+
+    scores = 1.0 / (rrf_k + bot_rank)
+    for i, (a, b) in enumerate(zip(pair_a, pair_b)):
+        if b in topk_neighbors.get(a, set()) or a in topk_neighbors.get(b, set()):
+            scores[i] += 1.0 / (rrf_k + dtw_rank[i])
     return scores
 
 
@@ -311,30 +341,45 @@ def main():
 
     for k in args.k_sweep:
         neighbors = topk_by_k[k]
-        comp = composite_scores(pair_a, pair_b, bot_scores, dtw_scores, neighbors)
-        ap, lo, hi = bootstrap_ap(comp, labels)
-        auc = roc_auc_score(labels, comp)
         r_at_k = recall_at_k(pair_a, pair_b, labels, neighbors)
-        # How often did DTW override BoT for the positive class?
         pos_idx = np.where(labels == 1)[0]
         pos_overrides = sum(
             1 for i in pos_idx
             if pair_b[i] in neighbors.get(pair_a[i], set())
             or pair_a[i] in neighbors.get(pair_b[i], set())
         )
-        label = f"Rerank k={k:<4d}"
+
+        # Survivor-only scoring.
+        surv = survivor_scores(pair_a, pair_b, bot_scores, dtw_scores, neighbors)
+        surv_ap, surv_lo, surv_hi = bootstrap_ap(surv, labels)
+        surv_auc = roc_auc_score(labels, surv)
+
+        # RRF scoring.
+        rrf = rrf_scores(pair_a, pair_b, bot_scores, dtw_scores, neighbors)
+        rrf_ap, rrf_lo, rrf_hi = bootstrap_ap(rrf, labels)
+        rrf_auc = roc_auc_score(labels, rrf)
+
+        label = f"k={k:<4d}"
         print(
-            f"  {label:<32s}"
-            f"  AP={ap:.4f} [{lo:.4f},{hi:.4f}]  AUC={auc:.4f}  "
-            f"recall@k={r_at_k:.3f}  (pos_rerank={pos_overrides}/{n_pos})"
+            f"  {label}  recall={r_at_k:.3f}  "
+            f"survivor AP={surv_ap:.4f} [{surv_lo:.4f},{surv_hi:.4f}]  "
+            f"RRF AP={rrf_ap:.4f} [{rrf_lo:.4f},{rrf_hi:.4f}]  "
+            f"(pos_rerank={pos_overrides}/{n_pos})"
         )
         results["rerank_sweep"].append({
             "k": int(k),
-            "ap": float(ap),
-            "ap_ci": [float(lo), float(hi)],
-            "auc": float(auc),
             "recall_at_k": float(r_at_k),
             "positives_reranked": int(pos_overrides),
+            "survivor": {
+                "ap": float(surv_ap),
+                "ap_ci": [float(surv_lo), float(surv_hi)],
+                "auc": float(surv_auc),
+            },
+            "rrf": {
+                "ap": float(rrf_ap),
+                "ap_ci": [float(rrf_lo), float(rrf_hi)],
+                "auc": float(rrf_auc),
+            },
         })
 
     # -- Step 7: Save --
