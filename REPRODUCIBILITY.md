@@ -22,17 +22,17 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 ## Table and Figure Reference Map
 
-Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (VLM Generative), Table 4 (VLM Embedding s_rev), Table 5 (Cross-Method Summary: Encoders), Table 6 (Cross-Method Summary: VLM).
+Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (BoT→DTW Rerank Sweep on HDD), Table 4 (VLM Generative), Table 5 (VLM Embedding s_rev), Table 6 (Cross-Method Summary: Encoders), Table 7 (Cross-Method Summary: VLM).
 
 Main body figures: Figure 1 (Scramble Gradient), Figure 2 (Sensitivity-Invariance Trade-off).
 
-Appendix tables: Table 7 (FPS Cap), Table 8 (Context Sweep), Table 9 (Layer Ablation), Table 10 (Scene Matching), Table 11 (Qwen VCDB), Table 12 (Integrity Probe), Table 13 (Neg-Sampling Sensitivity), Table 14 (Bootstrap CIs), Table 15 (α-Invariance Sweep), Table 16 (Vision-Token Probes), Table 17 (Scramble Data), Table 18 (Linear+MLP Probes), Table 19 (Computational Costs), Table 20 (Failure-Mode Taxonomy), Table 21 (Licenses). Appendix R is the failure-mode taxonomy; Appendix S is the reproducibility scope statement; Appendix T is the license summary.
+Appendix tables: Table 8 (FPS Cap), Table 9 (Context Sweep), Table 10 (Layer Ablation), Table 11 (Scene Matching), Table 12 (Qwen VCDB), Table 13 (Integrity Probe), Table 14 (Neg-Sampling Sensitivity), Table 15 (Bootstrap CIs), Table 16 (α-Invariance Sweep), Table 17 (BoT→DTW Rerank Full Sweep + RRF), Table 18 (Vision-Token Probes), Table 19 (Scramble Data), Table 20 (Linear+MLP Probes), Table 21 (Computational Costs), Table 22 (Failure-Mode Taxonomy), Table 23 (Licenses). The failure-mode taxonomy, reproducibility scope statement, and license summary live in the last three appendices.
 
 Appendix figures: Figure 3 (Reversal Attack bar chart), Figure 4 (HDD Maneuver bar chart), Figure 5 (Context Sweep), Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
 ## Headline Results
 
-### 1. Copy Detection (VCDB) — Table 5 (VCDB column)
+### 1. Copy Detection (VCDB) — Table 6 (VCDB column)
 
 ```bash
 python experiments/eval_vcdb.py \
@@ -50,7 +50,7 @@ python experiments/eval_vcdb_reversal.py \
 
 **Output:** `datasets/vcdb/reversal_attack_results.json`, `figures/vcdb_reversal_attack.png`
 
-### 3. Temporal Scramble Gradient (VCDB) — Table 16 (Appendix), Figure 1
+### 3. Temporal Scramble Gradient (VCDB) — Table 19 (Appendix R), Figure 1
 
 ```bash
 python experiments/eval_vcdb_scramble.py \
@@ -96,7 +96,7 @@ python experiments/eval_hdd_encoder_seq.py \
 
 **Output:** `datasets/hdd/encoder_seq_results.json`
 
-### 6b. BoT→DTW Two-Stage Retriever (HDD) — Table 3 (§3.2), Appendix (full sweep + RRF)
+### 6b. BoT→DTW Two-Stage Retriever (HDD) — Table 3 (§3.2), Table 17 (Appendix, full sweep + RRF)
 
 Prescriptive follow-up to the 89% decomposition: tests whether the pairwise gain composes into a cheap indexable retriever. For each query, score candidates by V-JEPA 2 BoT cosine, keep top-k, rerank survivors with encoder-sequence DTW, score non-survivors below the BoT floor. Reports survivor-AP (main body) and reciprocal-rank-fusion AP (appendix), both with recall@k.
 
@@ -109,6 +109,22 @@ Requires pre-extracted features at `datasets/vjepa2_hdd_encoder_features.pt` (pr
 
 **Output:** `datasets/hdd/bof_dtw_rerank_results.json`
 
+**Measured values** (for verification; 43,673 in-cluster pairs, 1,687 segments, 50 mixed-direction clusters):
+
+| k | recall@k | Survivor AP | RRF AP |
+|---|----------|-------------|--------|
+| — (BoT only) | — | 0.8246 | — |
+| 10 | 0.094 | 0.499 | 0.825 |
+| 25 | 0.163 | 0.536 | 0.826 |
+| 50 | 0.238 | 0.578 | 0.829 |
+| 100 | 0.350 | 0.638 | 0.835 |
+| 250 | 0.568 | 0.755 | 0.855 |
+| 500 | 0.776 | 0.862 | 0.883 |
+| 1000 | 0.957 | **0.934** | 0.910 |
+| full DTW | 1.000 | 0.9416 | — |
+
+Survivor-AP at k=1000 lands within 0.008 of the full-DTW ceiling at ~40% compute saving; at k=100 it collapses to 0.638 because BoT pre-filter recall is only 0.35 (appearance-based filter is orthogonal to maneuver-based task). These numbers are reproduced by the paper's Table 3 and Table 17.
+
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 
 ```bash
@@ -119,7 +135,7 @@ python experiments/eval_hdd_intersections.py \
 
 **Output:** `datasets/hdd/fps_downsample_results.json`
 
-### 8. FPS Cap Invariance Verification — Table 7 (Appendix A)
+### 8. FPS Cap Invariance Verification — Table 8 (Appendix A)
 
 ```bash
 python scripts/verify_fps_cap_invariance.py \
@@ -137,7 +153,7 @@ python experiments/eval_nuscenes_intersections.py \
 
 **Output:** `<nuscenes-dir>/intersection_results.json`, `figures/nuscenes_maneuver_discrimination.png`
 
-### 10. VLM Vision Tower Bridge (Honda HDD) — Table 6 (VLM summary, HDD column)
+### 10. VLM Vision Tower Bridge (Honda HDD) — Table 7 (VLM summary, HDD column)
 
 Evaluates VLM vision tower embeddings (SigLIP, CLIP) and LLM hidden states on HDD maneuver discrimination.
 
@@ -157,7 +173,7 @@ python experiments/eval_hdd_vlm_bridge.py \
 
 **Output:** `datasets/hdd/vlm_bridge_{gemma4,llava-video,qwen3}_results.json`
 
-### 11. Multi-VLM Temporal Order Probes (EPIC-Kitchens) — Tables 3-4, Figure 6 (Appendix C)
+### 11. Multi-VLM Temporal Order Probes (EPIC-Kitchens) — Tables 4-5, Figure 6 (Appendix E)
 
 **Generative probes (all 3 VLMs):**
 ```bash
@@ -175,7 +191,7 @@ for family in gemma llava; do
 done
 ```
 
-**Layer ablation (Table 9, Appendix C):**
+**Layer ablation (Table 10, Appendix E):**
 ```bash
 for family in qwen gemma llava; do
     python experiments/eval_epic_temporal_order.py \
@@ -183,9 +199,9 @@ for family in qwen gemma llava; do
 done
 ```
 
-**Output:** `datasets/epic_kitchens/temporal_order_results*.json`, `figures/epic_temporal_order_sensitivity.png` (Figure 6, Appendix C)
+**Output:** `datasets/epic_kitchens/temporal_order_results*.json`, `figures/epic_temporal_order_sensitivity.png` (Figure 6, Appendix E)
 
-### 12. Scene Retrieval (Nymeria) — Table 10 (Appendix D)
+### 12. Scene Retrieval (Nymeria) — Table 11 (Appendix F)
 
 ```bash
 python experiments/eval_nymeria_activities.py \
@@ -194,7 +210,7 @@ python experiments/eval_nymeria_activities.py \
 
 **Output:** `figures/nymeria_*.png`
 
-### 13. Multi-Domain Retrieval (MUVR) — Table 10 (Appendix D)
+### 13. Multi-Domain Retrieval (MUVR) — Table 11 (Appendix F)
 
 ```bash
 python experiments/eval_muvr.py \
@@ -204,7 +220,7 @@ python experiments/eval_muvr.py \
 
 **Output:** `figures/muvr_news_*.png`
 
-### 14. nuScenes VLM Vision Tower Bridge — Table 6 (nuScenes column)
+### 14. nuScenes VLM Vision Tower Bridge — Table 7 (nuScenes column)
 
 ```bash
 # Gemma-4 SigLIP + LLM hidden state
@@ -237,7 +253,7 @@ python experiments/eval_vcdb_vlm_probes.py \
 
 **Output:** `datasets/vcdb/vlm_probes_{gemma4,llava-video,qwen3}_results.json`
 
-### 16. VCDB VLM Vision Tower Bridge — Table 6 (VCDB column)
+### 16. VCDB VLM Vision Tower Bridge — Table 7 (VCDB column)
 
 Evaluates VLM vision tower embeddings and LLM hidden states on VCDB copy detection.
 
@@ -312,7 +328,7 @@ python experiments/eval_vcdb_attack_suite.py \
 
 **Output:** `datasets/vcdb/attack_suite_results.json`
 
-### 23. Bootstrap Confidence Intervals — Table 14 (Appendix J)
+### 23. Bootstrap Confidence Intervals — Table 15 (Appendix L)
 
 Requires `pair_scores.json` files generated by the eval scripts above.
 
@@ -340,7 +356,7 @@ python experiments/bootstrap_cis.py \
 
 **Output:** Bootstrap CI JSON files; GPU-accelerated when CUDA is available.
 
-### 24. Cluster-Level Block Bootstrap — Table 14 footnote (Appendix J)
+### 24. Cluster-Level Block Bootstrap — Table 15 footnote (Appendix L)
 
 Resamples GPS clusters (not pairs) to produce CIs that account for within-cluster dependence. CIs are 7-32× wider than pair-level.
 
@@ -351,7 +367,7 @@ python experiments/eval_cluster_bootstrap.py \
 
 **Output:** `datasets/hdd/cluster_bootstrap_cis.json`, `datasets/nuscenes/cluster_bootstrap_cis.json`
 
-### 25. V-JEPA 2 VCDB Bootstrap CIs — Table 14 (Appendix J)
+### 25. V-JEPA 2 VCDB Bootstrap CIs — Table 15 (Appendix L)
 
 Extracts V-JEPA 2 features for VCDB and computes BoT + temporal residual pair scores with bootstrap CIs.
 
@@ -362,7 +378,7 @@ python experiments/eval_vjepa2_vcdb_bootstrap.py \
 
 **Output:** `datasets/vcdb/pair_scores_vjepa2.json`, `datasets/vcdb/bootstrap_cis_vjepa2.json`
 
-### 26. Scramble Multi-Seed — Figure 9 (Appendix N)
+### 26. Scramble Multi-Seed — Figure 9 (Appendix R)
 
 10 independent shuffle seeds per K level to quantify variance.
 
@@ -373,7 +389,7 @@ python experiments/eval_vcdb_scramble_multiseed.py \
 
 **Output:** `datasets/vcdb/scramble_multiseed_results.json`, `figures/vcdb_scramble_multiseed.png`
 
-### 27. Raw-Frame Scramble (V-JEPA 2, VCDB) — Appendix N
+### 27. Raw-Frame Scramble (V-JEPA 2, VCDB) — Appendix R
 
 Re-runs V-JEPA 2 encoder+predictor on chunk-shuffled raw video frames (not extracted embeddings). Tests whether the encoder produces different residuals from temporally disrupted input.
 
@@ -406,7 +422,7 @@ python experiments/eval_hdd_optical_flow.py \
 
 **Output:** `/path/to/hdd/optical_flow_results.json`
 
-### 30. Linear Probe on LLM Hidden States — Table 17 (Appendix O)
+### 30. Linear Probe on LLM Hidden States — Table 20 (Appendix S)
 
 Tests whether temporal signal is present in per-position LLM hidden states. Uses 5-fold GroupKFold CV (fwd/rev pairs kept together) with logistic regression.
 
@@ -424,7 +440,7 @@ python experiments/eval_epic_linear_probe.py \
 
 **Output:** `datasets/epic_kitchens/linear_probe_{qwen3,gemma4,llava-video}.json`, `datasets/epic_kitchens/feature_cache/linear_probe_*_hidden_states.pt`
 
-### 31. MLP Probe on LLM Hidden States — Table 17 (Appendix O)
+### 31. MLP Probe on LLM Hidden States — Table 20 (Appendix S)
 
 2-layer MLP (256 hidden units, ReLU) on cached hidden states from the linear probe runs. Uses 5-fold GroupKFold CV. CPU only (~2 minutes total).
 
@@ -434,7 +450,7 @@ python experiments/eval_mlp_probe.py
 
 **Output:** `datasets/epic_kitchens/mlp_probe_results.json`
 
-### 32. Claude Opus 4.6 Generative Probe — §3.3, Table 3
+### 32. Claude Opus 4.6 Generative Probe — §3.3, Table 4
 
 Proprietary VLM temporal order probe via OpenAI-compatible API. Requires API access and `CLAUDE_API_KEY` environment variable.
 
@@ -446,7 +462,7 @@ python experiments/eval_epic_claude_probe.py \
 
 **Output:** `datasets/epic_kitchens/claude_probe_results.json`
 
-### 33. Gemini 3.1 Pro Generative Probe — §3.3, Table 3
+### 33. Gemini 3.1 Pro Generative Probe — §3.3, Table 4
 
 Reasoning-model temporal order probe via OpenAI-compatible API. Same protocol as Claude. Requires `GEMINI_API_KEY` environment variable.
 
@@ -458,7 +474,7 @@ python experiments/eval_epic_gemini_probe.py \
 
 **Output:** `datasets/epic_kitchens/gemini_probe_results.json`
 
-### 34. ViCLIP Evaluation — Table 5, §5
+### 34. ViCLIP Evaluation — Table 6, §5
 
 ViCLIP (ViT-L, InternVid-10M) as a video-native single-vector baseline across VCDB, HDD, and EPIC-Kitchens. Tests whether contrastive video-text pretraining changes the temporal blindness story.
 
@@ -472,7 +488,7 @@ python experiments/eval_viclip.py \
 
 **Output:** `datasets/viclip_results.json`
 
-### 35. TARA Evaluation (Honda HDD) — Table 2, Table 5
+### 35. TARA Evaluation (Honda HDD) — Table 2, Table 6
 
 TARA (Tarsier-7B MLLM trained with chiral negatives) as a single-vector encoder on HDD. Tests whether temporal training helps under cosine similarity.
 
@@ -484,7 +500,7 @@ python experiments/eval_hdd_tara.py \
 
 **Output:** `datasets/tara_hdd_results.json`
 
-### 36. PL-Stitch Evaluation (Honda HDD) — Table 2, Table 5
+### 36. PL-Stitch Evaluation (Honda HDD) — Table 2, Table 6
 
 PL-Stitch (ViT-Base with Plackett-Luce temporal ranking) as a per-frame encoder on HDD. Enables feature-vs-comparator decomposition with 4 similarity methods (BoF, Chamfer, temporal derivative DTW, raw DTW).
 
@@ -545,7 +561,7 @@ python experiments/vcdb_violation_pos_neg.py \
 
 **Output:** Console (no saved artifact)
 
-### 41. DTW α-Invariance Sweep — Table 15 (Appendix)
+### 41. DTW α-Invariance Sweep — Table 16 (Appendix M)
 
 Verifies that AP ranking is invariant to the similarity-transform temperature α ∈ {0.5, 1, 2, 5, 10} across three representative cells. Uses `normalize=False` for temporal-derivative fingerprints and `normalize=True` for encoder-seq, matching the paper's evaluation protocol.
 
@@ -561,18 +577,19 @@ python experiments/alpha_sweep.py \
 
 | Artifact | Paper Reference |
 |----------|-----------------|
-| `datasets/vcdb/eval_results.json` | Table 5 (VCDB column) |
+| `datasets/vcdb/eval_results.json` | Table 6 (VCDB column) |
 | `datasets/vcdb/reversal_attack_results.json` | Table 1 |
-| `datasets/vcdb/scramble_gradient_results.json` | Table 16 (Appendix N) |
-| `datasets/vcdb/scramble_raw_results.json` | Appendix N (raw-frame scramble) |
-| `datasets/hdd/context_sec_sweep_results.json` | Table 8 (Appendix B) |
-| `datasets/hdd/fps_downsample_results.json` | Table 7 (Appendix A) |
-| `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row) |
-| `datasets/hdd/vlm_bridge_*_results.json` | Table 6 (HDD column) |
-| `datasets/hdd/cluster_bootstrap_cis.json` | Table 14 footnote (Appendix J) |
-| `datasets/epic_kitchens/temporal_order_results*.json` | Tables 3-4, Table 9 (Appendix C) |
-| `datasets/epic_kitchens/linear_probe_*.json` | Table 17 (Appendix O) |
-| `datasets/epic_kitchens/mlp_probe_results.json` | Table 17 (Appendix O, MLP columns) |
+| `datasets/vcdb/scramble_gradient_results.json` | Table 19 (Appendix R) |
+| `datasets/vcdb/scramble_raw_results.json` | Appendix R (raw-frame scramble) |
+| `datasets/hdd/context_sec_sweep_results.json` | Table 9 (Appendix D) |
+| `datasets/hdd/fps_downsample_results.json` | Table 8 (Appendix A) |
+| `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row), Table 3 (rerank floor/ceiling) |
+| `datasets/hdd/bof_dtw_rerank_results.json` | Table 3 (§3.2), Table 17 (Appendix O) |
+| `datasets/hdd/vlm_bridge_*_results.json` | Table 7 (HDD column) |
+| `datasets/hdd/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
+| `datasets/epic_kitchens/temporal_order_results*.json` | Tables 4-5, Table 10 (Appendix E) |
+| `datasets/epic_kitchens/linear_probe_*.json` | Table 20 (Appendix S) |
+| `datasets/epic_kitchens/mlp_probe_results.json` | Table 20 (Appendix S, MLP columns) |
 | `figures/vcdb_reversal_attack.png` | Figure 3 (Appendix) |
 | `figures/vcdb_scramble_gradient.png` | Figure 1 |
 | `figures/epic_temporal_order_sensitivity.png` | Figure 6 (Appendix) |
@@ -580,9 +597,9 @@ python experiments/alpha_sweep.py \
 | `figures/hdd_context_sweep.png` | Figure 5 (Appendix) |
 | `figures/nuscenes_maneuver_discrimination.png` | Figure 8 (Appendix) |
 | `figures/sensitivity_invariance_tradeoff.png` | Figure 2 |
-| `datasets/nuscenes/vlm_bridge_*_results.json` | Table 6 (nuScenes column) |
-| `datasets/nuscenes/cluster_bootstrap_cis.json` | Table 14 footnote (Appendix J) |
-| `datasets/vcdb/vlm_bridge_*_results.json` | Table 6 (VCDB column) |
+| `datasets/nuscenes/vlm_bridge_*_results.json` | Table 7 (nuScenes column) |
+| `datasets/nuscenes/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
+| `datasets/vcdb/vlm_bridge_*_results.json` | Table 7 (VCDB column) |
 | `datasets/vcdb/vlm_probes_*_results.json` | Supplementary (VCDB VLM generative) |
 | `datasets/hdd/vlm_generative_*_results.json` | Supplementary (HDD VLM generative) |
 | `datasets/nuscenes/vlm_generative_*_results.json` | Supplementary (nuScenes VLM generative) |
@@ -590,20 +607,20 @@ python experiments/alpha_sweep.py \
 | `datasets/hdd/cross_session_results.json` | Appendix H (cross-session) |
 | `datasets/hdd/retrieval_protocol_results.json` | Appendix (retrieval metrics) |
 | `datasets/vcdb/attack_suite_results.json` | Appendix (attack suite) |
-| `datasets/vcdb/pair_scores_vjepa2.json` | Table 14 (Appendix J) |
-| `datasets/vcdb/scramble_multiseed_results.json` | Appendix N (multi-seed) |
-| `figures/vcdb_scramble_multiseed.png` | Figure 9 (Appendix N) |
+| `datasets/vcdb/pair_scores_vjepa2.json` | Table 15 (Appendix L) |
+| `datasets/vcdb/scramble_multiseed_results.json` | Appendix R (multi-seed) |
+| `figures/vcdb_scramble_multiseed.png` | Figure 9 (Appendix R) |
 | `datasets/hdd/left_right_results.json` | §3.2 (left-vs-right AP) |
 | `datasets/hdd/optical_flow_results.json` | §3.2 (optical flow baseline) |
 | `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 3 (Claude probe) |
 | `datasets/epic_kitchens/gemini_probe_results.json` | §3.3, Table 3 (Gemini probe) |
-| `datasets/viclip_results.json` | Table 5, §5 (ViCLIP) |
-| `datasets/tara_hdd_results.json` | Table 2, Table 5 (TARA) |
-| `datasets/pl_stitch_hdd_results.json` | Table 2, Table 5 (PL-Stitch) |
+| `datasets/viclip_results.json` | Table 6, §5 (ViCLIP) |
+| `datasets/tara_hdd_results.json` | Table 2, Table 6 (TARA) |
+| `datasets/pl_stitch_hdd_results.json` | Table 2, Table 6 (PL-Stitch) |
 | `datasets/hdd/ordered_maxsim_ablation_results.json` | Supplementary (DINOv3 OrderedMaxSim ablation) |
 | `datasets/hdd/ordered_maxsim_vjepa2_ablation_results.json` | Supplementary (V-JEPA 2 OrderedMaxSim ablation) |
 | `datasets/vcdb/ordered_maxsim_ablation_results.json` | Supplementary (VCDB OrderedMaxSim ablation) |
-| `datasets/alpha_sweep_results.json` | Table 15 (Appendix, α-invariance sweep) |
+| `datasets/alpha_sweep_results.json` | Table 16 (Appendix M, α-invariance sweep) |
 
 ## Paper Compilation
 
