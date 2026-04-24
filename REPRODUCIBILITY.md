@@ -18,7 +18,7 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 **Hardware:** NVIDIA GPU (A100/H100/H200 recommended). Most experiments require 1 GPU; VLM experiments require 1-2 GPUs depending on model size. Probes (linear + MLP) and bootstrap CIs are CPU-only.
 
-**Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude 4.6 Opus and Gemini 3.1 Pro are API-only (see experiments 32--33).
+**Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude Opus 4.6 and Gemini 3.1 Pro are API-only (see experiments 32--33).
 
 ## Table and Figure Reference Map
 
@@ -421,7 +421,7 @@ python experiments/eval_mlp_probe.py
 
 **Output:** `datasets/epic_kitchens/mlp_probe_results.json`
 
-### 32. Claude 4.6 Opus Generative Probe — §3.3, Table 3
+### 32. Claude Opus 4.6 Generative Probe — §3.3, Table 3
 
 Proprietary VLM temporal order probe via OpenAI-compatible API. Requires API access and `CLAUDE_API_KEY` environment variable.
 

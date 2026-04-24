@@ -4,7 +4,7 @@ Diagnostic code for *The Temporal Blind Spot in Video Retrieval: Diagnosing Temp
 
 ## Abstract
 
-Temporal blindness in video models is well-documented for generative QA, but its consequences for *retrieval embeddings* — where failures are silent — remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks spanning copy detection, temporal manipulation, and high-overlap motion retrieval. A feature-vs-comparator decomposition reveals that, within a given encoder, the matching stage (per-frame representation and sequence-aware similarity) governs temporal sensitivity: on Honda HDD this switch explains 89% of the performance gap between bag-of-tokens and the temporal residual (point estimate; cluster-level block-bootstrap CIs are wider), with a non-DTW set-matching aggregation already closing 76%; on nuScenes the matching stage alone is on par with the learned residual transform (AP = 0.867 vs. 0.815; CIs marginally overlap). A *temporal scramble gradient* (K ∈ {1, …, 16}) cleanly separates order-invariant from sequence-aware methods. Embedding probes across three open-weight Video-LLMs localize where temporal signal is lost: temporal-derivative DTW separates forward from reverse perfectly — an algebraic property of derivatives under reversal, not of the features themselves — but mean-pooling erases this signal (s_rev ≈ 1.0). Generative probes on Claude 4.6 Opus and Gemini 3.1 Pro fare no better than the open-weight models. Neither linear nor nonlinear probes recover temporal order from LLM hidden states (126 configurations, though the p ≫ n regime bounds recoverability rather than proving absence). Across all evaluated methods, no single approach spans both copy detection and motion retrieval, exposing a sensitivity–invariance trade-off that current architectures do not resolve. We release open-source code packaging the scramble gradient and reversal tests.
+Video retrieval systems are temporally blind: reversed videos return identical embeddings, and no downstream signal flags the failure. While this blindness is well-documented for generative QA, its consequences for *retrieval embeddings* remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks spanning copy detection, temporal manipulation, and high-overlap motion retrieval. A feature-vs-comparator decomposition reveals that, within a given encoder, the matching stage (per-frame representation and sequence-aware similarity) governs temporal sensitivity: on Honda HDD this switch explains 89% of the performance gap between bag-of-tokens and the temporal residual (point estimate; cluster-level block-bootstrap CIs are wider), with a non-DTW set-matching aggregation already closing 76%; on nuScenes the matching stage alone is on par with the learned residual transform (AP = 0.867 vs. 0.815; CIs marginally overlap). A *temporal scramble gradient* (K ∈ {1, …, 16}) cleanly separates order-invariant from sequence-aware methods. Embedding probes across three open-weight Video-LLMs localize where temporal signal is lost: temporal-derivative DTW separates forward from reverse perfectly — an algebraic property of derivatives under reversal, not of the features themselves — but mean-pooling erases this signal (s_rev ≈ 1.0). Generative probes on Claude Opus 4.6 and Gemini 3.1 Pro fare no better than the open-weight models. Neither linear nor nonlinear probes recover temporal order from LLM hidden states (126 configurations, though the p ≫ n regime bounds recoverability rather than proving absence). Across all evaluated methods, no single approach spans both copy detection and motion retrieval, exposing a sensitivity–invariance trade-off that current architectures do not resolve. We release open-source code packaging the scramble gradient and reversal tests.
 
 ## The Problem
 
@@ -30,7 +30,7 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM reversal (3 VLMs, EPIC-Kitchens) | All at chance | 0.50--0.54 bal. acc. |
-| VLM reversal (Claude 4.6 Opus, EPIC) | At chance | ~0.55 bal. acc. |
+| VLM reversal (Claude Opus 4.6, EPIC) | At chance | ~0.55 bal. acc. |
 | VLM reversal (Gemini 3.1 Pro, EPIC) | Marginal | ~0.60 bal. acc. |
 | VLM vision tower s_rev | Order-invariant | ~1.0 |
 | VLM vision sequence DTW s_rev | Order-sensitive | ~0.49 |
@@ -46,7 +46,7 @@ No single method works across all retrieval paradigms — this is the "Triad" th
 | PL-Stitch BoF (HDD) | At chance despite temporal pretraining | AP 0.478, s_rev 1.000 |
 | PL-Stitch DTW raw (HDD) | Encodes order but lacks capacity | AP 0.540, s_rev 0.006 |
 
-Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling — no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW — symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude 4.6 Opus) fares no better than 7B open-weight models; a reasoning model (Gemini 3.1 Pro) shows marginal improvement (~0.60 balanced accuracy) but remains far from reliable. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
+Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling — no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW — symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude Opus 4.6) fares no better than 7B open-weight models; a reasoning model (Gemini 3.1 Pro) shows marginal improvement (~0.60 balanced accuracy) but remains far from reliable. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
 
 ## Methods
 
@@ -116,7 +116,7 @@ python experiments/eval_nuscenes_vlm_generative.py # VLM generative probes on nu
 python experiments/eval_epic_temporal_order.py   # EPIC-Kitchens multi-VLM probes
 python experiments/eval_epic_linear_probe.py     # Linear probe on LLM hidden states
 python experiments/eval_mlp_probe.py              # MLP probe on LLM hidden states (GroupKFold)
-python experiments/eval_epic_claude_probe.py     # Claude 4.6 Opus API probe
+python experiments/eval_epic_claude_probe.py     # Claude Opus 4.6 API probe
 python experiments/eval_epic_gemini_probe.py     # Gemini 3.1 Pro API probe
 python experiments/eval_hdd_left_vs_right.py     # Left-vs-right only HDD evaluation
 python experiments/eval_hdd_encoder_seq.py       # V-JEPA 2 encoder-seq DTW ablation on HDD
@@ -156,7 +156,7 @@ python experiments/alpha_sweep.py                # DTW α-invariance sweep (3 ce
 | Qwen3-VL-8B | `Qwen/Qwen3-VL-8B-Instruct` | VLM (Qwen2 backbone + native video) |
 | Gemma 4 31B | `google/gemma-4-31B-it` | VLM (SigLIP vision + Gemma LLM) |
 | LLaVA-Video 7B | `llava-hf/LLaVA-Video-7B-Qwen2-hf` | VLM (CLIP vision + Qwen2 LLM) |
-| Claude 4.6 Opus | API-only (`claude-4-6-opus-genai`) | Proprietary VLM (generative probe only) |
+| Claude Opus 4.6 | API-only (`claude-4-6-opus-genai`) | Proprietary VLM (generative probe only) |
 | Gemini 3.1 Pro | API-only (`gemini-3-1-pro-preview-genai`) | Proprietary reasoning VLM (generative probe only) |
 | ViCLIP ViT-L | `OpenGVLab/ViCLIP` (local weights) | Video-native contrastive (InternVid-10M, 768-dim) |
 | TARA (Tarsier-7B) | `bpiyush/TARA` (local weights) | Chiral-trained MLLM (16 frames, 4096-dim) |
