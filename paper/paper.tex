@@ -536,6 +536,8 @@ Figure~\ref{fig:hdd_maneuver} visualizes the V-JEPA~2 rows of Table~\ref{tab:hdd
 \section{Context Sweep Table}
 \label{sec:context_sweep_table}
 
+Table~\ref{tab:context_sweep} and Figure~\ref{fig:context_sweep} report the Section~\ref{sec:context_sweep} sampling-density experiment: we vary clip duration $d \in \{1.0, 2.0, 3.0, 4.0, 6.5, 8.0\}$ seconds while extracting a fixed 64 unique frames per clip, sweeping the effective frame rate from 11.1 to 3.2~fps.
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.6\textwidth]{../figures/hdd_context_sweep.png}
@@ -546,6 +548,7 @@ Figure~\ref{fig:hdd_maneuver} visualizes the V-JEPA~2 rows of Table~\ref{tab:hdd
 \begin{table}[h]
 \centering
 \caption{Context sweep on HDD (1{,}687 maneuvers, 64 unique frames, no padding). $\text{fps}_\text{eff} = 64\,/\,d$ where $d$ is clip duration in seconds.}
+\label{tab:context_sweep}
 \begin{tabular}{rcccc}
 \toprule
 \textbf{context\_sec} & \textbf{fps\textsubscript{eff}} & \textbf{Temporal Residual AP} & \textbf{BoT AP} & \textbf{$\Delta$ (Res.\ $-$ BoT)} \\
@@ -836,6 +839,8 @@ Both curves are monotonically non-decreasing in $k$ until the approach to the ce
 \section{nuScenes Cross-Dataset Visualization}
 \label{sec:nuscenes_figure}
 
+Figure~\ref{fig:nuscenes_maneuver} visualizes the nuScenes maneuver-discrimination results reported in Section~\ref{sec:nuscenes}. Encoder-sequence DTW (AP\,=\,0.867) leads, followed by the temporal residual (AP\,=\,0.815) and BoT (AP\,=\,0.791), with DINOv3 methods below 0.625. The ordering makes concrete the Section~\ref{sec:discussion} observation that on nuScenes the matching-stage contribution saturates the BoT$\to$best-method gap by itself, so the residual transform adds nothing statistically distinguishable here.
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/nuscenes_maneuver_discrimination.png}
@@ -875,9 +880,12 @@ LLaVA-Video-7B & 0.999 [0.998, 0.999] & \textbf{0.517} [0.516, 0.518] & 1.000$^\
 \section{Scramble Gradient Data}
 \label{sec:scramble_data}
 
+Table~\ref{tab:scramble_data} gives the numerical backing for the main-body scramble gradient (Figure~\ref{fig:scramble_gradient}): AP on VCDB's 5{,}585 positive pairs across chunk counts $K \in \{1, 2, 3, 4, 6, 8, 12, 16\}$, where $K\!=\!1$ is the unscrambled baseline and higher $K$ means finer-grained temporal shuffling.
+
 \begin{table}[h]
 \centering
 \caption{AP across scramble levels $K$ on VCDB (527 of 528 videos; one decode failure). $K\!=\!1$ is the unscrambled baseline. Order-invariant methods show constant AP; sequence-aware methods show overall degradation (multi-seed analysis: $\sigma \leq 0.007$; Figure~\ref{fig:scramble_multiseed}).}
+\label{tab:scramble_data}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccccc}
 \toprule
