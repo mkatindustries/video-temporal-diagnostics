@@ -39,13 +39,13 @@
 
 \begin{abstract}
 Video retrieval systems are temporally blind: reversed videos return near-identical
-embeddings (the numerical fingerprints used for similarity search)---bag-of-frames is
-identical by construction, bag-of-tokens yields cosine $s_\text{rev}\!=\!0.984$---and no
-downstream signal flags the failure. This blindness is well-documented for
-generative question answering but uncharacterized for \emph{retrieval
-embeddings}, where failures are silent. We diagnose temporal sensitivity
-across six benchmarks. A feature-vs-comparator decomposition shows that,
-within a given encoder, the matching stage---not the encoder---governs
+embeddings (the numerical fingerprints used for similarity search), and no
+downstream signal flags the failure. Bag-of-frames matches by construction;
+bag-of-tokens yields cosine $s_\text{rev}\!=\!0.984$. This blindness is
+well-documented for generative question answering but uncharacterized for
+\emph{retrieval embeddings}, where failures are silent. We diagnose temporal
+sensitivity across six benchmarks. A feature-vs-comparator decomposition shows
+that, within a given encoder, the matching stage (not the encoder) governs
 temporal sensitivity: on Honda HDD, switching from pooled-cosine to per-frame
 dynamic time warping explains 89\% of the gap between bag-of-tokens and the
 V-JEPA~2 temporal residual (cluster-level CIs wider). A \emph{temporal
@@ -64,9 +64,9 @@ code packaging the scramble gradient and reversal tests.
 
 \section{Introduction}
 
-Video retrieval embeddings fail silently under temporal manipulation: reversed videos return identical vectors, left turns match right turns, and no downstream signal flags the error. This is a consequence of architecture, not a bug. Modern systems represent videos via the \emph{bag-of-frames} (BoF) approach---mean-pooling (element-wise averaging) frame embeddings from pretrained encoders into one vector~\cite{faiss, semdedup}. BoF dominates Video Copy Detection (VCD; finding re-encoded, cropped, or camcorded copies) because visual semantics survive frame reordering, and order-invariance enables billion-scale nearest-neighbor search. The same property that makes BoF fast makes it blind.
+Video retrieval embeddings fail silently under temporal manipulation: reversed videos return identical vectors, left turns match right turns, and no downstream signal flags the error. This is a consequence of architecture, not a bug. Modern systems represent videos via the \emph{bag-of-frames} (BoF) approach: mean-pooling (element-wise averaging) frame embeddings from pretrained encoders into one vector~\cite{faiss, semdedup}. BoF dominates Video Copy Detection (VCD; finding re-encoded, cropped, or camcorded copies) because visual semantics survive frame reordering, and order-invariance enables billion-scale nearest-neighbor search. The same property that makes BoF fast makes it blind.
 
-Temporal blindness in video models is well documented for generative \emph{question answering} (QA)~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: generative probes score near chance on temporal tasks, and frame shuffling leaves benchmark scores intact. These diagnoses surface in text. In retrieval, they surface in nothing---the vector database returns the same neighbor, and the user never sees the failure. We study three regimes where the value of temporal order flips:
+Temporal blindness in video models is well documented for generative \emph{question answering} (QA)~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: generative probes score near chance on temporal tasks, and frame shuffling leaves benchmark scores intact. These diagnoses surface in text. In retrieval, they surface in nothing: the vector database returns the same neighbor, and the user never sees the failure. We study three regimes where the value of temporal order flips:
 
 \textbf{1. Scene matching (order irrelevant):} for VCD and scene retrieval (e.g., ``activities in different rooms''), the signal is visual background. Semantic pooling suffices; temporal invariance is a feature.
 
@@ -81,7 +81,7 @@ We evaluate these cases using DINOv3~\cite{dinov3} (BoF and DTW attention trajec
 \section{Methods}
 
 \textbf{Why BoF is blind.}
-Mean-pooling reversed frames gives the same vector as mean-pooling the original: the operator discards the indices. More generally, mean-pooling, max-pooling, and Chamfer matching are \emph{symmetric aggregators}---their output is invariant to any permutation of the inputs, $g(f_1, \ldots, f_T) = g(f_{\pi(1)}, \ldots, f_{\pi(T)})$~\cite{deepsets}. BoF order-invariance therefore follows from the aggregation operator, independent of encoder capacity or training objective. The diagnostics below distinguish systems whose blindness is architectural (the aggregator) from systems whose blindness is learned (the encoder).
+Mean-pooling reversed frames gives the same vector as mean-pooling the original: the operator discards the indices. More generally, mean-pooling, max-pooling, and Chamfer matching are \emph{symmetric aggregators}: their output is invariant to any permutation of the inputs, $g(f_1, \ldots, f_T) = g(f_{\pi(1)}, \ldots, f_{\pi(T)})$~\cite{deepsets}. BoF order-invariance therefore follows from the aggregation operator, independent of encoder capacity or training objective. The diagnostics below distinguish systems whose blindness is architectural (the aggregator) from systems whose blindness is learned (the encoder).
 
 \textbf{DINOv3 \& Attention Trajectories.} We extract 1024-d CLS embeddings per frame from DINOv3 ViT-L~\cite{dinov3}. \emph{BoF} mean-pools frame embeddings into a single vector, compared via cosine similarity. \emph{Chamfer similarity}~\cite{kordopatis2019visil} computes the pairwise frame similarity matrix and averages the symmetric maximum: $\frac{1}{2}\bigl(\mathrm{mean}_i \max_j S_{ij} + \mathrm{mean}_j \max_i S_{ij}\bigr)$, remaining order-invariant while retaining per-frame structure. For structural tracking, we compute the spatial center-of-mass of the CLS$\to$patch attention map (last layer, averaged across heads) per frame, yielding a 2D trajectory compared via DTW. Temporal derivatives of CLS embeddings capture frame-to-frame transition dynamics, also compared via DTW.
 
@@ -97,7 +97,7 @@ Mean-pooling reversed frames gives the same vector as mean-pooling the original:
 
 \textbf{PL-Stitch.} PL-Stitch~\cite{plstitch} pretrains a ViT-Base (86M params) with Plackett-Luce temporal ranking, producing per-frame 768-d CLS-token embeddings that support the same feature-vs-comparator decomposition as DINOv3: BoF, Chamfer, temporal derivative DTW, and DTW on raw embeddings.
 
-\textbf{VLM Embedding Probes.} These are \emph{diagnostic procedures}, not new models: each probe reads a representation from an existing VLM pipeline and emits two metrics ($s_\text{rev}$ and balanced accuracy on forward/reverse classification). We probe three stages: (1)~\emph{vision pooled}---mean-pooled vision tower output (BoF over frame$\times$patch tokens); (2)~\emph{vision sequence}---per-frame pooled vision tokens as a $(T, D)$ sequence, compared via temporal derivative DTW; (3)~\emph{LLM hidden state}---mean-pooled last-layer hidden state over all input tokens. $s_\text{rev}$ is the similarity between forward and reversed representations of the same clip:
+\textbf{VLM Embedding Probes.} These are \emph{diagnostic procedures}, not new models: each probe reads a representation from an existing VLM pipeline and emits two metrics ($s_\text{rev}$ and balanced accuracy on forward/reverse classification). We probe three stages: (1)~\emph{vision pooled}, the mean-pooled vision tower output (BoF over frame$\times$patch tokens); (2)~\emph{vision sequence}, per-frame pooled vision tokens as a $(T, D)$ sequence compared via temporal derivative DTW; (3)~\emph{LLM hidden state}, the mean-pooled last-layer hidden state over all input tokens. $s_\text{rev}$ is the similarity between forward and reversed representations of the same clip:
 \begin{equation}
 s_\text{rev} =
 \begin{cases}
@@ -180,7 +180,7 @@ V-JEPA 2 Encoder-Seq DTW & 0.942 & 0.935 \\
 
 DINOv3 methods fail (AP $\approx$ 0.50): dashcam attention tracks salient objects identical for both turns. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy rules out a trivial intensity shortcut (Spearman $r = 0.051$; Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves only AP\,=\,0.478. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963]. Comparing encoder patches via DTW (encoder-sequence DTW) achieves AP\,=\,0.942, showing that the matching stage (pooled-cosine $\to$ per-frame DTW) explains 89\% of the BoT-to-residual gap (0.825 $\to$ 0.956; point estimate, cluster-level CIs wider, Appendix~\ref{sec:bootstrap_cis}). A pairwise \emph{symmetric-max} (Chamfer) aggregation~\cite{kordopatis2019visil} on the same V-JEPA~2 encoder-sequence patches further decomposes this: it reaches AP\,=\,0.914 without any dynamic programming, closing 76\% of the BoT$\to$Encoder-Seq-DTW gap. The remaining 24\% (0.914$\to$0.942) is attributable specifically to DTW's monotonic warping constraint. We restrict encoder-sequence DTW to motion tasks (HDD, nuScenes); on VCDB, BoF already hits AP\,=\,0.989.
 
-\textbf{Does the decomposition indexify?} We test the standard two-stage retriever over the full 1{,}687-segment corpus: V-JEPA~2 BoT top-$k$ pre-filter, encoder-sequence DTW rerank on survivors, non-survivors scored by a sentinel below the BoT floor (full sweep and RRF alternative in Appendix~\ref{sec:rerank_appendix}). The budget is harsher than a naive reading of the 89\% gap would predict: at $k\!=\!100$ the rerank collapses (AP\,=\,0.638) because pre-filter recall is only 0.35; at $k\!=\!1000$ ($\sim\!60\%$ of the corpus) AP reaches 0.934---within 0.008 of full DTW, so the two-stage pipeline \emph{is} lossless at sufficient candidate budget. The pre-filter's similarity (appearance) is orthogonal to the task's (maneuver): same-intersection opposite-turn pairs crowd the top-$k$ and evict true positives. The decomposition is clean pairwise but does not decompose into a cheap indexable retriever via appearance-based filters; motion-aware first-stage filtering remains open.
+\textbf{Does the decomposition indexify?} We test the standard two-stage retriever over the full 1{,}687-segment corpus: V-JEPA~2 BoT top-$k$ pre-filter, encoder-sequence DTW rerank on survivors, non-survivors scored by a sentinel below the BoT floor (full sweep and RRF alternative in Appendix~\ref{sec:rerank_appendix}). The budget is harsher than a naive reading of the 89\% gap would predict. At $k\!=\!100$ the rerank collapses (AP\,=\,0.638) because pre-filter recall is only 0.35. At $k\!=\!1000$ ($\sim\!60\%$ of the corpus) AP reaches 0.934, within 0.008 of full DTW; the two-stage pipeline \emph{is} lossless at sufficient candidate budget. The pre-filter's similarity (appearance) is orthogonal to the task's (maneuver): same-intersection opposite-turn pairs crowd the top-$k$ and evict true positives. The decomposition is clean pairwise but does not decompose into a cheap indexable retriever via appearance-based filters; motion-aware first-stage filtering remains open.
 
 \begin{table}[ht]
 \centering
@@ -199,7 +199,7 @@ V-JEPA~2 Encoder-Seq DTW (full) & 0.942 & 1.000 & $\sim$1{,}687 \\
 \end{tabular}
 \end{table}
 
-TARA~\cite{tara}, a 7B MLLM trained with chiral negatives, hits AP\,=\,0.547 under cosine---indistinguishable from ViCLIP (0.542) despite ${\sim}23\times$ more parameters. PL-Stitch~\cite{plstitch} (ViT-Base, Plackett-Luce ranking) supports the same decomposition: BoF yields AP\,=\,0.478, DTW on raw embeddings 0.540---both near chance, and below DINOv3 Chamfer (0.559), possibly reflecting a capacity (86M vs.\ 300M) and pretraining-scale gap rather than a comparator effect. Yet $s_\text{rev}\!=\!0.006$ under raw DTW confirms PL-Stitch \emph{does} encode frame order---the features are not discriminative enough for maneuver retrieval.
+TARA~\cite{tara}, a 7B MLLM trained with chiral negatives, hits AP\,=\,0.547 under cosine, indistinguishable from ViCLIP (0.542) despite ${\sim}23\times$ more parameters. PL-Stitch~\cite{plstitch} (ViT-Base, Plackett-Luce ranking) supports the same decomposition: BoF yields AP\,=\,0.478 and DTW on raw embeddings 0.540. Both sit near chance and below DINOv3 Chamfer (0.559), possibly reflecting a capacity (86M vs.\ 300M) and pretraining-scale gap rather than a comparator effect. Yet $s_\text{rev}\!=\!0.006$ under raw DTW confirms PL-Stitch \emph{does} encode frame order; the features are not discriminative enough for maneuver retrieval.
 
 \subsubsection{Sampling Density: Context Window Sweep}
 \label{sec:context_sweep}
@@ -240,7 +240,7 @@ Gemini 3.1 Pro & 0.585 & 0.608 & 0.603 & $0.599 \pm 0.010$ \\
 \end{tabular}
 \end{table}
 
-All five models perform at or near chance; Gemini~3.1 Pro~\cite{gemini31pro} (a reasoning model) reaches $0.599 \pm 0.010$---marginally above chance but far from reliable. Answers are driven by prompt phrasing, not temporal direction (Appendix~\ref{sec:integrity_probe} and~\ref{sec:prompt_details}).
+All five models perform at or near chance; Gemini~3.1 Pro~\cite{gemini31pro} (a reasoning model) reaches $0.599 \pm 0.010$, marginally above chance but far from reliable. Answers are driven by prompt phrasing, not temporal direction (Appendix~\ref{sec:integrity_probe} and~\ref{sec:prompt_details}).
 
 \subsubsection{Embedding Probes: Where Temporal Signal Dies}
 \label{sec:vlm_embedding}
@@ -280,11 +280,11 @@ VLM \emph{outputs} carry no temporal information. We probe whether temporal sign
 \bottomrule
 \end{tabular}
 \begin{flushleft}
-\small $^*$DINOv3 300M params, CLIP (ViT-L) 304M, SigLIP (SO-400M) 400M. Order-invariance follows from the aggregation operator~\cite{deepsets}, not model capacity. $^\dagger$Raw values 1.001--1.002 from f32 precision; clamped to 1.000. Qwen3-VL vision probes are omitted from this table because its ViT uses dynamic-resolution spatial grids with 3D temporal--spatial merging, which disrupts clean per-frame token grouping for the detailed $s_\text{rev}$ analysis; the mechanism behind its anomalously low pooled VCDB AP (0.491 vs.\ 0.915--0.926 for CLIP/SigLIP; Table~\ref{tab:summary_vlm}) warrants further investigation. Approximate pooled and sequence results appear in Table~\ref{tab:summary_vlm}. The LLM hidden-state probe (below) is unaffected.
+\small $^*$DINOv3 300M params, CLIP (ViT-L) 304M, SigLIP (SO-400M) 400M. Order-invariance follows from the aggregation operator~\cite{deepsets}, not model capacity. $^\dagger$Raw values 1.001--1.002 from f32 precision; clamped to 1.000. We omit Qwen3-VL vision probes from this table because its ViT uses dynamic-resolution spatial grids with 3D temporal--spatial merging, which disrupts clean per-frame token grouping for the detailed $s_\text{rev}$ analysis; the mechanism behind its anomalously low pooled VCDB AP (0.491 vs.\ 0.915--0.926 for CLIP/SigLIP; Table~\ref{tab:summary_vlm}) warrants further investigation. Approximate pooled and sequence results appear in Table~\ref{tab:summary_vlm}. The LLM hidden-state probe (below) is unaffected.
 \end{flushleft}
 \end{table}
 
-\textbf{Order signal is recoverable from per-frame features but erased by pooling.} Pooled VLM vision embeddings are order-invariant ($s_\text{rev} \approx 1.0$). Retaining per-frame tokens and comparing via temporal derivative DTW achieves perfect forward/reverse separation (balanced accuracy\,=\,1.000) for both CLIP and SigLIP~\cite{weller2025limits}. This follows from the mathematical structure of temporal derivatives under DTW (reversed derivatives are negated), not learned understanding. Qwen3-VL's pooled vision embeddings underperform sharply (VCDB AP\,=\,0.491 vs.\ 0.915--0.926), possibly because its 3D temporal--spatial merging entangles frame identity with spatial position---a hypothesis consistent with the 3D-merging architectural class, though we do not isolate this mechanistically.
+\textbf{Order signal is recoverable from per-frame features but erased by pooling.} Pooled VLM vision embeddings are order-invariant ($s_\text{rev} \approx 1.0$). Retaining per-frame tokens and comparing via temporal derivative DTW achieves perfect forward/reverse separation (balanced accuracy\,=\,1.000) for both CLIP and SigLIP~\cite{weller2025limits}. This follows from the mathematical structure of temporal derivatives under DTW (reversed derivatives are negated), not learned understanding. Qwen3-VL's pooled vision embeddings underperform sharply (VCDB AP\,=\,0.491 vs.\ 0.915--0.926), possibly because its 3D temporal--spatial merging entangles frame identity with spatial position, a hypothesis consistent with the 3D-merging architectural class, though we do not isolate this mechanistically.
 
 The LLM backbone does not surface this signal under any pooled readout ($s_\text{rev} \approx 1.0$ across all layers; Appendix~\ref{sec:layer_ablation}). Neither logistic regression nor 2-layer MLP probes on per-position LLM hidden states recover temporal order above chance (best: 0.560; all 126 configurations within chance range; Appendix~\ref{sec:linear_probe}). The $p \gg n$ regime ($D \approx 4{,}000$, $N = 400$) bounds \emph{recoverability} rather than proving absence; the per-position DTW result below shows the signal is not absent, only not linearly separable in fixed-dimensional reductions. Yet per-position hidden states \emph{do} retain order signal under full-sequence DTW (Appendix~\ref{sec:vision_token_probe}). Symmetric aggregation, not the LLM backbone itself, is the bottleneck. In practice, VLM providers who expose only pooled embeddings cannot support order-sensitive retrieval out of the box: a second-stage per-frame DTW or a custom pooled readout is required.
 
@@ -318,13 +318,13 @@ Optical Flow (RAFT) DTW & --- & 0.478 & --- & --- & --- \\
 \end{tabular}
 }
 \begin{flushleft}
-\small --- = not evaluated (Encoder-Seq DTW is omitted on VCDB because BoF already saturates at AP\,=\,0.989; the matching stage is not the bottleneck in copy detection). VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $^\ddagger$By construction: temporal derivatives negate under reversal, making DTW distance an odd function of frame ordering.
+\small --- = not evaluated (we omit Encoder-Seq DTW on VCDB because BoF already saturates at AP\,=\,0.989; the matching stage is not the bottleneck in copy detection). VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $^\ddagger$By construction: temporal derivatives negate under reversal, making DTW distance an odd function of frame ordering.
 \end{flushleft}
 \end{table}
 
 \begin{table}[ht]
 \centering
-\caption{VLM embedding probes across all tasks, grouped by pipeline stage. Generative forward/reverse classification is reported separately in Section~\ref{sec:vlm_generative} (Table~\ref{tab:vlm_generative}).}
+\caption{VLM embedding probes across all tasks, grouped by pipeline stage. We report generative forward/reverse classification separately in Section~\ref{sec:vlm_generative} (Table~\ref{tab:vlm_generative}).}
 \label{tab:summary_vlm}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
@@ -358,7 +358,7 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 
 \textbf{Video copy detection.} Standard benchmarks (ISC~\cite{douze2021isc}, VSC~\cite{pizzi2023vsc}, VCSL~\cite{he2022vcsl}) and descriptors (SSCD~\cite{pizzi2022sscd}, ViSiL~\cite{kordopatis2019visil}, DnS~\cite{kordopatis2022dns}, S2VS~\cite{s2vs}) provide per-frame features with learned aggregation. Wang et al.~\cite{wang2023duallevel} win the Meta VSC challenge; subsequent analysis~\cite{fojcik2025} exposes temporal-attack vulnerability. Explicit temporal alignment (VSAL~\cite{han2021vsal}, TransVCL~\cite{he2023transvcl}) shows order matters for copy localization. We diagnose \emph{when} temporal structure helps versus hurts.
 
-\textbf{Temporal sensitivity in video models.} Lei et al.~\cite{lei2022singleframe} established the static-bias problem. Subsequent work diagnoses this in \emph{generative} VLM QA~\cite{tempcompass,bagad2023testtime,temporalbench,vbenchcomp,tomato}, including recent hallucination and zero-shot benchmarks~\cite{infact,videozerobench}; all probe generative outputs, not retrieval embeddings. Arrow-of-time diagnostics~\cite{aot,arrowrl} and further studies~\cite{timeblindness,timeblind,vitatecs,reveal,weavetime} show the failure is structural. NExT-GQA~\cite{nextgqa} introduces $\mathrm{GQ}@\tau$, a joint grounded-QA metric---complementary to the pair-level AP we report. We differ from all of the above in \emph{domain} (retrieval, where failures are silent) and \emph{granularity} (localizing failure to aggregation via scramble gradients and feature-vs-comparator decomposition). \emph{Training-time} fixes are complementary: TGPO's~\cite{tgpo} binary ordered/shuffled reward extends to our continuous $K$-gradient; PL-Stitch~\cite{plstitch} and ArrowGEV~\cite{arrowgev} inject pretraining order-sensitivity (PL-Stitch encodes order under DTW, $s_\text{rev}\!=\!0.006$, but does not close the capacity gap); TARA~\cite{tara} trains with chiral negatives (we use reversal as a probe).
+\textbf{Temporal sensitivity in video models.} Lei et al.~\cite{lei2022singleframe} established the static-bias problem. Subsequent work diagnoses this in \emph{generative} VLM QA~\cite{tempcompass,bagad2023testtime,temporalbench,vbenchcomp,tomato}, including recent hallucination and zero-shot benchmarks~\cite{infact,videozerobench}; all probe generative outputs, not retrieval embeddings. Arrow-of-time diagnostics~\cite{aot,arrowrl} and further studies~\cite{timeblindness,timeblind,vitatecs,reveal,weavetime} show the failure is structural. NExT-GQA~\cite{nextgqa} introduces $\mathrm{GQ}@\tau$, a joint grounded-QA metric complementary to the pair-level AP we report. We differ from all of the above in \emph{domain} (retrieval, where failures are silent) and \emph{granularity} (localizing failure to aggregation via scramble gradients and feature-vs-comparator decomposition). \emph{Training-time} fixes are complementary: TGPO's~\cite{tgpo} binary ordered/shuffled reward extends to our continuous $K$-gradient; PL-Stitch~\cite{plstitch} and ArrowGEV~\cite{arrowgev} inject pretraining order-sensitivity (PL-Stitch encodes order under DTW, $s_\text{rev}\!=\!0.006$, but does not close the capacity gap); TARA~\cite{tara} trains with chiral negatives (we use reversal as a probe).
 
 \textbf{Video prediction for temporal understanding.} V-JEPA~2~\cite{vjepa2} learns spatiotemporal representations via masked prediction. Drive-JEPA~\cite{drivejepa} is a downstream application (JEPA distillation for end-to-end driving), not a competing diagnosis; we instead treat V-JEPA~2 as one of several encoders under a retrieval-diagnosis lens. TWLV-I~\cite{twlvi} evaluates appearance vs.\ motion across video foundation models. Li et al.~\cite{temporaltransfer} show temporal information is encoded but standard pipelines fail to surface it, matching our finding.
 
@@ -369,11 +369,11 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 
 \textbf{Scene matching} (VCDB, Nymeria, MUVR). BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). Order-invariance is a feature here, not a bug.
 
-\textbf{Motion dynamics} (HDD, nuScenes). Per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}); on nuScenes the split inverts---encoder-sequence DTW (0.867) exceeds the residual (0.815, marginally overlapping CIs), so matching alone accounts for the full BoT$\to$best-method gap there---direction replicates, magnitude does not. ViCLIP~\cite{viclip} and X-CLIP~\cite{xclip} do not escape the blind spot; explicit temporal training fares no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} under DTW (0.540, $s_\text{rev}\!=\!0.006$) trail DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL and temporal-ranking objectives alone are insufficient without adequate capacity and pretraining scale.
+\textbf{Motion dynamics} (HDD, nuScenes). Per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}); on nuScenes the split inverts: encoder-sequence DTW (0.867) exceeds the residual (0.815, marginally overlapping CIs), so matching alone accounts for the full BoT$\to$best-method gap there. Direction replicates across datasets; magnitude does not. ViCLIP~\cite{viclip} and X-CLIP~\cite{xclip} do not escape the blind spot; explicit temporal training fares no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} under DTW (0.540, $s_\text{rev}\!=\!0.006$) trail DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL and temporal-ranking objectives alone are insufficient without adequate capacity and pretraining scale.
 
 \textbf{Temporal manipulation} (reversal, scrambling). Implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither is reliable. Per-frame features separate forward/reverse under DTW; pooling erases this across every VLM layer we probed.
 
-\textbf{Architecture implications.} Temporal blindness is a choice of aggregator, not a deficiency of the encoder. Indexable order-sensitive retrieval at scale will require learned permutation-sensitive pooling, trajectory tokenization compatible with inverted-file indexes, or two-stage rerankers whose first stage is \emph{motion-aware}---naive appearance pre-filters lose recall to intersection-identity collisions (Section~\ref{sec:motion}).
+\textbf{Architecture implications.} Temporal blindness is a choice of aggregator, not a deficiency of the encoder. Indexable order-sensitive retrieval at scale will require learned permutation-sensitive pooling, trajectory tokenization compatible with inverted-file indexes, or two-stage rerankers whose first stage is \emph{motion-aware}: naive appearance pre-filters lose recall to intersection-identity collisions (Section~\ref{sec:motion}).
 
 \begin{algorithm}[h]
 \caption{Temporal Sensitivity Diagnostic Protocol}
@@ -405,7 +405,7 @@ Table~\ref{tab:failure_taxonomy} is thus the classifier, not a post-hoc label.
 \section{Conclusion}
 \vspace{-0.6em}
 
-No method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within a given encoder, matching---not encoding---explains 89\% of the HDD gap (nuScenes corroborates direction, not magnitude; Section~\ref{sec:discussion}), and pooling erases per-frame order across every VLM layer we probed. These failures compose into a ten-class taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}); the open problem is constructive: designing indexable, order-sensitive comparators that preserve the per-frame signal current aggregators discard.%
+No method spans both copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within a given encoder, the matching stage (not the encoder) explains 89\% of the HDD gap (nuScenes corroborates direction, not magnitude; Section~\ref{sec:discussion}), and pooling erases per-frame order across every VLM layer we probed. These failures compose into a ten-class taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}); the open problem is constructive: designing indexable, order-sensitive comparators that preserve the per-frame signal current aggregators discard.%
 \ifdefined\neuripssubmission
 \else
 \footnote{Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.}%
@@ -825,7 +825,7 @@ $k$ & recall@$k$ & Survivor AP & RRF AP & positives reranked \\
 \end{tabular}
 \end{table}
 
-Both curves are monotonically non-decreasing in $k$ until the approach to the ceiling. Survivor-AP is the cleaner measurement because it is the \emph{end-to-end retriever} AP: pairs not surviving the pre-filter are scored below every survivor, which is faithful to the deployment semantics of a two-stage pipeline. RRF never reaches the full-DTW ceiling by construction---the BoT rank component pulls the composite down when DTW is already confident---but it never falls below BoT-only either, making it a safer drop-in when reranker calibration is uncertain. The reproducibility of these numbers depends on the feature cache used by Section~\ref{sec:motion} (see the \texttt{eval\_hdd\_bof\_dtw\_rerank.py} script in supplementary material).
+Both curves are monotonically non-decreasing in $k$ until the approach to the ceiling. Survivor-AP is the cleaner measurement because it is the \emph{end-to-end retriever} AP: pairs not surviving the pre-filter are scored below every survivor, which is faithful to the deployment semantics of a two-stage pipeline. RRF never reaches the full-DTW ceiling by construction (the BoT rank component pulls the composite down when DTW is already confident), but it never falls below BoT-only either, making it a safer drop-in when reranker calibration is uncertain. The reproducibility of these numbers depends on the feature cache used by Section~\ref{sec:motion} (see the \texttt{eval\_hdd\_bof\_dtw\_rerank.py} script in supplementary material).
 
 \section{nuScenes Cross-Dataset Visualization}
 \label{sec:nuscenes_figure}
@@ -943,7 +943,7 @@ Note that per-position LLM hidden states \emph{do} carry order signal when compa
 \section{Computational Costs}
 \label{sec:computational_costs}
 
-Table~\ref{tab:costs} summarizes per-video extraction and per-pair comparison costs on a single H200 GPU. The two-stage retrieval pipeline recommended in Section~\ref{sec:discussion}---BoF cosine pre-filter followed by DTW reranking on the top-$k$---adds ${\sim}100$\,ms overhead per query at $k\!=\!100$, dominated by DTW on derivative or residual sequences. Feature extraction is the one-time cost per video at index build; comparison cost governs query latency.
+Table~\ref{tab:costs} summarizes per-video extraction and per-pair comparison costs on a single H200 GPU. The two-stage retrieval pipeline recommended in Section~\ref{sec:discussion} (BoF cosine pre-filter followed by DTW reranking on the top-$k$) adds ${\sim}100$\,ms overhead per query at $k\!=\!100$, dominated by DTW on derivative or residual sequences. Feature extraction is the one-time cost per video at index build; comparison cost governs query latency.
 
 \begin{table}[h]
 \centering
@@ -1001,7 +1001,7 @@ Two design choices make this taxonomy actionable rather than descriptive. First,
 \section{Reproducibility Appendix}
 \label{sec:reproducibility}
 
-This appendix documents inputs, intended use, and known limitations of the \textsc{TemporalDiag} diagnostic suite to support reproduction of our experiments. It is not a datasheet for a released dataset---we release no new data---but a scope statement for a diagnostic toolkit applied to six existing public benchmarks.
+This appendix documents inputs, intended use, and known limitations of the \textsc{TemporalDiag} diagnostic suite to support reproduction of our experiments. It is not a datasheet for a released dataset (we release no new data) but a scope statement for a diagnostic toolkit applied to six existing public benchmarks.
 
 \textbf{Scope and intended use.} \textsc{TemporalDiag} accepts per-frame embeddings or sequence representations from any vision or VLM encoder, plus pairwise ground-truth labels, and emits (i)~a scramble-gradient profile (AP vs.\ $K\in\{1,\ldots,16\}$), (ii)~a reversal-sensitivity score $s_\text{rev}$ under a user-chosen similarity function, and (iii)~optional feature-vs-comparator decomposition outputs when per-frame and pooled variants of the same encoder are supplied. The toolkit is intended for diagnostic analysis of video retrieval systems whose primary metric is pairwise AP/AUC on same/different-category labels. It is \emph{not} intended to score or rank systems on a closed leaderboard.
 
