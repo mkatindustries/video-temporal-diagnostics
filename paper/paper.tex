@@ -22,6 +22,7 @@
 \usepackage{placeins}
 \usepackage{multirow}
 \usepackage{amsthm}
+\usepackage{enumitem}
 
 \newtheorem{corollary}{Corollary}
 \newtheorem{lemma}{Lemma}
@@ -35,9 +36,10 @@
 \maketitle
 
 \begin{abstract}
-Temporal blindness in video models is well-documented for generative QA, but its
-consequences for \emph{retrieval embeddings}---where failures are silent---remain
-uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks
+Video retrieval systems are temporally blind: reversed videos return identical
+embeddings, and no downstream signal flags the failure. While this blindness
+is well-documented for generative QA, its consequences for \emph{retrieval
+embeddings} remain uncharacterized. We diagnose temporal sensitivity across six retrieval benchmarks
 spanning copy detection, temporal manipulation, and high-overlap motion retrieval.
 A feature-vs-comparator decomposition reveals that, within a given encoder,
 the matching stage (per-frame representation and sequence-aware similarity)
@@ -184,7 +186,7 @@ V-JEPA 2 Encoder-Seq DTW & 0.942 & 0.935 \\
 \end{tabular}
 \end{table}
 
-DINOv3 methods fail (AP $\approx$ 0.50): dashcam attention tracks salient objects identical for both turns. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy rules out a trivial intensity shortcut (Spearman $r = 0.051$; Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves only AP\,=\,0.478. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963]. Comparing encoder patches via DTW (encoder-sequence DTW) achieves AP\,=\,0.942, showing that the matching stage (pooled-cosine $\to$ per-frame DTW) explains 89\% of the BoT-to-residual gap (0.825 $\to$ 0.956). A pairwise \emph{symmetric-max} (Chamfer) aggregation~\cite{kordopatis2019visil} on the same V-JEPA~2 encoder-sequence patches further decomposes this: it reaches AP\,=\,0.914 without any dynamic programming, closing 76\% of the BoT$\to$Encoder-Seq-DTW gap. The remaining 24\% (0.914$\to$0.942) is attributable specifically to DTW's monotonic warping constraint. We restrict encoder-sequence DTW to motion tasks (HDD, nuScenes); on VCDB, BoF already hits AP\,=\,0.989.
+DINOv3 methods fail (AP $\approx$ 0.50): dashcam attention tracks salient objects identical for both turns. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy rules out a trivial intensity shortcut (Spearman $r = 0.051$; Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves only AP\,=\,0.478. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963]. Comparing encoder patches via DTW (encoder-sequence DTW) achieves AP\,=\,0.942, showing that the matching stage (pooled-cosine $\to$ per-frame DTW) explains 89\% of the BoT-to-residual gap (0.825 $\to$ 0.956; point estimate, cluster-level CIs wider, Appendix~\ref{sec:bootstrap_cis}). A pairwise \emph{symmetric-max} (Chamfer) aggregation~\cite{kordopatis2019visil} on the same V-JEPA~2 encoder-sequence patches further decomposes this: it reaches AP\,=\,0.914 without any dynamic programming, closing 76\% of the BoT$\to$Encoder-Seq-DTW gap. The remaining 24\% (0.914$\to$0.942) is attributable specifically to DTW's monotonic warping constraint. We restrict encoder-sequence DTW to motion tasks (HDD, nuScenes); on VCDB, BoF already hits AP\,=\,0.989.
 
 TARA~\cite{tara}, a 7B MLLM trained with chiral negatives, hits AP\,=\,0.547 under cosine---indistinguishable from ViCLIP (0.542) despite ${\sim}23\times$ more parameters. PL-Stitch~\cite{plstitch} (ViT-Base, Plackett-Luce ranking) supports the same decomposition: BoF yields AP\,=\,0.478, DTW on raw embeddings 0.540---both near chance, and below DINOv3 Chamfer (0.559), possibly reflecting a capacity (86M vs.\ 300M) and pretraining-scale gap rather than a comparator effect. Yet $s_\text{rev}\!=\!0.006$ under raw DTW confirms PL-Stitch \emph{does} encode frame order---the features are not discriminative enough for maneuver retrieval.
 
@@ -363,17 +365,19 @@ Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 & N/A \\
 
 \textbf{Video prediction for temporal understanding.} V-JEPA~2~\cite{vjepa2} learns spatiotemporal representations via masked prediction. Drive-JEPA~\cite{drivejepa} is a downstream application (JEPA distillation for end-to-end driving), not a competing diagnosis; we instead treat V-JEPA~2 as one of several encoders under a retrieval-diagnosis lens. TWLV-I~\cite{twlvi} evaluates appearance vs.\ motion across video foundation models. Li et al.~\cite{temporaltransfer} show temporal information is encoded but standard pipelines fail to surface it, matching our finding.
 
-\textbf{Temporal alignment for retrieval.} DTW~\cite{sakoe1978dtw} remains standard; extensions include differentiable DTW~\cite{ddtw} and Drop-DTW~\cite{dropdtw}. At $T \approx 30$ frames, each comparison takes ${\sim}1$\,ms; top-100 reranking after FAISS~\cite{faiss} adds ${\sim}100$\,ms. We use DTW as a diagnostic tool; Weller et al.~\cite{weller2025limits} provide theoretical justification for multi-vector approaches.
+\textbf{Temporal alignment for retrieval.} DTW~\cite{sakoe1978dtw} remains standard; extensions include Soft-DTW~\cite{ddtw} and Drop-DTW~\cite{dropdtw}. We use DTW as a diagnostic tool; Weller et al.~\cite{weller2025limits} provide theoretical justification for multi-vector approaches.
 
 \section{Discussion}
 \label{sec:discussion}
 
-No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). \textbf{(ii)~Motion dynamics} (HDD, nuScenes): per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56); the residual advantage grows under sparser sampling (Section~\ref{sec:context_sweep}). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (per-frame structure with sequence-aware similarity), and on nuScenes the matching stage alone is on par with the residual transform (AP\,=\,0.867 vs.\ 0.815, marginally overlapping CIs)---within a given encoder, matching, not encoding, is the dominant driver. Video-native ViCLIP~\cite{viclip} ($s_\text{rev}\!=\!0.996$, HDD AP\,=\,0.542) and X-CLIP~\cite{xclip} ($s_\text{rev}\!=\!0.980$) do not escape the blind spot. Encoders with explicit temporal training fare no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} BoF (0.478) fail under cosine; even under DTW, PL-Stitch (0.540, $s_\text{rev}\!=\!0.006$---order \emph{is} encoded) trails DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL (DINOv3) and temporal ranking (PL-Stitch) are insufficient without capacity and scale. \textbf{(iii)~Temporal manipulation} (reversal, scrambling): implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither reaches reliable. Per-frame features separate forward/reverse under DTW; pooling erases it across all LLM layers. \textbf{Decision procedure.} The three tools compose prescriptively: scramble first (flat AP $\Rightarrow$ A/A$'$); if degrading, feature-vs-comparator decomposition attributes to encoder (B) vs.\ matching (C); sampling-density sweep isolates D/D$'$. E/E$'$ and F/F$'$ surface via cluster CIs and generative-vs-embedding disagreement, running Table~\ref{tab:failure_taxonomy} as a protocol rather than post-hoc classification.
+No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). \textbf{(ii)~Motion dynamics} (HDD, nuScenes): per-frame methods and VLM vision towers fail (AP\,$\leq$\,0.56); the residual advantage grows under sparser sampling (Section~\ref{sec:context_sweep}). On HDD, 89\% of the BoT-to-residual gap traces to the matching stage (per-frame structure with sequence-aware similarity; cluster-level CIs wider), and on nuScenes the matching stage alone is on par with the residual transform (AP\,=\,0.867 vs.\ 0.815, marginally overlapping CIs)---within a given encoder, matching, not encoding, is the dominant driver. Video-native ViCLIP~\cite{viclip} ($s_\text{rev}\!=\!0.996$, HDD AP\,=\,0.542) and X-CLIP~\cite{xclip} ($s_\text{rev}\!=\!0.980$) do not escape the blind spot. Encoders with explicit temporal training fare no better: TARA~\cite{tara} (HDD AP\,=\,0.547) and PL-Stitch~\cite{plstitch} BoF (0.478) fail under cosine; even under DTW, PL-Stitch (0.540, $s_\text{rev}\!=\!0.006$---order \emph{is} encoded) trails DINOv3 Chamfer (0.559). V-JEPA~2's spatiotemporal masked-prediction supervises motion; image-SSL (DINOv3) and temporal ranking (PL-Stitch) are insufficient without capacity and scale. \textbf{(iii)~Temporal manipulation} (reversal, scrambling): implicit 3D models~\cite{3dcsl}, frame-sampling defenses~\cite{fojcik2025}, and Video-LLMs all remain order-invariant~\cite{plstitch, aot}. Chiral training (TARA, $s_\text{rev}\!=\!0.955$) and a reasoning VLM (Gemini~3.1 Pro, $0.599$) improve over baselines but neither reaches reliable. Per-frame features separate forward/reverse under DTW; pooling erases it across all LLM layers.
+
+\textbf{Decision procedure} (prescriptive; Table~\ref{tab:failure_taxonomy} is the classifier). \textbf{(1)}~\emph{Scramble gradient}: flat AP $\Rightarrow$ A/A$'$; stop. \textbf{(2)}~AP degrades $\Rightarrow$ \emph{decomposition}: encoder (B) vs.\ matching (C). \textbf{(3)}~\emph{Sampling-density sweep}: isolates D/D$'$. \textbf{(4)}~Cluster CIs + generative-vs-embedding disagreement: E/E$'$, F/F$'$.
 
 \begin{figure}[ht]
     \centering
     \vspace{-0.5em}
-    \includegraphics[width=0.72\textwidth]{../figures/sensitivity_invariance_tradeoff.png}
+    \includegraphics[width=0.68\textwidth]{../figures/sensitivity_invariance_tradeoff.png}
     \caption{Sensitivity--invariance trade-off: $1 - s_\text{rev}$ (EPIC) vs.\ VCDB AP. No method occupies the upper-right quadrant. \textbf{Axis caveat:} pooled and sequence $s_\text{rev}$ use different similarity functions (Eq.~\eqref{eq:srev}) and are not unit-commensurate; the quadrant claim depends only on within-family rankings.}
     \label{fig:sensitivity_invariance}
     \vspace{-0.5em}
@@ -387,38 +391,37 @@ No single method dominates. \textbf{(i)~Scene matching} (VCDB, Nymeria, MUVR): B
 \section{Conclusion}
 \vspace{-0.6em}
 
-No method spans copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within an encoder, matching explains 89\% of the HDD gap; pooling erases per-frame order across VLM layers. Indexable order-sensitive comparators remain open. %
+No method spans copy detection and motion retrieval (Figure~\ref{fig:sensitivity_invariance}): within an encoder, matching explains 89\% of the HDD gap (cluster-level CIs wider); pooling erases per-frame order across VLM layers. Indexable order-sensitive comparators remain open.%
 \ifdefined\neuripssubmission
-Code: supplementary (\texttt{REPRODUCIBILITY.md}).%
 \else
-Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.%
+\footnote{Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.}%
 \fi
 
 \FloatBarrier  % Force all main-body floats before references
 
 \begin{thebibliography}{99}
 \bibitem{vjepa2} M.~Assran, A.~Bardes, D.~Fan, Q.~Garrido et al. {V-JEPA~2: Self-Supervised Video Models Enable Understanding, Prediction and Planning}. \emph{arXiv:2506.09985}, 2025.
-\bibitem{vjepa21} L.~Mur-Labadia et al. {V-JEPA~2.1}. \emph{arXiv:2603.14482}, 2026.
+\bibitem{vjepa21} L.~Mur-Labadia et al. V-JEPA~2.1: Unlocking Dense Features in Video Self-Supervised Learning. \emph{arXiv:2603.14482}, 2026.
 \bibitem{dinov3} O.~Sim\'{e}oni, H.~V.~Vo, M.~Seitzer, F.~Baldassarre et al. {DINOv3}. \emph{arXiv:2508.10104}, 2025.
-\bibitem{vcdb} Y.~Jiang et al. {VCDB}. In \emph{ECCV}, 2014.
-\bibitem{honda_hdd} V.~Ramanishka et al. Toward driving scene understanding. In \emph{CVPR}, 2018.
+\bibitem{vcdb} Y.-G.~Jiang, Y.~Jiang, J.~Liu, Z.~Chen. VCDB: A Large-Scale Database for Partial Copy Detection in Videos. In \emph{ECCV}, 2014.
+\bibitem{honda_hdd} V.~Ramanishka, Y.-T.~Chen, T.~Misu, K.~Saenko. Toward Driving Scene Understanding: A Dataset for Learning Driver Behavior and Causal Reasoning. In \emph{CVPR}, 2018.
 \bibitem{nuscenes} H.~Caesar et al. nuScenes: A multimodal dataset for autonomous driving. In \emph{CVPR}, 2020.
 \bibitem{epickitchens} D.~Damen, H.~Doughty, G.~M.~Farinella, A.~Furnari et al. Rescaling Egocentric Vision: Collection, Pipeline and Challenges for EPIC-KITCHENS-100. \emph{IJCV}, 130(1), 2021 (online-first).
 \bibitem{fojcik2025} K.~Fojcik and P.~Syga. Counteracting temporal attacks in video copy detection. \emph{arXiv:2501.11171}, 2025.
-\bibitem{3dcsl} R.~Deng et al. {3D-CSL: Self-supervised 3D Context Similarity Learning for Near-Duplicate Video Retrieval}. \emph{arXiv:2211.05352}, 2022.
+\bibitem{3dcsl} R.~Deng, Q.~Wu, Y.~Li. 3D-CSL: self-supervised 3D context similarity learning for Near-Duplicate Video Retrieval. \emph{arXiv:2211.05352}, 2022.
 \bibitem{plstitch} C.~Che, C.~Wang, X.~Chen, S.~Tsoka. A Stitch in Time: Learning Procedural Workflow via Self-Supervised Plackett-Luce Ranking. \emph{arXiv:2511.17805}, 2025.
 \bibitem{arrowgev} F.~Yu, Z.~Lu, L.~Niu, F.~Meng. ArrowGEV: Grounding Events in Video via Learning the Arrow of Time. \emph{arXiv:2601.06559}, 2026.
 \bibitem{weavetime} Y.~Zhang, C.~Shi, S.~Yang. WeaveTime: Stream from Earlier Frames into Emergent Memory in VideoLLMs. \emph{arXiv:2602.22142}, 2026.
 \bibitem{timeblindness} U.~Upadhyay et al. Time Blindness: Why Video-Language Models Can't See What Humans Can? \emph{arXiv:2505.24867}, 2025.
 \bibitem{qwen3vl} Qwen Team. Qwen3-VL Technical Report. \emph{arXiv:2511.21631}, 2025.
-\bibitem{gemma4} Google DeepMind. Gemma~4 Technical Report. \url{https://ai.google.dev/gemma/docs/core/model_card_4}, 2026.
+\bibitem{gemma4} Google DeepMind. Gemma~4 Model Card. \url{https://ai.google.dev/gemma/docs/core/model_card_4}, 2026.
 \bibitem{llavavideo} Y.~Zhang et al. LLaVA-Video: Video Instruction Tuning With Synthetic Data. \emph{arXiv:2410.02713}, 2024.
 \bibitem{aot} S.~Matta, L.~K.~Pereira, P.~Han, F.~Cheng. Which Way Does Time Flow? A Psychophysics-Grounded Evaluation for Vision-Language Models. \emph{arXiv:2510.26241}, 2025.
 \bibitem{vitatecs} S.~Li et al. VITATECS: A Diagnostic Dataset for Temporal Concept Understanding of Video-Language Models. In \emph{ECCV}, 2024.
-\bibitem{muvr} Y.~Feng et al. Multi-Modal Untrimmed Video Retrieval. \emph{arXiv:2510.21406}, 2025.
+\bibitem{muvr} Y.~Feng et al. MUVR: A Multi-Modal Untrimmed Video Retrieval Benchmark with Multi-Level Visual Correspondence. \emph{arXiv:2510.21406}, 2025.
 \bibitem{semdedup} A.~Abbas et al. SemDeDup: Data-efficient learning at web-scale through semantic deduplication. \emph{arXiv:2303.09540}, 2023.
 \bibitem{faiss} J.~Johnson et al. Billion-scale similarity search with GPUs. \emph{IEEE Transactions on Big Data}, 2019.
-\bibitem{ddtw} M.~Cuturi and M.~Blondel. Soft-{DTW}: A Differentiable Loss Function for Time-Series. In \emph{ICML}, 2017.
+\bibitem{ddtw} M.~Cuturi and M.~Blondel. Soft-{DTW}: a Differentiable Loss Function for Time-Series. In \emph{ICML}, 2017.
 \bibitem{douze2021isc} M.~Douze, G.~Tolias, E.~Pizzi et al. The 2021 Image Similarity Dataset and Challenge. In \emph{NeurIPS Competition Track}, 2021.
 \bibitem{pizzi2023vsc} E.~Pizzi, G.~Kordopatis-Zilos, H.~Patel, G.~Postelnicu et al. The 2023 Video Similarity Dataset and Challenge. \emph{Computer Vision and Image Understanding}, 2024.
 \bibitem{pizzi2022sscd} E.~Pizzi, S.~D.~Roy, S.~N.~Ravindra, P.~Goyal, and M.~Douze. A Self-Supervised Descriptor for Image Copy Detection. In \emph{CVPR}, 2022.
@@ -428,11 +431,11 @@ Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.%
 \bibitem{he2023transvcl} S.~He et al. TransVCL: Attention-enhanced Video Copy Localization Network with Flexible Supervision. In \emph{AAAI}, 2023.
 \bibitem{han2021vsal} Z.~Han, X.~He, M.~Tang, and Y.~Lv. Video Similarity and Alignment Learning on Partial Video Copy Detection. In \emph{ACM~MM}, 2021.
 \bibitem{sakoe1978dtw} H.~Sakoe and S.~Chiba. Dynamic Programming Algorithm Optimization for Spoken Word Recognition. \emph{IEEE Trans.\ Acoustics, Speech, and Signal Processing}, 26(1):43--49, 1978.
-\bibitem{nymeria} L.~Ma et al. Nymeria: A Massive Collection of Multimodal Egocentric Daily Motion in the Wild. In \emph{CVPR}, 2025.
+\bibitem{nymeria} L.~Ma et al. Nymeria: A Massive Collection of Multimodal Egocentric Daily Motion in the Wild. In \emph{ECCV}, 2024.
 \bibitem{reveal} T.~V.~Sethuraman et al. Stress Tests REVEAL Fragile Temporal and Visual Grounding in Video-Language Models. \emph{arXiv:2602.11244}, 2026.
 \bibitem{timeblind} B.~Li et al. TimeBlind: A Spatio-Temporal Compositionality Benchmark for Video LLMs. \emph{arXiv:2602.00288}, 2026.
 \bibitem{tgpo} Z.~Xu et al. Incentivizing Temporal-Awareness in Egocentric Video Understanding Models. \emph{arXiv:2603.27184}, 2026.
-\bibitem{tara} P.~Bagad and A.~Zisserman. TARA: Simple and Efficient Time Aware Retrieval Adaptation of MLLMs. \emph{arXiv:2512.13511}, 2025.
+\bibitem{tara} P.~Bagad and A.~Zisserman. TARA: Simple and Efficient Time Aware Retrieval Adaptation of MLLMs for Video Understanding. \emph{arXiv:2512.13511}, 2025.
 \bibitem{drivejepa} L.~Wang et al. Drive-JEPA: Video JEPA Meets Multimodal Trajectory Distillation for End-to-End Driving. \emph{arXiv:2601.22032}, 2026.
 \bibitem{weller2025limits} O.~Weller, M.~Boratko, I.~Naim, and J.~Lee. On the Theoretical Limitations of Embedding-Based Retrieval. \emph{arXiv:2508.21038}, 2025.
 \bibitem{nextgqa} J.~Xiao, A.~Yao, Y.~Li, and T.-S.~Chua. Can I Trust Your Answer? Visually Grounded Video Question Answering. In \emph{CVPR}, 2024. \emph{arXiv:2309.01327}.
@@ -450,7 +453,7 @@ Code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.%
 \bibitem{wang2023duallevel} T.~Wang, F.~Ma, Z.~Liu, and F.~Rao. A Dual-Level Detection Method for Video Copy Detection. \emph{arXiv:2305.12361}, 2023.
 \bibitem{infact} J.~Yang, Y.~Min, J.~Zhang, S.~Shan, and X.~Chen. INFACT: A Diagnostic Benchmark for Induced Faithfulness and Factuality Hallucinations in Video-LLMs. \emph{arXiv:2603.11481}, 2026.
 \bibitem{videozerobench} J.~Meng et al. VideoZeroBench: Probing the Limits of Video MLLMs with Spatio-Temporal Evidence Verification. \emph{arXiv:2604.01569}, 2026.
-\bibitem{claude4opus} Anthropic. Claude 4.6 Opus Model Card. \url{https://docs.anthropic.com/en/docs/about-claude/models}, 2026.
+\bibitem{claude4opus} Anthropic. Claude Opus 4.6 Model Card. \url{https://docs.anthropic.com/en/docs/about-claude/models}, 2026.
 \bibitem{gemini31pro} Google DeepMind. Gemini 3.1 Pro. \url{https://ai.google.dev/gemini-api/docs/models}, 2026.
 \bibitem{viclip} Y.~Wang, Y.~He, Y.~Li, K.~Li et al. InternVid: A Large-scale Video-Text Dataset for Multimodal Understanding and Generation. In \emph{ICLR}, 2024.
 \bibitem{xclip} B.~Ni, H.~Peng, M.~Chen et al. Expanding Language-Image Pretrained Models for General Video Recognition. In \emph{ECCV}, 2022.
