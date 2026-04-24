@@ -123,6 +123,7 @@ Order-invariance is also a vulnerability: reversed video yields identical BoF si
 \begin{table}[ht]
 \centering
 \caption{VCDB Reversal Attack: 5{,}585 positive pairs (AP drop indicates detection of evasion). Bar-chart visualization in Appendix~\ref{sec:reversal_figure}.}
+\label{tab:vcdb_reversal_attack}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Method} & \textbf{Normal AP} & \textbf{Reversed AP} & \textbf{AP $\Delta$} \\
@@ -155,6 +156,7 @@ To isolate motion from appearance, we clustered 128 Honda HDD~\cite{honda_hdd} d
 \begin{table}[ht]
 \centering
 \caption{Honda HDD Maneuver Discrimination: 1{,}687 maneuvers across 128 sessions, 50 mixed-direction intersection clusters (same vs.\ different turn at same intersection).}
+\label{tab:hdd_maneuver}
 \begin{tabular}{lcc}
 \toprule
 \textbf{Method} & \textbf{AP} & \textbf{AUC} \\
@@ -510,20 +512,24 @@ Segment durations range from 7.0\,s to 46.0\,s (mean 10.1\,s), yielding $\text{t
 \section{VCDB Reversal Attack Figure}
 \label{sec:reversal_figure}
 
+Figure~\ref{fig:reversal_attack} visualizes Table~\ref{tab:vcdb_reversal_attack}: AP under forward and reversed playback across five methods on VCDB. Order-invariant methods (BoF, Chamfer, V-JEPA~2 BoT) show no drop; only attention-trajectory DTW exposes the reversal, with the V-JEPA~2 temporal residual showing a partial drop. We move the figure here because the table already carries the same evidence in a denser form.
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/vcdb_reversal_attack.png}
-    \caption{VCDB Reversal Attack (528 videos, 5{,}585 positive pairs). Order-invariant methods (BoF, Chamfer) maintain identical AP/AUC under reversal. Only sequence-aware methods (Attention Trajectory) register the structural tampering via an AP drop. Bar-chart visualization of the main-body reversal table.}
+    \caption{VCDB Reversal Attack (528 videos, 5{,}585 positive pairs). Order-invariant methods (BoF, Chamfer) maintain identical AP/AUC under reversal. Only sequence-aware methods (Attention Trajectory) register the structural tampering via an AP drop.}
     \label{fig:reversal_attack}
 \end{figure}
 
 \section{HDD Maneuver Discrimination Figure}
 \label{sec:hdd_maneuver_figure}
 
+Figure~\ref{fig:hdd_maneuver} visualizes the V-JEPA~2 rows of Table~\ref{tab:hdd_maneuver}: AP climbs sharply from BoT (0.825) through Chamfer (0.914) and Encoder-Seq DTW (0.942) to the temporal residual (0.956), while DINOv3 methods (BoF, Chamfer, temporal derivative, attention trajectory) all sit near chance ($\leq 0.56$). The ordering is the visual counterpart of the feature-vs-comparator decomposition reported in Section~\ref{sec:motion}.
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/hdd_maneuver_discrimination.png}
-    \caption{Honda HDD maneuver discrimination (1{,}687 maneuvers, 128 sessions). V-JEPA~2 temporal residuals achieve near-perfect separation (AP\,=\,0.956) while DINOv3 methods remain at chance. Bar-chart visualization of the main-body HDD maneuver discrimination table.}
+    \caption{Honda HDD maneuver discrimination (1{,}687 maneuvers, 128 sessions). V-JEPA~2 temporal residuals achieve near-perfect separation (AP\,=\,0.956) while DINOv3 methods remain at chance.}
     \label{fig:hdd_maneuver}
 \end{figure}
 
