@@ -38,41 +38,41 @@
 \maketitle
 
 \begin{abstract}
-Video retrieval systems are temporally blind: reversed videos return near-identical
-embeddings (the numerical fingerprints used for similarity search), and no
-downstream signal flags the failure. Bag-of-frames matches by construction;
-bag-of-tokens yields cosine similarity 0.984 between forward and reversed clips. This blindness is
-well-documented for generative question answering but uncharacterized for
-\emph{retrieval embeddings}, where failures are silent. We diagnose temporal
-sensitivity across six benchmarks. A feature-vs-comparator decomposition shows
-that, within a given encoder, the comparator (not the encoder) governs
-temporal sensitivity: on Honda HDD, switching from pooled-cosine to per-frame
-dynamic time warping explains 89\% of the gap between bag-of-tokens and the
-V-JEPA~2 temporal residual (point estimate; cluster-level CIs 7--32$\times$ wider than pair-level; direction replicates on nuScenes). A \emph{temporal
-scramble gradient} cleanly separates order-invariant from sequence-aware
-methods. Probing three open-weight VLMs localizes where temporal signal
-dies: per-frame vision features retain order, mean-pooling erases it, and no
-pooled readout of LLM hidden states recovers it (126 linear- and MLP-probe configurations across 3 VLMs and 7 pooling strategies). Generative
-probes on Claude~Opus~4.6 and Gemini~3.1 Pro fare no better than 7B open-weight
-models. We consolidate these failures into a 10-class taxonomy with an
-executable diagnostic protocol (Algorithm~\ref{alg:decision}). No single
-approach spans both copy detection and motion retrieval, exposing a
-sensitivity--invariance
-trade-off that current architectures do not resolve. We release open-source
-code packaging the scramble gradient and reversal tests.
+Video retrieval embeddings collapse motion direction. Two videos of the same road in
+opposite directions, or left versus right turns at the same intersection, return
+near-identical embeddings---the numerical fingerprints used for similarity search---and
+no downstream signal flags the failure. The cause is architectural: pooled aggregators
+(bag-of-frames, BoF; bag-of-tokens, BoT) treat frames as an unordered set. We diagnose
+this across six benchmarks. A feature-vs-comparator decomposition shows that, within a
+given encoder, the comparator (not the encoder) governs temporal sensitivity: on Honda
+HDD, switching from pooled-cosine to per-frame dynamic time warping explains 89\% of
+the gap between BoT and the V-JEPA~2 temporal residual (point estimate; cluster-level
+CIs 7--32$\times$ wider than pair-level; direction replicates on nuScenes). Two
+diagnostic instruments---a temporal scramble gradient and a reversal test---cleanly
+separate order-invariant from sequence-aware methods; BoT yields cosine similarity
+0.984 between forward and reversed clips, confirming the failure is by design. Probing
+three open-weight VLMs localizes where temporal signal dies: per-frame vision features
+retain order, mean-pooling erases it, and no pooled readout of LLM hidden states
+recovers it (126 probe configurations). Generative probes on Claude~Opus~4.6 and
+Gemini~3.1 Pro fare no better than 7B open-weight models. We consolidate these failures
+into a 10-class taxonomy with an executable diagnostic protocol
+(Algorithm~\ref{alg:decision}). No single approach spans both copy detection and motion
+retrieval, exposing a sensitivity--invariance trade-off that current architectures do
+not resolve. We release open-source code packaging the scramble gradient and reversal
+tests.
 \end{abstract}
 
 \section{Introduction}
 
-Video retrieval embeddings fail silently under temporal manipulation: reversed videos return identical vectors, left turns match right turns, and no downstream signal flags the error. This is a consequence of architecture, not a bug. Modern systems represent videos via the \emph{bag-of-frames} (BoF) approach: mean-pooling (element-wise averaging) frame embeddings from pretrained encoders into one vector~\cite{faiss, semdedup}. BoF dominates Video Copy Detection (VCD; finding re-encoded, cropped, or camcorded copies) because visual semantics survive frame reordering, and order-invariance enables billion-scale nearest-neighbor search. The same property that makes BoF fast makes it blind.
+Video retrieval embeddings collapse motion direction: cars driving the same road in opposite directions retrieve as near-duplicates, and left and right turns at the same intersection return identical vectors. The cause is architecture, not training: modern systems represent videos via the \emph{bag-of-frames} (BoF) approach---mean-pooling (element-wise averaging) frame embeddings from pretrained encoders~\cite{faiss, semdedup}---which discards order by construction. BoF dominates Video Copy Detection (VCD; finding re-encoded, cropped, or camcorded copies) because visual semantics survive frame reordering, and order-invariance enables billion-scale nearest-neighbor search. The same property that makes BoF fast makes it blind to motion.
 
-Temporal blindness in video models is well documented for generative \emph{question answering} (QA)~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: generative probes score near chance on temporal tasks, and frame shuffling leaves benchmark scores intact. These diagnoses surface in text. In retrieval, they surface in nothing: the vector database returns the same neighbor, and the user never sees the failure. We study three regimes where the value of temporal order flips:
+Temporal blindness is well documented for generative \emph{question answering} (QA)~\cite{tomato,temporalbench,tempcompass,infact,videozerobench,vbenchcomp}: probes score near chance on temporal tasks, and frame shuffling leaves benchmark scores intact. These diagnoses surface in text. In retrieval, they surface in nothing: the vector database returns the same neighbor, and the user never sees the failure. We study three regimes where the value of temporal order flips:
 
 \textbf{1. Scene matching (order irrelevant):} for VCD and scene retrieval (e.g., ``activities in different rooms''), the signal is visual background. Semantic pooling suffices; temporal invariance is a feature.
 
-\textbf{2. Temporal manipulation (order detects adversaries):} a reversed video yields BoF similarity $1.0$ to its source, silently evading embedding-based copy-detection takedowns~\cite{fojcik2025}.
+\textbf{2. High-overlap motion retrieval (order is the signal):} querying a dashcam fleet for ``left turns at Intersection X'' requires encoding motion dynamics. Left and right turns share the same intersection (the static background), so BoF collapses them to the same point.
 
-\textbf{3. High-overlap motion retrieval (order is the signal):} querying a dashcam fleet for ``left turns at Intersection X'' requires encoding motion dynamics. Left and right turns share the same intersection (the static background), so BoF collapses them to the same point.
+\textbf{3. Temporal manipulation (order as diagnostic):} reversing a video yields BoF similarity $1.0$ to its source. This is both a clean stress test for whether a representation has any temporal sensitivity and, secondarily, a copy-detection vulnerability~\cite{fojcik2025}.
 
 Beyond retrieval, temporal sensitivity is a prerequisite for world models~\cite{lecun_worldmodel}. A representation that cannot distinguish forward from reverse cannot predict future states from past observations. V-JEPA~2~\cite{vjepa2}---explicitly designed as a predictive world model---is the only encoder in our suite that preserves temporal order in its pooled representation. Our diagnostic framework thus measures a necessary condition for world model competence, not just retrieval quality.
 
@@ -119,7 +119,7 @@ where $\alpha$ follows the DTW $\alpha$ schedule defined below. Raw $s_\text{rev
 
 \textbf{Evaluation protocols.} We report average precision (AP; area under the precision--recall curve) and, where applicable, area under the ROC curve (AUC) as retrieval metrics. All evaluations are pairwise. \emph{VCDB}: 528 videos; 5{,}585 positive pairs from annotations, negatives sampled 1:1 with fixed seed (sensitivity analysis across 1:1, 1:5, and all-pairs in Appendix~\ref{sec:neg_sampling}). \emph{HDD}: all $\binom{n}{2}$ pairs within each GPS-clustered intersection (DBSCAN density clustering, $\epsilon\!\approx\!30$\,m); positive = same maneuver; 50 mixed clusters, 1{,}687 maneuvers. \emph{nuScenes}: same protocol on ego\_pose; CAN-bus (Controller Area Network) turn labels; 264 segments, 950 pairs. \emph{EPIC s\textsubscript{rev}}: per-sequence self-comparison on 500 sequences; bootstrap 95\% CIs (1{,}000 resamples). \emph{Nymeria}: 100 egocentric sessions, 8{,}780 segments; positive = same activity same room; all $\binom{n}{2}$ pairs (394{,}210). \emph{MUVR News}: 9{,}958 videos, 74 topics, 27{,}453 positive pairs.
 
-\subsection{VCDB Temporal Manipulation Diagnostics}
+\subsection{VCDB Reversal Diagnostics}
 
 On copy detection, BoF and Chamfer dominate: DINOv3 Chamfer reaches AP\,=\,0.989 (528 videos, 5{,}585 positive pairs); temporal methods underperform on frame-to-frame intra-class noise. Individual VCDB AP values swing by ${\pm}0.06$ across random negative seeds (Appendix~\ref{sec:neg_sampling}), but rank order is preserved. Nymeria and MUVR replicate the ranking (Appendix~\ref{sec:scene_matching}).
 
@@ -343,9 +343,9 @@ Full cross-method comparisons across all six benchmarks are in Appendix~\ref{sec
 
 \textbf{Limitations.} DTW is not indexable ($O(T^2)$); probes train on 400 samples in $p \gg n$ ($D \approx 4{,}000$), bounding recoverability rather than proving absence; ViCLIP's 8-frame input confounds comparison with 64-frame V-JEPA~2 (${\sim}0.20$ AP drop at equivalent density, Section~\ref{sec:context_sweep}).
 
+\noindent\begin{minipage}{\linewidth}
 \textbf{Practitioner recommendations.}
-
-\begin{table}[h]
+\par\smallskip
 \centering
 \small
 \begin{tabular}{lll}
@@ -354,14 +354,14 @@ Full cross-method comparisons across all six benchmarks are in Appendix~\ref{sec
 \midrule
 Copy detection & BoF / Chamfer & Order-invariance is a feature \\
 Motion retrieval & BoT$\to$DTW rerank ($k\!\approx\!1000$) & 99\% of full-DTW AP; recall binds at small $k$ \\
-Temporal robustness & Attention-trajectory DTW & Detects reversal; not indexable \\
+Reversal-attack defense & Attention-trajectory DTW & Detects reversal; not indexable \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{minipage}
 
 \section{Conclusion}
 
-No single method spans all three retrieval regimes. For copy detection, order-invariant aggregators (BoF, Chamfer) dominate; temporal comparators add noise. For motion retrieval, aggregation is the bottleneck: within a given encoder, switching the comparator from pooled-cosine to per-frame DTW explains 89\% of the HDD performance gap (point estimate; cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}; direction replicates on nuScenes). For temporal robustness, no pooled readout---including 31B-parameter VLMs---distinguishes forward from reverse. These findings compose into a ten-class failure taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}).
+No single method spans all three retrieval regimes. For copy detection, order-invariant aggregators (BoF, Chamfer) dominate; temporal comparators add noise. For motion retrieval, aggregation is the bottleneck: within a given encoder, switching the comparator from pooled-cosine to per-frame DTW explains 89\% of the HDD performance gap (point estimate; cluster-level CIs 7--32$\times$ wider than pair-level, Appendix~\ref{sec:bootstrap_cis}; direction replicates on nuScenes). For reversal detection, no pooled readout---including 31B-parameter VLMs---distinguishes forward from reverse. These findings compose into a ten-class failure taxonomy (Appendix~\ref{sec:failure_taxonomy}) traversed by an executable protocol (Algorithm~\ref{alg:decision}).
 
 A two-stage BoT$\to$DTW reranker confirms the decomposition end-to-end but exposes an asymmetry: appearance-based pre-filters recover only 35\% of motion-retrieval positives at $k\!=\!100$, so the pairwise gap does not compose into a cheap retriever. At $k\!\approx\!1000$ (${\sim}60\%$ of the corpus) AP recovers to within 0.008 of full DTW (Table~\ref{tab:rerank_hdd}). The open problem is motion-aware indexing: designing first-stage filters whose notion of similarity aligns with dynamics, not appearance. V-JEPA~2's temporal sensitivity is consistent with, but does not isolate, the benefits of predictive training objectives~\cite{lecun_worldmodel,vjepa2}; testing this hypothesis across architectures is future work.%
 \ifdefined\neuripssubmission
