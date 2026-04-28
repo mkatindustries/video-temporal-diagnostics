@@ -16,23 +16,25 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 - numpy >= 1.24.0, scipy >= 1.11.0, scikit-learn >= 1.3.0
 - av >= 10.0.0, opencv-python >= 4.8.0
 
-**Hardware:** NVIDIA GPU (A100/H100/H200 recommended). Most experiments require 1 GPU; VLM experiments require 1-2 GPUs depending on model size. Probes (linear + MLP) and bootstrap CIs are CPU-only.
+**Hardware:** NVIDIA GPU (A100/H100/H200 recommended). Most experiments require 1 GPU; VLM experiments require 1-2 GPUs depending on model size. Linear and MLP probes run on CPU; bootstrap CIs run on CPU but are GPU-accelerated when CUDA is available.
 
 **Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude Opus 4.6 and Gemini 3.1 Pro are API-only (see experiments 32--33).
 
 ## Table and Figure Reference Map
 
-Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (BoT→DTW Rerank Sweep on HDD), Table 4 (VLM Generative), Table 5 (VLM Embedding s_rev), Table 6 (Cross-Method Summary: Encoders), Table 7 (Cross-Method Summary: VLM).
+Numbering follows the compiled paper (`paper.pdf`).
+
+Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (BoT→DTW Rerank Sweep on HDD), Table 4 (VLM Generative), Table 5 (VLM Embedding s_rev).
 
 Main body figures: Figure 1 (Scramble Gradient), Figure 2 (Sensitivity-Invariance Trade-off).
 
-Appendix tables: Table 8 (FPS Cap), Table 9 (Context Sweep), Table 10 (Layer Ablation), Table 11 (Scene Matching), Table 12 (Qwen VCDB), Table 13 (Integrity Probe), Table 14 (Neg-Sampling Sensitivity), Table 15 (Bootstrap CIs), Table 16 (α-Invariance Sweep), Table 17 (BoT→DTW Rerank Full Sweep + RRF), Table 18 (Vision-Token Probes), Table 19 (Scramble Data), Table 20 (Linear+MLP Probes), Table 21 (Computational Costs), Table 22 (Failure-Mode Taxonomy), Table 23 (Licenses). The failure-mode taxonomy, reproducibility scope statement, and license summary live in the last three appendices.
+Appendix tables: Table 6 (FPS Cap), Table 7 (Context Sweep), Table 8 (Layer Ablation), Table 9 (Cross-Method Summary: Encoders), Table 10 (Cross-Method Summary: VLM), Table 11 (Scene Matching), Table 12 (Qwen VCDB), Table 13 (Integrity Probe), Table 14 (Neg-Sampling Sensitivity), Table 15 (Bootstrap CIs), Table 16 (α-Invariance Sweep), Table 17 (BoT→DTW Rerank Full Sweep + RRF), Table 18 (Vision-Token Probes), Table 19 (Scramble Data), Table 20 (Linear+MLP Probes), Table 21 (Computational Costs), Table 22 (Failure-Mode Taxonomy), Table 23 (Licenses). The failure-mode taxonomy, reproducibility scope statement, and license summary live in the last three appendices.
 
 Appendix figures: Figure 3 (Reversal Attack bar chart), Figure 4 (HDD Maneuver bar chart), Figure 5 (Context Sweep), Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
 ## Headline Results
 
-### 1. Copy Detection (VCDB) — Table 6 (VCDB column)
+### 1. Copy Detection (VCDB) — Table 9 (VCDB column)
 
 ```bash
 python experiments/eval_vcdb.py \
@@ -68,7 +70,7 @@ python experiments/eval_hdd_intersections.py \
 
 **Output:** `figures/hdd_maneuver_discrimination.png`, `figures/hdd_similarity_distributions.png`
 
-### 5. Context Window Sweep (Honda HDD) — Table 8 (Appendix), Figure 5 (Appendix)
+### 5. Context Window Sweep (Honda HDD) — Table 7 (Appendix), Figure 5 (Appendix)
 
 ```bash
 python experiments/eval_hdd_intersections.py \
@@ -135,7 +137,7 @@ python experiments/eval_hdd_intersections.py \
 
 **Output:** `datasets/hdd/fps_downsample_results.json`
 
-### 8. FPS Cap Invariance Verification — Table 8 (Appendix A)
+### 8. FPS Cap Invariance Verification — Table 6 (Appendix A)
 
 ```bash
 python scripts/verify_fps_cap_invariance.py \
@@ -153,7 +155,7 @@ python experiments/eval_nuscenes_intersections.py \
 
 **Output:** `<nuscenes-dir>/intersection_results.json`, `figures/nuscenes_maneuver_discrimination.png`
 
-### 10. VLM Vision Tower Bridge (Honda HDD) — Table 7 (VLM summary, HDD column)
+### 10. VLM Vision Tower Bridge (Honda HDD) — Table 10 (VLM summary, HDD column)
 
 Evaluates VLM vision tower embeddings (SigLIP, CLIP) and LLM hidden states on HDD maneuver discrimination.
 
@@ -191,7 +193,7 @@ for family in gemma llava; do
 done
 ```
 
-**Layer ablation (Table 10, Appendix E):**
+**Layer ablation (Table 8, Appendix E):**
 ```bash
 for family in qwen gemma llava; do
     python experiments/eval_epic_temporal_order.py \
@@ -220,7 +222,7 @@ python experiments/eval_muvr.py \
 
 **Output:** `figures/muvr_news_*.png`
 
-### 14. nuScenes VLM Vision Tower Bridge — Table 7 (nuScenes column)
+### 14. nuScenes VLM Vision Tower Bridge — Table 10 (nuScenes column)
 
 ```bash
 # Gemma-4 SigLIP + LLM hidden state
@@ -253,7 +255,7 @@ python experiments/eval_vcdb_vlm_probes.py \
 
 **Output:** `datasets/vcdb/vlm_probes_{gemma4,llava-video,qwen3}_results.json`
 
-### 16. VCDB VLM Vision Tower Bridge — Table 7 (VCDB column)
+### 16. VCDB VLM Vision Tower Bridge — Table 10 (VCDB column)
 
 Evaluates VLM vision tower embeddings and LLM hidden states on VCDB copy detection.
 
@@ -474,7 +476,7 @@ python experiments/eval_epic_gemini_probe.py \
 
 **Output:** `datasets/epic_kitchens/gemini_probe_results.json`
 
-### 34. ViCLIP Evaluation — Table 6, §5
+### 34. ViCLIP Evaluation — Table 9, §5
 
 ViCLIP (ViT-L, InternVid-10M) as a video-native single-vector baseline across VCDB, HDD, and EPIC-Kitchens. Tests whether contrastive video-text pretraining changes the temporal blindness story.
 
@@ -488,7 +490,7 @@ python experiments/eval_viclip.py \
 
 **Output:** `datasets/viclip_results.json`
 
-### 35. TARA Evaluation (Honda HDD) — Table 2, Table 6
+### 35. TARA Evaluation (Honda HDD) — Table 2, Table 9
 
 TARA (Tarsier-7B MLLM trained with chiral negatives) as a single-vector encoder on HDD. Tests whether temporal training helps under cosine similarity.
 
@@ -500,7 +502,7 @@ python experiments/eval_hdd_tara.py \
 
 **Output:** `datasets/tara_hdd_results.json`
 
-### 36. PL-Stitch Evaluation (Honda HDD) — Table 2, Table 6
+### 36. PL-Stitch Evaluation (Honda HDD) — Table 2, Table 9
 
 PL-Stitch (ViT-Base with Plackett-Luce temporal ranking) as a per-frame encoder on HDD. Enables feature-vs-comparator decomposition with 4 similarity methods (BoF, Chamfer, temporal derivative DTW, raw DTW).
 
@@ -577,17 +579,17 @@ python experiments/alpha_sweep.py \
 
 | Artifact | Paper Reference |
 |----------|-----------------|
-| `datasets/vcdb/eval_results.json` | Table 6 (VCDB column) |
+| `datasets/vcdb/eval_results.json` | Table 9 (VCDB column) |
 | `datasets/vcdb/reversal_attack_results.json` | Table 1 |
 | `datasets/vcdb/scramble_gradient_results.json` | Table 19 (Appendix R) |
 | `datasets/vcdb/scramble_raw_results.json` | Appendix R (raw-frame scramble) |
-| `datasets/hdd/context_sec_sweep_results.json` | Table 9 (Appendix D) |
-| `datasets/hdd/fps_downsample_results.json` | Table 8 (Appendix A) |
+| `datasets/hdd/context_sec_sweep_results.json` | Table 7 (Appendix D) |
+| `datasets/hdd/fps_downsample_results.json` | Table 6 (Appendix A) |
 | `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row), Table 3 (rerank floor/ceiling) |
 | `datasets/hdd/bof_dtw_rerank_results.json` | Table 3 (§3.2), Table 17 (Appendix O) |
-| `datasets/hdd/vlm_bridge_*_results.json` | Table 7 (HDD column) |
+| `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
 | `datasets/hdd/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
-| `datasets/epic_kitchens/temporal_order_results*.json` | Tables 4-5, Table 10 (Appendix E) |
+| `datasets/epic_kitchens/temporal_order_results*.json` | Tables 4-5, Table 8 (Appendix E) |
 | `datasets/epic_kitchens/linear_probe_*.json` | Table 20 (Appendix S) |
 | `datasets/epic_kitchens/mlp_probe_results.json` | Table 20 (Appendix S, MLP columns) |
 | `figures/vcdb_reversal_attack.png` | Figure 3 (Appendix) |
@@ -597,9 +599,9 @@ python experiments/alpha_sweep.py \
 | `figures/hdd_context_sweep.png` | Figure 5 (Appendix) |
 | `figures/nuscenes_maneuver_discrimination.png` | Figure 8 (Appendix) |
 | `figures/sensitivity_invariance_tradeoff.png` | Figure 2 |
-| `datasets/nuscenes/vlm_bridge_*_results.json` | Table 7 (nuScenes column) |
+| `datasets/nuscenes/vlm_bridge_*_results.json` | Table 10 (nuScenes column) |
 | `datasets/nuscenes/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
-| `datasets/vcdb/vlm_bridge_*_results.json` | Table 7 (VCDB column) |
+| `datasets/vcdb/vlm_bridge_*_results.json` | Table 10 (VCDB column) |
 | `datasets/vcdb/vlm_probes_*_results.json` | Supplementary (VCDB VLM generative) |
 | `datasets/hdd/vlm_generative_*_results.json` | Supplementary (HDD VLM generative) |
 | `datasets/nuscenes/vlm_generative_*_results.json` | Supplementary (nuScenes VLM generative) |
@@ -612,11 +614,11 @@ python experiments/alpha_sweep.py \
 | `figures/vcdb_scramble_multiseed.png` | Figure 9 (Appendix R) |
 | `datasets/hdd/left_right_results.json` | §3.2 (left-vs-right AP) |
 | `datasets/hdd/optical_flow_results.json` | §3.2 (optical flow baseline) |
-| `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 3 (Claude probe) |
-| `datasets/epic_kitchens/gemini_probe_results.json` | §3.3, Table 3 (Gemini probe) |
-| `datasets/viclip_results.json` | Table 6, §5 (ViCLIP) |
-| `datasets/tara_hdd_results.json` | Table 2, Table 6 (TARA) |
-| `datasets/pl_stitch_hdd_results.json` | Table 2, Table 6 (PL-Stitch) |
+| `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 4 (Claude probe) |
+| `datasets/epic_kitchens/gemini_probe_results.json` | §3.3, Table 4 (Gemini probe) |
+| `datasets/viclip_results.json` | Table 9, §5 (ViCLIP) |
+| `datasets/tara_hdd_results.json` | Table 2, Table 9 (TARA) |
+| `datasets/pl_stitch_hdd_results.json` | Table 2, Table 9 (PL-Stitch) |
 | `datasets/hdd/ordered_maxsim_ablation_results.json` | Supplementary (DINOv3 OrderedMaxSim ablation) |
 | `datasets/hdd/ordered_maxsim_vjepa2_ablation_results.json` | Supplementary (V-JEPA 2 OrderedMaxSim ablation) |
 | `datasets/vcdb/ordered_maxsim_ablation_results.json` | Supplementary (VCDB OrderedMaxSim ablation) |
