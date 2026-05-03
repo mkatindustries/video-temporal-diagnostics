@@ -3,10 +3,11 @@
 % ----- Build target ---------------------------------------------------
 % Default: arXiv preprint (compile paper.tex)
 % NeurIPS submission: compile neurips.tex (sets \neuripssubmission flag)
-% Target track: NeurIPS 2026 Evaluations & Datasets (E&D), single-blind.
+% Target track: NeurIPS 2026 Evaluations & Datasets (E&D), DOUBLE-BLIND
+% (E&D 2026 allows single-blind only for dataset-centered submissions).
 % ----- ----------------------------------------------------------------
 \ifdefined\neuripssubmission
-  \usepackage[eandd,nonanonymous,nonatbib]{neurips_2026} % E&D track, single-blind
+  \usepackage[eandd,nonatbib]{neurips_2026} % E&D track, double-blind (anonymous)
 \else
   \usepackage[preprint,nonatbib]{neurips_2026} % arXiv preprint
 \fi
@@ -369,7 +370,7 @@ Full cross-method comparisons across the seven benchmarks are in Appendix~\ref{s
 
 \section{Conclusion}
 
-We introduced a diagnostic framework localizing where temporal information is preserved or destroyed in video retrieval. The central finding is an unresolved sensitivity--invariance trade-off (Figure~\ref{fig:sensitivity_invariance}). BoF/Chamfer's order-invariance both powers VCDB copy detection and causes motion-direction blindness, and no architecture occupies both regimes. The comparator dominates motion benchmarks (with domain-dependent optimal choice), and reversal detection remains out of reach for all pooled readouts. The protocol also surfaces a negative result, with the indexable BoT$\to$DTW retriever collapsing at $k\!=\!100$ (recall 0.35) and recovering only at $k\!\approx\!1000$. Motion-aware first-stage filtering remains open. The feature-vs-comparator decomposition is modality-agnostic, asking \emph{where} temporal sensitivity resides rather than whether it exists.\footnote{Toolkit code: \url{https://github.com/mkatindustries/video-temporal-diagnostics}.}
+We introduced a diagnostic framework localizing where temporal information is preserved or destroyed in video retrieval. The central finding is an unresolved sensitivity--invariance trade-off (Figure~\ref{fig:sensitivity_invariance}). BoF/Chamfer's order-invariance both powers VCDB copy detection and causes motion-direction blindness, and no architecture occupies both regimes. The comparator dominates motion benchmarks (with domain-dependent optimal choice), and reversal detection remains out of reach for all pooled readouts. The protocol also surfaces a negative result, with the indexable BoT$\to$DTW retriever collapsing at $k\!=\!100$ (recall 0.35) and recovering only at $k\!\approx\!1000$. Motion-aware first-stage filtering remains open. The feature-vs-comparator decomposition is modality-agnostic, asking \emph{where} temporal sensitivity resides rather than whether it exists.\footnote{Toolkit code: \url{https://anonymous.4open.science/r/video-temporal-diagnostics-F450}.}
 
 \FloatBarrier  % Force all main-body floats before references
 
