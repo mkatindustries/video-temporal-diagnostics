@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 fig_dir = project_root / "figures"
 
 # Matplotlib Set1 palette (qualitative, one color per method).
-set1 = plt.get_cmap("Set1").colors
+set1 = plt.get_cmap("Set1").colors  # pyrefly: ignore [missing-attribute]
 
 # (label, normal_ap, reversed_ap, normal_auc, reversed_auc, color)
 methods = [

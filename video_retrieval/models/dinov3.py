@@ -38,7 +38,7 @@ class DINOv3Encoder:
                 - "facebook/dinov3-vith16-pretrain-lvd1689m" (ViT-H+, ~600M params)
             device: Target device.
         """
-        self.device = torch.device(device) if isinstance(device, str) else device
+        self.device = torch.device(device) if isinstance(device, str) else device  # pyrefly: ignore [read-only]
         self.model_name = model_name
 
         # Load model and processor from HuggingFace (auto-downloads weights)

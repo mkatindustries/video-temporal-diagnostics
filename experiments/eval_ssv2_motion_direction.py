@@ -103,7 +103,7 @@ def get_video_duration(video_path: str) -> float:
     """Return duration in seconds. SSv2 webms are usually 2-5s."""
     container = av.open(video_path)
     stream = container.streams.video[0]
-    duration = float(stream.duration * stream.time_base) if stream.duration else 0.0
+    duration = float(stream.duration * stream.time_base) if stream.duration else 0.0  # pyrefly: ignore [unsupported-operation]
     container.close()
     return duration
 

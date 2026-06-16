@@ -58,6 +58,7 @@ project-includes = [
     "**/*.ipynb",
 ]
 search-path = ["experiments"]
+replace-imports-with-any = ["tqdm"]
 ignore-missing-imports = [
     "av",
     "cv2",

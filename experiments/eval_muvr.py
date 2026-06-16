@@ -842,8 +842,8 @@ def plot_discrimination(
             label=METHOD_LABELS[method].replace("\n", " "),
         )
         for pos, val in zip(positions, values):
-            if val > 0:
-                ax.text(pos, val + 0.005, f"{val:.2f}", ha="center",
+            if val > 0:  # pyrefly: ignore [unsupported-operation]
+                ax.text(pos, val + 0.005, f"{val:.2f}", ha="center",  # pyrefly: ignore [unsupported-operation, bad-argument-type]
                         va="bottom", fontsize=7, rotation=45)
 
     ax.set_xticks([j + bar_width * (n_methods - 1) / 2 for j in range(n_groups)])

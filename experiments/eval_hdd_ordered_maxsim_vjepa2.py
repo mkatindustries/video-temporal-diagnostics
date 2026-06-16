@@ -204,7 +204,7 @@ def _ordered_maxsim_hard_directional(
             total += sim[i].max().item()
         else:
             best_offset = sim[i, prev_j:].argmax().item()
-            best_j = prev_j + best_offset
+            best_j = prev_j + best_offset  # pyrefly: ignore [bad-assignment]
             total += sim[i, best_j].item()
             prev_j = best_j
 

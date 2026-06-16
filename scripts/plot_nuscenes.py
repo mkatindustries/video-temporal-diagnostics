@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 project_root = Path(__file__).parent.parent
 fig_dir = project_root / "figures"
 
-set1 = plt.get_cmap("Set1").colors
+set1 = plt.get_cmap("Set1").colors  # pyrefly: ignore [missing-attribute]
 
 # (label, AP, AUC, color)
 # Colors mirror plot_vcdb_reversal.py; Encoder-Seq DTW uses set1[7] (pink)

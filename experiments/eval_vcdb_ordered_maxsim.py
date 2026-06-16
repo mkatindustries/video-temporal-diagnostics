@@ -169,7 +169,7 @@ def _oms_hard_dir(a: torch.Tensor, b: torch.Tensor) -> float:
         if prev_j >= Kb:
             total += sim[i].max().item()
         else:
-            best_j = prev_j + sim[i, prev_j:].argmax().item()
+            best_j = prev_j + sim[i, prev_j:].argmax().item()  # pyrefly: ignore [bad-assignment]
             total += sim[i, best_j].item()
             prev_j = best_j
     return total / Ka

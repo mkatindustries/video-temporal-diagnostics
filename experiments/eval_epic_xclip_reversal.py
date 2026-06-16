@@ -146,7 +146,7 @@ class XCLIPEncoder:
         model_name: str = "microsoft/xclip-large-patch14-16-frames",
         device: str | torch.device = "cuda",
     ):
-        self.device = torch.device(device) if isinstance(device, str) else device
+        self.device = torch.device(device) if isinstance(device, str) else device  # pyrefly: ignore [read-only]
         self.model_name = model_name
 
         self.processor = VideoMAEImageProcessor.from_pretrained(
