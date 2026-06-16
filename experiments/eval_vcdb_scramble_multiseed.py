@@ -438,16 +438,16 @@ def evaluate_method(
     copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, float]:
     """Compute AP for a method."""
-    y_true = []
-    y_score = []
+    y_true: list[int] = []
+    y_score: list[float] = []
 
     for pair, sim in scores.items():
         y_true.append(1 if pair in copy_pairs else 0)
         y_score.append(sim)
 
-    y_true = np.array(y_true)
-    y_score = np.array(y_score)
-    n_pos = int(y_true.sum())
+    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:

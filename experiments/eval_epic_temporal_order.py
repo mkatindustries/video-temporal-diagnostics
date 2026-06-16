@@ -1885,7 +1885,7 @@ def evaluate_vlm_generative(
     print(f"\n  === Forward/Reverse Probe ({n_prompts} prompt variants) ===")
 
     per_prompt_results = {}
-    all_balanced_accs = []
+    all_balanced_accs: list[float] = []
 
     for prompt_idx, prompt in enumerate(causality_prompts):
         print(f"\n  --- Prompt {prompt_idx} ---")
@@ -2181,7 +2181,7 @@ def evaluate_order_sensitivity(
 
     # 1. Bag-of-frames (mean embedding)
     print("  Computing Bag-of-frames s_rev...")
-    s_rev_bof = []
+    s_rev_bof: list[float] = []
     for sid in seq_ids:
         feat = dinov3_features[sid]
         emb = feat["embeddings"]
@@ -2202,7 +2202,7 @@ def evaluate_order_sensitivity(
 
     # 2. Chamfer (pairwise min distances, order-invariant)
     print("  Computing Chamfer s_rev...")
-    s_rev_chamfer = []
+    s_rev_chamfer: list[float] = []
     for sid in seq_ids:
         feat = dinov3_features[sid]
         emb = feat["embeddings"]
@@ -2224,7 +2224,7 @@ def evaluate_order_sensitivity(
     # 3. Temporal derivative (DTW on embedding derivatives)
     print("  Computing Temporal derivative s_rev...")
     td_fp = TemporalDerivativeFingerprint()
-    s_rev_td = []
+    s_rev_td: list[float] = []
     for sid in seq_ids:
         feat = dinov3_features[sid]
         emb = feat["embeddings"]
@@ -2235,7 +2235,7 @@ def evaluate_order_sensitivity(
 
     s_rev_arr = np.array(s_rev_td)
     point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_td])
+    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_td])  # pyrefly: ignore [unsupported-operation]
     acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
     results["temporal_derivative"] = {
         "s_rev_mean": round(point, 4),
@@ -2247,7 +2247,7 @@ def evaluate_order_sensitivity(
     # 4. Attention trajectory (DTW on centroid trajectories)
     print("  Computing Attention trajectory s_rev...")
     traj_fp = TrajectoryFingerprint()
-    s_rev_traj = []
+    s_rev_traj: list[float] = []
     for sid in seq_ids:
         feat = dinov3_features[sid]
         centroids = feat["centroids"]
@@ -2258,7 +2258,7 @@ def evaluate_order_sensitivity(
 
     s_rev_arr = np.array(s_rev_traj)
     point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_traj])
+    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_traj])  # pyrefly: ignore [unsupported-operation]
     acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
     results["attention_trajectory"] = {
         "s_rev_mean": round(point, 4),
@@ -2275,7 +2275,7 @@ def evaluate_order_sensitivity(
 
         # 5. V-JEPA 2 bag-of-tokens
         print("  Computing V-JEPA 2 BoT s_rev...")
-        s_rev_vj_bot = []
+        s_rev_vj_bot: list[float] = []
         for sid in common_ids:
             fwd = vjepa2_fwd_features[sid]["mean_emb"]
             rev = vjepa2_rev_features[sid]["mean_emb"]
@@ -2293,7 +2293,7 @@ def evaluate_order_sensitivity(
 
         # 6. V-JEPA 2 temporal residual
         print("  Computing V-JEPA 2 temporal residual s_rev...")
-        s_rev_vj_res = []
+        s_rev_vj_res: list[float] = []
         for sid in common_ids:
             fwd_res = vjepa2_fwd_features[sid]["temporal_residual"]
             rev_res = vjepa2_rev_features[sid]["temporal_residual"]
@@ -2306,7 +2306,7 @@ def evaluate_order_sensitivity(
 
         s_rev_arr = np.array(s_rev_vj_res)
         point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-        acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_vj_res])
+        acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_vj_res])  # pyrefly: ignore [unsupported-operation]
         acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
         results["vjepa2_temporal_residual"] = {
             "s_rev_mean": round(point, 4),

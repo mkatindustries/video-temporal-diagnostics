@@ -103,7 +103,7 @@ MANEUVER_NAMES = {
 # VCDB loading (from eval_vcdb.py)
 # ---------------------------------------------------------------------------
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -657,7 +657,7 @@ def extract_hdd_vjepa2_features(
 def compute_vcdb_similarities(
     features: dict[str, dict],
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
     methods: list[str],
     vjepa2_features: dict[str, dict] | None = None,
 ) -> tuple[np.ndarray, np.ndarray, list[str]]:
@@ -707,8 +707,8 @@ def compute_vcdb_similarities(
 
     print(f"  VCDB pairs: {len(pairs_to_compute)} ({n_pos} pos + {neg_count} neg)")
 
-    X_rows = []
-    y_list = []
+    X_rows: list[list[float]] = []
+    y_list: list[int] = []
     pair_ids = []
 
     for a, b in tqdm(sorted(pairs_to_compute), desc="  VCDB similarities"):
@@ -783,8 +783,8 @@ def compute_hdd_similarities(
         deriv_fps[idx] = deriv_fp.compute_fingerprint(features[idx]["embeddings"])
         traj_fps[idx] = traj_fp.compute_fingerprint(features[idx]["centroids"])
 
-    X_rows = []
-    y_list = []
+    X_rows: list[list[float]] = []
+    y_list: list[int] = []
     pair_ids = []
 
     for cid in tqdm(sorted(cluster_to_indices.keys()), desc="  HDD similarities"):
@@ -1111,7 +1111,7 @@ def save_checkpoint(
             "label": int(y[i]),
             "similarities": {m: float(X[i, j]) for j, m in enumerate(methods)},
         }
-        data["pairs"].append(row)
+        data["pairs"].append(row)  # pyrefly: ignore [missing-attribute]
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
@@ -1134,8 +1134,8 @@ def load_checkpoint(
         print(f"  Checkpoint methods mismatch, re-computing...")
         return None
 
-    X_rows = []
-    y_list = []
+    X_rows: list[list[float]] = []
+    y_list: list[int] = []
     pair_ids = []
 
     for row in data["pairs"]:

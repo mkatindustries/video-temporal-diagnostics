@@ -181,7 +181,7 @@ def main():
     # Build pair list (same as eval_hdd_intersections.py)
     pair_a_indices = []
     pair_b_indices = []
-    pair_gts = []
+    pair_gts: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in motion_proxies]
         for a_pos in range(len(indices)):

@@ -383,7 +383,7 @@ def extract_frames_with_gps(
     sample_interval = video_fps / target_fps
 
     frames = []
-    timestamps = []
+    timestamps: list[float] = []
     lats = []
     lngs = []
 

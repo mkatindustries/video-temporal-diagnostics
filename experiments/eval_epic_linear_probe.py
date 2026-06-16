@@ -138,7 +138,7 @@ def _find_vision_mask(
     n_placeholders = 0
     for cid in candidate_ids:
         mask = ids == cid
-        n = int(mask.sum().item())
+        n = int(mask.sum().item())  # pyrefly: ignore [missing-attribute]
         if n > 0:
             vision_positions_input = mask
             n_placeholders = n
@@ -161,7 +161,7 @@ def _find_vision_mask(
         return out_mask
     else:
         # 1:1 mapping — same length
-        return vision_positions_input.to(hidden.device)
+        return vision_positions_input.to(hidden.device)  # pyrefly: ignore [missing-attribute]
 
 
 # ---------------------------------------------------------------------------
@@ -301,7 +301,7 @@ def evaluate_linear_probe(
                 best_result = {
                     "mean_acc": mean_acc,
                     "std_acc": float(np.std(fold_accs_arr)),
-                    "per_fold": [float(a) for a in fold_accs],
+                    "per_fold": [float(a) for a in fold_accs],  # pyrefly: ignore [bad-argument-type]
                     "best_C": c_val,
                     "per_c_accs": {str(k): v for k, v in per_c_accs.items()},
                 }
@@ -346,7 +346,7 @@ def _gpu_logistic_regression(
 
     with torch.no_grad():
         preds = (X_test @ w + b) > 0
-        acc = preds.eq(y_test.bool()).float().mean().item()
+        acc = preds.eq(y_test.bool()).float().mean().item()  # pyrefly: ignore [missing-attribute]
     return acc
 
 
@@ -377,7 +377,7 @@ def evaluate_linear_probe_gpu(
         per_c_accs: dict[float, float] = {}
 
         for c_val in c_values:
-            fold_accs = []
+            fold_accs: list[float] = []
             for train_idx, test_idx in gkf.split(X_np, labels_np, groups=groups):
                 train_idx_t = torch.tensor(train_idx, device=X.device)
                 test_idx_t = torch.tensor(test_idx, device=X.device)
@@ -397,7 +397,7 @@ def evaluate_linear_probe_gpu(
                 best_result = {
                     "mean_acc": mean_acc,
                     "std_acc": float(np.std(fold_accs_arr)),
-                    "per_fold": [float(a) for a in fold_accs],
+                    "per_fold": [float(a) for a in fold_accs],  # pyrefly: ignore [bad-argument-type]
                     "best_C": c_val,
                     "per_c_accs": {str(k): v for k, v in per_c_accs.items()},
                 }
@@ -483,6 +483,7 @@ def main():
     # ------------------------------------------------------------------
     # Step 1: Load sequences (skipped when --probe-only)
     # ------------------------------------------------------------------
+    n_seq = 0
     if args.probe_only:
         print("\nStep 1: --probe-only, skipping video loading")
         sequences = []
@@ -611,7 +612,7 @@ def main():
         strategy_features: dict[str, list] = {
             s: [] for s in POOLING_STRATEGIES
         }
-        labels = []
+        labels: list[int] = []
 
         for seq_id in seq_ids:
             for direction, states in [("fwd", fwd_states), ("rev", rev_states)]:

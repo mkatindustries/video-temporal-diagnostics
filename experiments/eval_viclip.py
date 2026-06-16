@@ -311,12 +311,12 @@ def eval_vcdb(model, vcdb_dir: Path, device: torch.device) -> dict:
         attempts += 1
 
     # Compute similarities
-    scores = []
+    scores: list[float] = []
     for a, b in pairs:
         sim = float(torch.dot(features[a], features[b]).item())
         scores.append(sim)
 
-    scores = np.array(scores)
+    scores = np.array(scores) # pyrefly: ignore [bad-assignment]
     labels = np.array(labels)
     ap, ci_lo, ci_hi = bootstrap_ap(scores, labels)
     auc = roc_auc_score(labels, scores)
@@ -407,8 +407,8 @@ def eval_hdd(model, hdd_dir: Path, device: torch.device) -> dict:
     print(f"  Extracted: {len(features)}/{len(eval_segments)} ({failed} failed)")
 
     # Pairwise evaluation
-    pair_scores = []
-    pair_labels = []
+    pair_scores: list[float] = []
+    pair_labels: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in features]
         for a in range(len(indices)):
@@ -442,7 +442,7 @@ def eval_epic(model, epic_dir: Path, device: torch.device) -> dict:
 
     sequences = load_sequences(epic_dir, max_sequences=200)
 
-    s_revs = []
+    s_revs: list[float] = []
     failed = 0
     for seq in tqdm(sequences, desc="ViCLIP EPIC s_rev"):
         try:
@@ -556,8 +556,8 @@ def eval_nuscenes(model, nuscenes_dir: Path, device: torch.device, version: str 
     print(f"  Extracted: {len(features)}/{len(eval_segments)} ({failed} failed)")
 
     # Pairwise evaluation
-    pair_scores = []
-    pair_labels = []
+    pair_scores: list[float] = []
+    pair_labels: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in features]
         for a in range(len(indices)):

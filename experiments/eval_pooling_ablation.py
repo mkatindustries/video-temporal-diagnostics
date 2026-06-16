@@ -187,7 +187,7 @@ def main():
     # Compute s_rev for each pooling operator
     results = {}
     for pool_name, pool_fn in POOLING_OPS.items():
-        sims = []
+        sims: list[float] = []
         for seq_id in common_ids:
             fwd_seq = fwd_features[seq_id]["vision_seq"]  # (T, D)
             rev_seq = rev_features[seq_id]["vision_seq"]  # (T, D)

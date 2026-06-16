@@ -571,7 +571,7 @@ def run_direction_probe(
     """
     n_prompts = len(prompts)
     per_prompt_results = {}
-    all_balanced_accs = []
+    all_balanced_accs: list[float] = []
     per_clip_details = []
 
     for prompt_idx, prompt in enumerate(prompts):

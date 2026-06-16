@@ -134,7 +134,7 @@ def attack_cut_paste(n_frames: int, rng: np.random.RandomState) -> np.ndarray:
     indices = np.arange(n_frames)
     seg_len = n_frames // 4
     # Handle remainder by making the last segment absorb extra frames
-    segments = []
+    segments: list[np.ndarray] = []
     for i in range(4):
         if i < 3:
             segments.append(indices[i * seg_len : (i + 1) * seg_len])
@@ -157,7 +157,7 @@ ATTACK_FNS = {
 # ---------------------------------------------------------------------------
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -394,7 +394,7 @@ def extract_vjepa2_features(
 
 def sample_pairs(
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> tuple[list[tuple[str, str]], list[int]]:
     """Build balanced set of positive + negative pairs.
 

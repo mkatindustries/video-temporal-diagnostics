@@ -366,7 +366,7 @@ def main():
             f"RRF AP={rrf_ap:.4f} [{rrf_lo:.4f},{rrf_hi:.4f}]  "
             f"(pos_rerank={pos_overrides}/{n_pos})"
         )
-        results["rerank_sweep"].append({
+        results["rerank_sweep"].append({  # pyrefly: ignore [missing-attribute]
             "k": int(k),
             "recall_at_k": float(r_at_k),
             "positives_reranked": int(pos_overrides),

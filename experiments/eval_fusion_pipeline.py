@@ -137,7 +137,7 @@ STAGE1_THRESHOLDS = [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
 # ---------------------------------------------------------------------------
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -349,19 +349,19 @@ def extract_vjepa2_features(
 
 def evaluate_method(
     scores: dict[tuple[str, str], float],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, float]:
     """Compute AP and AUC for a method."""
-    y_true = []
-    y_score = []
+    y_true: list[int] = []
+    y_score: list[float] = []
 
     for pair, sim in scores.items():
         y_true.append(1 if pair in copy_pairs else 0)
         y_score.append(sim)
 
-    y_true = np.array(y_true)
-    y_score = np.array(y_score)
-    n_pos = int(y_true.sum())
+    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:
@@ -504,7 +504,7 @@ def apply_attack(
 def stage1_prefilter(
     features: dict[str, dict],
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, Any]:
     """Sweep BoF cosine thresholds, select operating point with recall >= 0.99.
 
@@ -563,8 +563,8 @@ def get_candidate_pairs(
     features: dict[str, dict],
     keys: list[str],
     threshold: float,
-    extra_pairs: set[tuple[str, str]] | None = None,
-) -> set[tuple[str, str]]:
+    extra_pairs: set[tuple[str, ...]] | None = None,
+) -> set[tuple[str, ...]]:
     """Return pairs above BoF cosine threshold, plus any extra forced pairs.
 
     Args:
@@ -603,7 +603,7 @@ def get_candidate_pairs(
 def compute_pair_similarities(
     features_a: dict[str, dict],
     features_b: dict[str, dict],
-    pairs: set[tuple[str, str]],
+    pairs: set[tuple[str, ...]],
     methods: list[str],
     vjepa2_a: dict[str, dict] | None = None,
     vjepa2_b: dict[str, dict] | None = None,
@@ -727,7 +727,7 @@ def compute_pair_similarities(
 def stage1_semantic_score(
     pair_sims: dict[str, dict[tuple[str, str], float]],
     semantic_methods: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict:
     """Compute semantic-only fused score (Stage 1 quality metric).
 
@@ -779,7 +779,7 @@ def stage1_semantic_score(
 def stage2_threshold_fusion(
     pair_sims: dict[str, dict[tuple[str, str], float]],
     temporal_methods: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict:
     """Equal-weight mean of temporal-only method scores.
 
@@ -829,7 +829,7 @@ def stage2_threshold_fusion(
 def stage2_learned_fusion(
     pair_sims: dict[str, dict[tuple[str, str], float]],
     temporal_methods: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict:
     """5-fold stratified CV with logistic regression on temporal-only scores.
 
@@ -930,8 +930,8 @@ def run_scenario(
     features: dict[str, dict],
     vjepa2_features: dict[str, dict] | None,
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
-    neg_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
+    neg_pairs: set[tuple[str, ...]],
     stage1_threshold: float,
     all_methods: list[str],
     fusion_mode: str,
@@ -1115,7 +1115,7 @@ def run_scenario(
         scores = []
         for m in temporal_methods:
             if m in pair_sims and pair in pair_sims[m]:
-                scores.append(pair_sims[m][pair])
+                scores.append(pair_sims[m][pair]) # pyrefly: ignore [bad-index]
         if not scores:
             continue
         fused = sum(scores) / len(scores)

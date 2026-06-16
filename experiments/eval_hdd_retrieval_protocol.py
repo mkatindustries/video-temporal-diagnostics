@@ -1008,7 +1008,7 @@ def main():
                 }
             else:
                 method_out[metric_key] = _to_serializable(val)
-        output["methods"][method_key] = method_out
+        output["methods"][method_key] = method_out  # pyrefly: ignore [unsupported-operation]
 
     with open(out_path, "w") as f:
         json.dump(output, f, indent=2)

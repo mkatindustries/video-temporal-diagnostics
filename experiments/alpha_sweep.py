@@ -60,7 +60,7 @@ def compute_derivatives(embeddings: torch.Tensor) -> torch.Tensor:
 # ---------------------------------------------------------------------------
 
 
-def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, ...]]:
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
         if not fname.endswith(".txt"):

@@ -82,7 +82,7 @@ def discover_videos(vid_base_dir: str) -> list[str]:
     return videos
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs.
 
     Video paths are relative to vid_base_dir, e.g. "baggio_penalty_1994/abc.mp4".
@@ -808,7 +808,7 @@ def extract_vlm_features(
 
 def build_pair_set(
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
     seed: int = 42,
 ) -> tuple[list[tuple[str, str]], list[int]]:
     """Build shared evaluation pair set: all positive + equal negatives.

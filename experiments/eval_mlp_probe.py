@@ -130,7 +130,7 @@ def main():
 
         # Build feature matrices
         strategy_features: dict[str, list] = {s: [] for s in POOLING_STRATEGIES}
-        labels = []
+        labels = []  # pyrefly: ignore [bad-argument-type]
 
         for seq_id in seq_ids:
             for direction, states in [("fwd", fwd_states), ("rev", rev_states)]:
@@ -138,7 +138,7 @@ def main():
                 hidden = state["hidden_last"]
                 vision_mask = state.get("vision_mask")
 
-                labels.append(0 if direction == "fwd" else 1)
+                labels.append(0 if direction == "fwd" else 1) # pyrefly: ignore [bad-argument-type]
                 for strategy in POOLING_STRATEGIES:
                     vec = apply_pooling(hidden, vision_mask, strategy)
                     strategy_features[strategy].append(vec)
@@ -207,10 +207,10 @@ def main():
             family_results[strategy] = {
                 "linear_mean": float(np.mean(linear_arr)),
                 "linear_std": float(np.std(linear_arr)),
-                "linear_folds": [float(a) for a in linear_accs],
+                "linear_folds": [float(a) for a in linear_accs],  # pyrefly: ignore [bad-argument-type]
                 "mlp_mean": float(np.mean(mlp_arr)),
                 "mlp_std": float(np.std(mlp_arr)),
-                "mlp_folds": [float(a) for a in mlp_accs],
+                "mlp_folds": [float(a) for a in mlp_accs],  # pyrefly: ignore [bad-argument-type]
             }
 
             above = "***" if float(np.mean(mlp_arr)) > 0.55 else ""

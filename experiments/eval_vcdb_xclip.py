@@ -284,8 +284,8 @@ def compute_pairwise_sims(
 
     all_pairs = [(p, 1) for p in pos_pairs] + [(p, 0) for p in neg_pairs]
 
-    scores = []
-    labels = []
+    scores: list[float] = []
+    labels: list[int] = []
     for (a, b), label in all_pairs:
         if a not in features_a or b not in features_b:
             continue
@@ -401,7 +401,7 @@ def main():
     print(f"\n  AP Delta (reversal): {ap_delta:+.4f}")
 
     # Per-video s_rev
-    sims_rev = []
+    sims_rev: list[float] = []
     for v in keys:
         sim = float(F.cosine_similarity(fwd_features[v], rev_features[v]).item())
         sims_rev.append(sim)

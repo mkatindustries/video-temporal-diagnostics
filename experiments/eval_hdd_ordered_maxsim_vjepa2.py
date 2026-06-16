@@ -275,7 +275,7 @@ def compute_s_rev(
 ) -> float:
     """Mean reversal similarity on encoder sequences."""
     indices = list(features.keys())[:n_samples]
-    s_revs = []
+    s_revs: list[float] = []
 
     for idx in indices:
         feat = features[idx]
@@ -551,7 +551,7 @@ def main():
     if total_gap > 0:
         for name, r in results.items():
             if name not in ("mean_pool_cosine", "dtw"):
-                output["gap_closure"][name] = round(
+                output["gap_closure"][name] = round(  # pyrefly: ignore [unsupported-operation]
                     (r["ap"] - bot_ap) / total_gap * 100, 1,
                 )
 

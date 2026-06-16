@@ -970,7 +970,7 @@ def run_direction_probe(
     Returns per-prompt and mean balanced accuracy, plus per-segment results.
     """
     per_prompt_results = {}
-    all_balanced_accs = []
+    all_balanced_accs: list[float] = []
     per_segment_details = []
 
     for prompt_idx, prompt in enumerate(prompts):

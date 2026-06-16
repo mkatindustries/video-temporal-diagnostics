@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, ...]]:
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
         if not fname.endswith(".txt"):
@@ -77,8 +77,8 @@ def sample_negatives(keys, copy_pairs, n_target):
 
 
 def compute_violations(pairs, features, label):
-    violations_sym = []
-    violations_frac = []
+    violations_sym: list[float] = []
+    violations_frac: list[float] = []
     for a, b in tqdm(pairs, desc=f"  {label}"):
         fa = features.get(a)
         fb = features.get(b)

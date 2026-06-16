@@ -352,8 +352,8 @@ def main():
     # Step 6: Pairwise evaluation
     # ------------------------------------------------------------------
     print("\nStep 6: Computing pairwise similarities...")
-    pair_scores = []
-    pair_labels = []
+    pair_scores: list[float] = []
+    pair_labels: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in features]
         for a in range(len(indices)):

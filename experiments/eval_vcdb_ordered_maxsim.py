@@ -47,7 +47,7 @@ LAMBDA_VALUES = [0.0, 0.05, 0.1, 0.2, 0.5]
 # ---------------------------------------------------------------------------
 
 
-def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, ...]]:
     """Load VCDB copy pair annotations.
 
     Returns set of (vidA_relpath, vidB_relpath) sorted tuples.
@@ -75,7 +75,7 @@ def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, str]]:
 
 def sample_pairs(
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> tuple[list[tuple[str, str]], np.ndarray]:
     """Sample balanced positive + negative pairs (1:1, seed=42).
 
@@ -218,7 +218,7 @@ def run_comparator(
     name: str,
     compare_fn,
     features: dict,
-    seq_key: str,
+    seq_key: str | Path,
     pairs: list[tuple[str, str]],
     labels: np.ndarray,
 ) -> dict:
@@ -252,7 +252,7 @@ def run_comparator(
 
 def run_bof(
     features: dict,
-    emb_key: str,
+    emb_key: str | Path,
     pairs: list[tuple[str, str]],
     labels: np.ndarray,
 ) -> dict:

@@ -290,9 +290,9 @@ def extract_frames_with_sensors(
     has_imu = len(imu_timestamps) > 0
 
     frames = []
-    timestamps = []
-    lats = []
-    lngs = []
+    timestamps: list[float] = []
+    lats: list[float] = []
+    lngs: list[float] = []
     accels = []
     gyros = []
 

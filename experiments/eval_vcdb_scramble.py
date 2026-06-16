@@ -123,7 +123,7 @@ def parse_timestamp(ts: str) -> float:
     return h * 3600 + m * 60 + s
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -416,19 +416,19 @@ def scramble_vjepa2_residual(
 
 def evaluate_method(
     scores: dict[tuple[str, str], float],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, float]:
     """Compute AP and AUC for a method."""
-    y_true = []
-    y_score = []
+    y_true: list[int] = []
+    y_score: list[float] = []
 
     for pair, sim in scores.items():
         y_true.append(1 if pair in copy_pairs else 0)
         y_score.append(sim)
 
-    y_true = np.array(y_true)
-    y_score = np.array(y_score)
-    n_pos = int(y_true.sum())
+    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:
@@ -447,7 +447,7 @@ def evaluate_method(
 def compute_scrambled_similarities(
     features_a: dict[str, dict],
     features_b: dict[str, dict],
-    pairs_to_compute: set[tuple[str, str]],
+    pairs_to_compute: set[tuple[str, ...]],
     methods: list[str],
     vjepa2_a: dict[str, dict] | None = None,
     vjepa2_b: dict[str, dict] | None = None,

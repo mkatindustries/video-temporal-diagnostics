@@ -305,7 +305,7 @@ def main():
     print(f"  {'-'*10}  {'-'*12}  {'-'*10}  {'-'*11}  {'-'*11}")
 
     for cap in fps_caps + [None]:
-        unique_counts = []
+        unique_counts: list[int] = []
         for fps, dur in zip(target_fps_arr, durations_arr):
             eff_fps = min(fps, cap) if cap is not None else fps
             unique = min(VJEPA2_NUM_FRAMES, int(eff_fps * dur))

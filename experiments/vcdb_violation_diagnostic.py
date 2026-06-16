@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str) -> set[tuple[str, ...]]:
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
         if not fname.endswith(".txt"):
@@ -78,11 +78,11 @@ def main():
     pos_pairs = [(a, b) for a, b in copy_pairs if a in key_set and b in key_set]
     print(f"Positive pairs with features: {len(pos_pairs)}")
 
-    violations_fwd = []
-    violations_bwd = []
-    violations_sym = []
-    seq_lens_a = []
-    seq_lens_b = []
+    violations_fwd: list[int] = []
+    violations_bwd: list[int] = []
+    violations_sym: list[float] = []
+    seq_lens_a: list[int] = []
+    seq_lens_b: list[int] = []
 
     for a, b in tqdm(pos_pairs, desc="Counting violations"):
         ea = F.normalize(features[a]["embeddings"], dim=-1)

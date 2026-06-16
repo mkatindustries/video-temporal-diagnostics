@@ -69,7 +69,7 @@ def parse_timestamp(ts: str) -> float:
     return h * 3600 + m * 60 + s
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs.
 
     Video paths are relative to vid_base_dir, e.g. "baggio_penalty_1994/abc.mp4".
@@ -182,7 +182,7 @@ def compute_chamfer_sim(emb1: torch.Tensor, emb2: torch.Tensor) -> float:
 def compute_pairwise_dtw(
     features: dict[str, dict],
     keys: list[str],
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
 ) -> dict[str, dict[tuple[str, str], float]]:
     """Compute all method similarities on a shared set of sampled pairs.
 
@@ -285,7 +285,7 @@ def compute_pairwise_dtw(
 
 def evaluate_method(
     scores: dict[tuple[str, str], float] | np.ndarray,
-    copy_pairs: set[tuple[str, str]],
+    copy_pairs: set[tuple[str, ...]],
     keys: list[str] | None = None,
 ) -> dict[str, float]:
     """Compute AP and AUC for a method.
@@ -298,8 +298,8 @@ def evaluate_method(
     Returns:
         Dict with 'ap', 'auc', 'n_pos', 'n_neg'.
     """
-    y_true = []
-    y_score = []
+    y_true: list[int] = []
+    y_score: list[float] = []
 
     if isinstance(scores, np.ndarray):
         # Full matrix mode
@@ -316,9 +316,9 @@ def evaluate_method(
             y_true.append(1 if pair in copy_pairs else 0)
             y_score.append(sim)
 
-    y_true = np.array(y_true)
-    y_score = np.array(y_score)
-    n_pos = int(y_true.sum())
+    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:

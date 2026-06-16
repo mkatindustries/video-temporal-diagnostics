@@ -47,7 +47,7 @@ VJEPA2_SPATIAL = 256
 # ---------------------------------------------------------------------------
 
 
-def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, str]]:
+def load_vcdb_annotations(ann_dir: str, vid_base_dir: str) -> set[tuple[str, ...]]:
     """Load all VCDB annotations as global (videoA_path, videoB_path) pairs."""
     copy_pairs = set()
     for fname in sorted(os.listdir(ann_dir)):
@@ -337,7 +337,7 @@ def bootstrap_ap(scores, labels, n_resamples=2000, ci=0.95, seed=42, device=None
 
 def compute_vjepa2_similarities(
     features: dict[str, dict],
-    pairs_to_compute: set[tuple[str, str]],
+    pairs_to_compute: set[tuple[str, ...]],
 ) -> dict[str, dict[tuple[str, str], float]]:
     """Compute V-JEPA 2 BoT and Temporal Residual similarities.
 
@@ -543,8 +543,8 @@ def main():
 
     # Verify point APs
     for method_name, sims_dict in all_sims.items():
-        scores_list = []
-        labels_list = []
+        scores_list: list[float] = []
+        labels_list: list[int] = []
         for pair, sim in sims_dict.items():
             scores_list.append(sim)
             labels_list.append(1 if pair in copy_pairs else 0)
@@ -568,8 +568,8 @@ def main():
     }
 
     for method_name, sims_dict in all_sims.items():
-        scores_list = []
-        labels_list = []
+        scores_list: list[float] = []
+        labels_list: list[int] = []
         for pair, sim in sims_dict.items():
             scores_list.append(sim)
             labels_list.append(1 if pair in copy_pairs else 0)
@@ -594,8 +594,8 @@ def main():
             "ap_ci_low": float(ap_lo),
             "ap_ci_high": float(ap_hi),
             "ci_width": float(ci_width),
-            "n_pos": int(sum(labels_list)),
-            "n_neg": int(len(labels_list) - sum(labels_list)),
+            "n_pos": int(sum(labels_list)),  # pyrefly: ignore [no-matching-overload]
+            "n_neg": int(len(labels_list) - sum(labels_list)),  # pyrefly: ignore [no-matching-overload]
             "n_resamples": args.n_resamples,
             "seed": args.seed,
         }
@@ -650,8 +650,8 @@ def main():
     # the main bootstrap_cis.py pipeline
     pair_data = {}
     for method_name, sims_dict in all_sims.items():
-        scores_list = []
-        labels_list = []
+        scores_list: list[float] = []
+        labels_list: list[int] = []
         for pair, sim in sims_dict.items():
             scores_list.append(float(sim))
             labels_list.append(1 if pair in copy_pairs else 0)

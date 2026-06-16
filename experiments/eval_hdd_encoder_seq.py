@@ -203,7 +203,7 @@ def main():
     print("\nStep 3: Computing pairwise similarities...")
     pair_a = []
     pair_b = []
-    pair_gt = []
+    pair_gt: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in features]
         for a in range(len(indices)):
