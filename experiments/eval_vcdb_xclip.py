@@ -18,6 +18,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -31,6 +32,8 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 from transformers import VideoMAEImageProcessor, XCLIPModel
 from video_retrieval.utils.video import load_video
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -223,8 +226,9 @@ def extract_xclip_features(
                 frames = frames[::-1]
             emb = encoder.encode_clip(frames)  # (1, D)
             features[vp] = emb.cpu()
-        except Exception:
+        except Exception as e:
             failed += 1
+            logger.warning("Failed to extract X-CLIP features for %s: %s", vp, e)
             continue
 
     print(

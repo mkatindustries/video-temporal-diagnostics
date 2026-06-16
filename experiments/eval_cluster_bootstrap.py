@@ -25,7 +25,7 @@ import numpy as np
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
 
-from eval_hdd_intersections import (
+from common import (
     cluster_intersections,
     discover_sessions,
     extract_maneuver_segments,

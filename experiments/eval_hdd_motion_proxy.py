@@ -16,7 +16,6 @@ Usage:
 
 import argparse
 import json
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -27,7 +26,6 @@ import numpy as np
 from scipy.stats import spearmanr, pearsonr
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
 from eval_hdd_vlm_bridge import (  # noqa: E402
     discover_sessions,
     load_gps,
@@ -35,7 +33,7 @@ from eval_hdd_vlm_bridge import (  # noqa: E402
     cluster_intersections,
     filter_mixed_clusters,
 )
-from eval_hdd_intersections import ManeuverSegment  # noqa: E402
+from common import ManeuverSegment  # noqa: E402
 
 
 def compute_motion_proxy(

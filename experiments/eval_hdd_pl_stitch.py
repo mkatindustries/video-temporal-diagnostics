@@ -133,8 +133,8 @@ def extract_pl_stitch_features(
             'embeddings': (T, 768) per-frame CLS tokens (L2-normalized)
             'mean_emb': (768,) L2-normalized mean-pooled embedding
     """
-    # Use the shared load_clip function from eval_hdd_intersections
-    from eval_hdd_intersections import load_clip  # pyrefly: ignore
+    # Use the shared load_clip function from common
+    from common import load_clip  # pyrefly: ignore
 
     frames = load_clip(
         video_path,
@@ -302,7 +302,7 @@ def compute_s_rev(
     Returns:
         Dict mapping method_name -> {'mean': float, 'std': float, 'n': int}.
     """
-    from eval_hdd_intersections import load_clip  # pyrefly: ignore
+    from common import load_clip  # pyrefly: ignore
     from video_retrieval.fingerprints import TemporalDerivativeFingerprint  # pyrefly: ignore
     from video_retrieval.fingerprints.dtw import dtw_distance  # pyrefly: ignore
 
@@ -427,8 +427,7 @@ def main():
     device = torch.device(args.device)
 
     # Import HDD pipeline functions
-    sys.path.insert(0, str(Path(__file__).parent))
-    from eval_hdd_intersections import (  # pyrefly: ignore
+    from common import (  # pyrefly: ignore
         ManeuverSegment,
         cluster_intersections,
         discover_sessions,

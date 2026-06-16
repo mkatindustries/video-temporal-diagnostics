@@ -23,7 +23,6 @@ Usage:
 import argparse
 import json
 import os
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -34,10 +33,7 @@ import torch.nn.functional as F
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from eval_hdd_intersections import (
+from common import (
     MANEUVER_NAMES,
     ManeuverSegment,
     VJEPA2_MODEL_NAME,

@@ -28,7 +28,6 @@ Usage:
 
 import argparse
 import json
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -39,9 +38,7 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 
-# Add experiments/ to sys.path so sibling imports work from any cwd
-sys.path.insert(0, str(Path(__file__).parent))
-from eval_hdd_intersections import (  # noqa: E402
+from common import (  # noqa: E402
     build_temporal_masks,
     cluster_intersections,
     discover_sessions,

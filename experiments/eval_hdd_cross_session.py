@@ -32,6 +32,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import re
 import time
 import zoneinfo
@@ -54,6 +55,8 @@ from video_retrieval.fingerprints import (
 )
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 from video_retrieval.models import DINOv3Encoder
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -618,8 +621,9 @@ def extract_clip_features(
                 "centroids": centroids,
                 "mean_emb": mean_emb,
             }
-        except Exception:
+        except Exception as e:
             failed += 1
+            logger.warning("Failed to extract clip features for segment %d: %s", i, e)
             continue
 
     print(f"  Extracted: {len(features)}/{len(segments)} ({failed} failed)")
@@ -722,8 +726,9 @@ def extract_vjepa2_features(
                 "mean_emb": mean_emb.cpu(),
                 "temporal_residual": residual.cpu(),
             }
-        except Exception:
+        except Exception as e:
             failed += 1
+            logger.warning("Failed to extract V-JEPA 2 features for segment %d: %s", i, e)
             continue
 
     print(f"  Extracted: {len(features)}/{len(segments)} ({failed} failed)")
@@ -1146,7 +1151,8 @@ def main():
 
         try:
             gps_ts, gps_lats, gps_lngs = load_gps(info["gps_path"])
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to load GPS for session %s: %s", session_id, e)
             continue
 
         segs = extract_maneuver_segments(

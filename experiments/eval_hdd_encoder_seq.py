@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
-from eval_hdd_intersections import (
+from common import (
     MANEUVER_NAMES,
     ManeuverSegment,
     VJEPA2_MODEL_NAME,

@@ -33,7 +33,6 @@ Usage:
 import argparse
 import json
 import re
-import sys
 import time
 import warnings
 import zoneinfo
@@ -50,8 +49,7 @@ import torch.nn as nn
 from PIL import Image
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
-from eval_hdd_intersections import ManeuverSegment  # noqa: E402
+from common import ManeuverSegment  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

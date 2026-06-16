@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -33,6 +34,8 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 from transformers import VideoMAEImageProcessor, XCLIPModel
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +319,7 @@ def main():
             failed += 1
             if failed <= 3:
                 print(f"  WARNING: {seq['sequence_id']} failed: {e}")
+            logger.warning("Failed to compute X-CLIP s_rev for %s: %s", seq["sequence_id"], e)
             continue
 
     print(f"\n  Computed: {len(sims)}/{len(sequences)} ({failed} failed)")

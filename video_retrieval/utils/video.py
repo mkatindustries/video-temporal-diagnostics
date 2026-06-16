@@ -67,6 +67,7 @@ def load_video(
                 scale = max_resolution / img.shape[0]
                 new_h = max_resolution
                 new_w = int(img.shape[1] * scale)
+                # Lazy import to avoid slow cv2 startup
                 import cv2
                 img = cv2.resize(img, (new_w, new_h))
 

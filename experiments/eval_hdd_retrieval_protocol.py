@@ -51,8 +51,6 @@ import argparse
 import json
 
 # Re-use HDD data loading utilities from eval_hdd_vlm_bridge (canonical source).
-# Add experiments/ to sys.path so imports work from any working directory.
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -60,7 +58,6 @@ from pathlib import Path
 import numpy as np
 import torch
 
-sys.path.insert(0, str(Path(__file__).parent))
 from eval_hdd_vlm_bridge import (  # noqa: E402
     cluster_intersections,
     discover_sessions,
@@ -448,7 +445,7 @@ def extract_dinov3_features(
         'mean_emb': (1024,),
     }
     """
-    from eval_hdd_intersections import extract_clip_features
+    from common import extract_clip_features
 
     encoder = DINOv3Encoder(device=device, model_name=DINOV3_MODEL_NAME)
     features = extract_clip_features(
@@ -475,7 +472,7 @@ def extract_vjepa2_features_wrapper(
         'temporal_residual': (n_target_steps, 1024),
     }
     """
-    from eval_hdd_intersections import extract_vjepa2_features
+    from common import extract_vjepa2_features
     from transformers import AutoModel, AutoVideoProcessor
 
     model = AutoModel.from_pretrained(VJEPA2_MODEL_NAME, trust_remote_code=True)

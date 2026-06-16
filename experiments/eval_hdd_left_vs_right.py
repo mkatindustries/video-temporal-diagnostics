@@ -29,8 +29,8 @@ import torch.nn.functional as F
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
-# Reuse infrastructure from eval_hdd_intersections
-from eval_hdd_intersections import (
+# Reuse infrastructure from common
+from common import (
     MANEUVER_NAMES,
     ManeuverSegment,
     bootstrap_ap,

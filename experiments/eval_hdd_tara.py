@@ -223,8 +223,7 @@ def main():
     )
 
     # Import HDD pipeline functions
-    sys.path.insert(0, str(Path(__file__).parent))
-    from eval_hdd_intersections import (  # pyrefly: ignore
+    from common import (  # pyrefly: ignore
         ManeuverSegment,
         cluster_intersections,
         discover_sessions,

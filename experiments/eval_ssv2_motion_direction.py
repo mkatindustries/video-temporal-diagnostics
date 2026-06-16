@@ -49,7 +49,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
 # Reuse existing infrastructure
-from eval_hdd_intersections import (
+from common import (
     DINOV3_MODEL_NAME,
     VJEPA2_MODEL_NAME,
     VJEPA2_NUM_FRAMES,

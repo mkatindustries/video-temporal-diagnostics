@@ -23,6 +23,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import sys
 import time
@@ -37,6 +38,8 @@ import torch.nn.functional as F
 from PIL import Image
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 # ViCLIP default config
 VICLIP_NUM_FRAMES = 8
@@ -273,7 +276,8 @@ def eval_vcdb(model, vcdb_dir: Path, device: torch.device) -> dict:
         try:
             frames = extract_frames_uniform(os.path.join(str(vid_dir), vp))
             features[vp] = encode_video(model, frames, device)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to extract ViCLIP features for %s: %s", vp, e)
             failed += 1
 
     print(f"  Extracted: {len(features)}/{len(videos)} ({failed} failed)")
@@ -327,7 +331,8 @@ def eval_vcdb(model, vcdb_dir: Path, device: torch.device) -> dict:
             rev_emb = encode_video(model, rev_frames, device)
             s_rev = float(torch.dot(fwd_emb, rev_emb).item())
             rev_sims.append(s_rev)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to compute ViCLIP reversal for %s: %s", vp, e)
             continue
 
     mean_s_rev = float(np.mean(rev_sims)) if rev_sims else float("nan")
@@ -347,8 +352,7 @@ def eval_vcdb(model, vcdb_dir: Path, device: torch.device) -> dict:
 
 def eval_hdd(model, hdd_dir: Path, device: torch.device) -> dict:
     """HDD maneuver discrimination."""
-    sys.path.insert(0, str(Path(__file__).parent))
-    from eval_hdd_intersections import (
+    from common import (
         ManeuverSegment,
         cluster_intersections,
         discover_sessions,
@@ -364,7 +368,8 @@ def eval_hdd(model, hdd_dir: Path, device: torch.device) -> dict:
         labels = np.load(info["label_path"])
         try:
             gps_ts, gps_lats, gps_lngs = load_gps(info["gps_path"])
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to load GPS for session %s: %s", sid, e)
             continue
         segs = extract_maneuver_segments(
             sid, labels, gps_ts, gps_lats, gps_lngs,
@@ -395,7 +400,8 @@ def eval_hdd(model, hdd_dir: Path, device: torch.device) -> dict:
         try:
             frames = extract_frames_timed(seg.video_path, start_sec, end_sec)
             features[i] = encode_video(model, frames, device)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to extract ViCLIP HDD features for segment %d: %s", i, e)
             failed += 1
 
     print(f"  Extracted: {len(features)}/{len(eval_segments)} ({failed} failed)")
@@ -447,7 +453,11 @@ def eval_epic(model, epic_dir: Path, device: torch.device) -> dict:
             rev_emb = encode_video(model, frames[::-1], device)
             s_rev = float(torch.dot(fwd_emb, rev_emb).item())
             s_revs.append(s_rev)
-        except Exception:
+        except Exception as e:
+            logger.warning(
+                "Failed to compute ViCLIP EPIC s_rev for %s: %s",
+                seq["sequence_id"], e,
+            )
             failed += 1
 
     mean_s_rev = float(np.mean(s_revs))
@@ -539,7 +549,8 @@ def eval_nuscenes(model, nuscenes_dir: Path, device: torch.device, version: str 
             frames = frames[:VICLIP_NUM_FRAMES]
 
             features[i] = encode_video(model, frames, device)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to extract ViCLIP nuScenes features for segment %d: %s", i, e)
             failed += 1
 
     print(f"  Extracted: {len(features)}/{len(eval_segments)} ({failed} failed)")

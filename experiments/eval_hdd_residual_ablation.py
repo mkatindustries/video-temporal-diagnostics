@@ -34,8 +34,6 @@ import json
 
 # Re-use data loading, clustering, and clip extraction from the intersections
 # experiment — import directly to avoid code duplication.
-# Add experiments/ to sys.path so imports work from any working directory.
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -44,8 +42,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-sys.path.insert(0, str(Path(__file__).parent))
-from eval_hdd_intersections import (  # noqa: E402
+from common import (  # noqa: E402
     bootstrap_ap,
     build_temporal_masks,
     cluster_intersections,

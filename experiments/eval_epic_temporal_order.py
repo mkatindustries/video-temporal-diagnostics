@@ -43,6 +43,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import time
 import warnings
@@ -61,6 +62,8 @@ import torch.nn.functional as F
 from PIL import Image
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -1518,6 +1521,7 @@ def extract_dinov3_features(
             }
         except Exception as e:
             failed += 1
+            logger.warning("Failed to extract DINOv3 features for %s: %s", seq["sequence_id"], e)
             continue
 
     print(f"  DINOv3: {len(features)}/{len(sequences)} ({failed} failed)")
@@ -1612,8 +1616,9 @@ def extract_vjepa2_features(
                 "mean_emb": mean_emb.cpu(),
                 "temporal_residual": residual.cpu(),
             }
-        except Exception:
+        except Exception as e:
             failed += 1
+            logger.warning("Failed to extract V-JEPA 2 features for %s: %s", seq["sequence_id"], e)
             continue
 
     direction = "reverse" if reverse else "forward"

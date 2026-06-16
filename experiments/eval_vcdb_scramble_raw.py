@@ -17,6 +17,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -28,6 +29,8 @@ import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
+
+logger = logging.getLogger(__name__)
 
 VJEPA2_MODEL_NAME = "facebook/vjepa2-vitl-fpc64-256"
 VJEPA2_NUM_FRAMES = 64
@@ -237,8 +240,9 @@ def main():
                 model, processor, frames, device, context_mask, target_mask, n_target_steps
             )
             fwd_features[vp] = {"mean_emb": mean_emb, "temporal_residual": residual}
-        except Exception:
+        except Exception as e:
             failed += 1
+            logger.warning("Failed to extract V-JEPA 2 features for %s: %s", vp, e)
     print(f"  Forward: {len(fwd_features)}/{len(videos)} ({failed} failed)")
 
     # Sweep K values
@@ -260,7 +264,8 @@ def main():
                     context_mask, target_mask, n_target_steps,
                 )
                 scrambled_features[vp] = {"mean_emb": mean_emb, "temporal_residual": residual}
-            except Exception:
+            except Exception as e:
+                logger.warning("Failed to extract scrambled V-JEPA 2 features for %s at K=%d: %s", vp, K, e)
                 continue
 
         # Compute similarities

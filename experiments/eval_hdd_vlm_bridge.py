@@ -38,7 +38,6 @@ Usage:
 import argparse
 import json
 import re
-import sys
 import time
 import warnings
 import zoneinfo
@@ -61,8 +60,7 @@ from tqdm import tqdm
 from video_retrieval.fingerprints import TemporalDerivativeFingerprint
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 
-sys.path.insert(0, str(Path(__file__).parent))
-from eval_hdd_intersections import ManeuverSegment  # noqa: E402
+from common import ManeuverSegment  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
