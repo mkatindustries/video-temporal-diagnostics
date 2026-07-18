@@ -698,6 +698,7 @@ def compute_all_similarities(
 
     for cid in tqdm(sorted(cluster_to_indices.keys()), desc="  Cluster similarities"):
         indices = [i for i in cluster_to_indices[cid] if i in features]
+        cid = int(cid)  # numpy int64 -> python int so pair_scores.json is serializable
 
         for a_pos in range(len(indices)):
             for b_pos in range(a_pos + 1, len(indices)):

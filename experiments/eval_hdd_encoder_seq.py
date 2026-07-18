@@ -215,7 +215,7 @@ def main():
                 pair_b.append(indices[b])
                 gt = 1 if eval_segments[indices[a]].label == eval_segments[indices[b]].label else 0
                 pair_gt.append(gt)
-                pair_cluster_ids.append(cid)
+                pair_cluster_ids.append(int(cid))  # numpy int64 -> python int for JSON
 
     labels = np.array(pair_gt)
     n_pairs = len(labels)

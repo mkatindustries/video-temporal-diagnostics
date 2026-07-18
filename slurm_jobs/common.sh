@@ -20,4 +20,11 @@ fi
 export PYTHONPATH="$REPO_ROOT/experiments:$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export TOKENIZERS_PARALLELISM=false
 
+# Compute nodes have no internet: force HF to use the local cache / downloaded
+# checkpoints instead of firing (and timing out on) network HEAD requests.
+# Both facebook/vjepa2-vitl-fpc64-256 and facebook/dinov3-vitl16-pretrain-lvd1689m
+# are present in ~/.cache/huggingface, so from_pretrained resolves them offline.
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+
 "$PYTHON" -c "import torch; print(f'python ready; torch={torch.__version__}; cuda={torch.cuda.is_available()}')"
