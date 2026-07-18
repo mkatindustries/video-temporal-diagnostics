@@ -57,21 +57,21 @@ from pathlib import Path
 
 import numpy as np
 import torch
-
 from eval_hdd_vlm_bridge import (  # noqa: E402
+    MANEUVER_NAMES,
+    VLM_ADAPTERS,
+    VLM_DEFAULT_PATHS,
+    VLM_DISPLAY_NAMES,
+    ManeuverSegment,
     cluster_intersections,
     discover_sessions,
     extract_maneuver_segments,
     extract_vlm_vision_features,
     filter_mixed_clusters,
     load_gps,
-    MANEUVER_NAMES,
-    ManeuverSegment,
-    VLM_ADAPTERS,
-    VLM_DEFAULT_PATHS,
-    VLM_DISPLAY_NAMES,
 )
 from tqdm import tqdm
+
 from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
@@ -95,13 +95,14 @@ K_VALUES = [1, 3, 5, 10]
 # ---------------------------------------------------------------------------
 
 
-def average_precision_at_k(relevant: np.ndarray, k: int) -> float:
+def average_precision_at_k(relevant: np.ndarray, k: int, total_relevant: int) -> float:
     """Compute Average Precision at K for a single query.
 
     Args:
         relevant: Binary array (1=relevant, 0=irrelevant) sorted by
             descending similarity. Shape (n_gallery,).
         k: Depth cutoff.
+        total_relevant: Total number of relevant items in the full gallery.
 
     Returns:
         AP@K value.
@@ -113,9 +114,9 @@ def average_precision_at_k(relevant: np.ndarray, k: int) -> float:
         if relevant_k[i] == 1:
             n_rel_at_k += 1
             sum_precision += n_rel_at_k / (i + 1)
-    if n_rel_at_k == 0:
+    if n_rel_at_k == 0 or total_relevant == 0:
         return 0.0
-    return sum_precision / n_rel_at_k
+    return sum_precision / total_relevant
 
 
 def recall_at_k(relevant: np.ndarray, k: int, total_relevant: int) -> float:
@@ -204,7 +205,7 @@ def evaluate_retrieval_per_query(
     metrics: dict[str, float] = {}
 
     for k in k_values:
-        metrics[f"ap@{k}"] = average_precision_at_k(relevant, k)
+        metrics[f"ap@{k}"] = average_precision_at_k(relevant, k, total_relevant)
         metrics[f"recall@{k}"] = recall_at_k(relevant, k, total_relevant)
         metrics[f"ndcg@{k}"] = ndcg_at_k(relevant, k)
 
@@ -264,7 +265,6 @@ def compute_pairwise_cosine(
     Returns:
         Similarity matrix of shape (N, N) where N = len(indices).
     """
-    n = len(indices)
     emb_stack = torch.stack([embeddings[i] for i in indices]).to(device)  # (N, D)
     sim = torch.mm(emb_stack, emb_stack.t()).cpu().numpy()  # (N, N)
     return sim
@@ -477,9 +477,7 @@ def extract_vjepa2_features_wrapper(
 
     model = AutoModel.from_pretrained(VJEPA2_MODEL_NAME, trust_remote_code=True)
     model = model.to(device).eval()
-    processor = AutoVideoProcessor.from_pretrained(
-        VJEPA2_MODEL_NAME, trust_remote_code=True
-    )
+    processor = AutoVideoProcessor.from_pretrained(VJEPA2_MODEL_NAME, trust_remote_code=True)
 
     features, _ = extract_vjepa2_features(
         model,
@@ -542,9 +540,7 @@ def build_similarity_matrices(
 
     if method_key == "temporal_derivative":
         for idx in feat_set:
-            fingerprints[idx] = deriv_fp.compute_fingerprint(
-                feat_set[idx]["embeddings"]
-            )
+            fingerprints[idx] = deriv_fp.compute_fingerprint(feat_set[idx]["embeddings"])
     elif method_key == "attention_trajectory":
         for idx in feat_set:
             fingerprints[idx] = traj_fp.compute_fingerprint(feat_set[idx]["centroids"])
@@ -758,10 +754,7 @@ def main():
     label_counts: dict[int, int] = defaultdict(int)
     for seg in all_segments:
         label_counts[seg.label] += 1
-    print(
-        f"  Total segments: {len(all_segments)} "
-        f"from {sessions_with_segments} sessions"
-    )
+    print(f"  Total segments: {len(all_segments)} from {sessions_with_segments} sessions")
     for lv, name in sorted(MANEUVER_NAMES.items()):
         print(f"    {name}: {label_counts.get(lv, 0)}")
 
@@ -781,10 +774,7 @@ def main():
     print(f"  Total segments in mixed clusters: {total_segs_in_mixed}")
 
     if not mixed:
-        print(
-            "\nERROR: No mixed clusters found. "
-            "Cannot evaluate maneuver discrimination."
-        )
+        print("\nERROR: No mixed clusters found. Cannot evaluate maneuver discrimination.")
         return
 
     # Build flat list of segments in qualifying clusters, with cluster mapping
@@ -810,9 +800,7 @@ def main():
     # 5a: DINOv3
     print("\nStep 5a: Extracting DINOv3 features...")
     t_dino_start = time.time()
-    dino_features = extract_dinov3_features(
-        eval_segments, args.device, args.context_sec
-    )
+    dino_features = extract_dinov3_features(eval_segments, args.device, args.context_sec)
     print(f"  DINOv3 extraction time: {time.time() - t_dino_start:.1f}s")
 
     # 5b: V-JEPA 2
@@ -909,9 +897,7 @@ def main():
         # Build cluster label arrays aligned to valid indices
         method_cluster_labels: dict[int, np.ndarray] = {}
         for cid, valid_indices in cluster_valid.items():
-            method_cluster_labels[cid] = np.array(
-                [eval_segments[i].label for i in valid_indices]
-            )
+            method_cluster_labels[cid] = np.array([eval_segments[i].label for i in valid_indices])
 
         # Run retrieval evaluation
         results = evaluate_retrieval(
@@ -926,35 +912,20 @@ def main():
         # Print per-method summary
         n_q = results["n_queries"]
         mrr_info = results.get("mrr", {})
-        mrr_val = (
-            mrr_info.get("mean", float("nan"))
-            if isinstance(mrr_info, dict)
-            else float("nan")
-        )
+        mrr_val = mrr_info.get("mean", float("nan")) if isinstance(mrr_info, dict) else float("nan")
         print(f"    Queries: {n_q}  |  MRR: {mrr_val:.3f}")
         for k in K_VALUES:
             ap_info = results.get(f"ap@{k}", {})
             r_info = results.get(f"recall@{k}", {})
             ndcg_info = results.get(f"ndcg@{k}", {})
             ap_val = (
-                ap_info.get("mean", float("nan"))
-                if isinstance(ap_info, dict)
-                else float("nan")
+                ap_info.get("mean", float("nan")) if isinstance(ap_info, dict) else float("nan")
             )
-            r_val = (
-                r_info.get("mean", float("nan"))
-                if isinstance(r_info, dict)
-                else float("nan")
-            )
+            r_val = r_info.get("mean", float("nan")) if isinstance(r_info, dict) else float("nan")
             ndcg_val = (
-                ndcg_info.get("mean", float("nan"))
-                if isinstance(ndcg_info, dict)
-                else float("nan")
+                ndcg_info.get("mean", float("nan")) if isinstance(ndcg_info, dict) else float("nan")
             )
-            print(
-                f"    K={k:<3d}  mAP@K={ap_val:.3f}  "
-                f"R@K={r_val:.3f}  NDCG@K={ndcg_val:.3f}"
-            )
+            print(f"    K={k:<3d}  mAP@K={ap_val:.3f}  R@K={r_val:.3f}  NDCG@K={ndcg_val:.3f}")
 
     # ------------------------------------------------------------------
     # Step 8: Summary table
@@ -1003,9 +974,7 @@ def main():
             if metric_key == "n_queries":
                 continue
             if isinstance(val, dict):
-                method_out[metric_key] = {
-                    k: _to_serializable(v) for k, v in val.items()
-                }
+                method_out[metric_key] = {k: _to_serializable(v) for k, v in val.items()}
             else:
                 method_out[metric_key] = _to_serializable(val)
         output["methods"][method_key] = method_out  # pyrefly: ignore [unsupported-operation]

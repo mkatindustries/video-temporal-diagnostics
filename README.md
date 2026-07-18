@@ -1,10 +1,12 @@
-# The Temporal Blind Spot in Video Retrieval
+# Diagnosing Temporal Sensitivity in Video Retrieval Pipelines
 
-Diagnostic code for *The Temporal Blind Spot in Video Retrieval: Diagnosing Temporal Sensitivity*. Video deduplication and retrieval using **non-semantic temporal signals**. Semantic embeddings alone cannot distinguish videos that share content but represent different recordings. This project explores signals that capture *how* a video moves through content space, not just *what* it contains.
+Diagnostic code for *Diagnosing Temporal Sensitivity in Video Retrieval Pipelines*. The project evaluates temporal signals for video deduplication and retrieval, including cases where semantic descriptors assign similar scores to recordings with different motion or ordering.
 
 ## Abstract
 
-Video retrieval embeddings collapse motion direction by design. Two videos of the same road in opposite directions, or left versus right turns at the same intersection, return near-identical embeddings, and no retrieval pipeline metric flags the failure. We introduce a diagnostic framework for measuring temporal sensitivity in video retrieval, comprising three executable instruments: a temporal scramble gradient (K ∈ {1, …, 16}), a forward/reverse invariance test producing a reversal similarity *s_rev*, and a feature-vs-comparator decomposition that attributes AP gaps to the encoder or the comparator. Applied across seven benchmarks spanning copy detection, ego-motion driving, object manipulation, and egocentric activity, plus three open-weight VLMs, the framework localizes where temporal information is preserved or destroyed within modern pipelines. Symmetric pooling erases order architecturally. Bag-of-tokens (BoT) mean-pooling yields reversal similarity s_rev ≈ 1 between forward and reversed clips by construction. The decomposition shows that, within a given encoder, the comparator—not the encoder—governs temporal sensitivity on motion retrieval. Switching from pooled-cosine to per-frame dynamic time warping explains 89% of the BoT-to-residual gap on Honda HDD; the direction replicates on nuScenes and Something-Something V2, but *which* comparator recovers temporal signal is domain-dependent. VLM probing further localizes the loss. Per-frame vision features retain order, pooling erases it, and no pooled readout (including 31B-parameter LLM hidden states and generative probes on two reasoning VLMs) recovers it. We consolidate these findings into a 10-mode failure taxonomy and an executable diagnostic protocol (Algorithm 1), and release an open-source toolkit packaging the three instruments. The empirical contribution is a sensitivity–invariance trade-off current architectures do not resolve.
+Scalable video retrieval often uses global descriptors that are insensitive to motion direction. This repository implements three diagnostics for locating that behavior: a temporal scramble gradient, a forward/reverse score under a declared comparator, and a controlled feature-by-comparator factorial evaluated on one shared pair set. Exact permutation invariance applies to symmetric comparisons of fixed independently encoded elements. Contextual video tokens and VLM outputs instead require empirical tests. Scores from cosine and DTW are comparator-specific and must not be put on one numerical scale.
+
+The current paper reports pooled pair-classification diagnostics across seven benchmarks. These are not standard query-wise retrieval metrics. The old HDD reranking results and unbalanced-chunk scramble results have been withdrawn; corrected runs are explicitly marked pending in the manuscript and are covered by the jobs in `slurm_jobs/`.
 
 ## The Problem
 
@@ -17,50 +19,40 @@ Cyclist B: Chelsea → Central Park → Queens
 
 We need signals that capture **direction of travel**, **temporal sequence**, and **motion patterns** to tell them apart.
 
-## Core Finding: The Temporal Blind Spot
+## Current Evidence
 
-No single method works across all retrieval paradigms. Three regimes, three winners:
+Selected point estimates from the valid pair diagnostics:
 
 | Task | Winner | Score |
 |------|--------|-------|
 | Copy detection (VCDB) | Chamfer/BoF | AP 0.989 |
-| Reversal detection (VCDB) | DINOv3 attention trajectory | s_rev 0.192 |
+| Reversal diagnostic (EPIC) | DINOv3 attention trajectory | DTW-derived s_rev 0.192 |
 | Maneuver discrimination (HDD) | V-JEPA 2 temporal residual | AP 0.956 |
-| Cross-dataset maneuver (nuScenes) | V-JEPA 2 temporal residual | AP 0.815 |
+| Cross-dataset maneuver (nuScenes) | V-JEPA 2 encoder-sequence DTW | AP 0.867 |
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
-| VLM reversal (3 VLMs, EPIC-Kitchens) | All at chance | 0.50--0.54 bal. acc. |
-| VLM reversal (Claude Opus 4.6, EPIC) | At chance | ~0.55 bal. acc. |
-| VLM reversal (Gemini 3.1 Pro, EPIC) | Marginal | ~0.60 bal. acc. |
-| VLM vision tower s_rev | Order-invariant | ~1.0 |
-| VLM vision sequence DTW s_rev | Order-sensitive | ~0.49 |
-| VLM LLM hidden state (VCDB) | Strong copy detector | AP 0.84--0.92 |
-| VLM LLM hidden state (HDD) | At chance | AP 0.47--0.52 |
-| LLM hidden state probes (linear + MLP) | All within chance | best 0.560 (126 configs) |
-| Optical flow RAFT (HDD) | Below chance | AP 0.478 |
-| HDD left-vs-right only | V-JEPA 2 temporal residual | AP 0.960 |
-| V-JEPA 2 Encoder-Seq DTW (HDD) | Disentangles feature vs comparator | AP 0.942 |
-| Raw-frame scramble (V-JEPA 2, VCDB) | Monotonic degradation | AP 0.705→0.652 |
-| ViCLIP (InternVid-10M, all benchmarks) | Order-invariant | VCDB 0.907, HDD 0.542, s_rev 0.996 |
-| TARA (chiral, cosine, HDD) | Chiral training does not help under cosine | AP 0.547, s_rev 0.955 |
-| PL-Stitch BoF (HDD) | At chance despite temporal pretraining | AP 0.478, s_rev 1.000 |
-| PL-Stitch DTW raw (HDD) | Encodes order but lacks capacity | AP 0.540, s_rev 0.006 |
+| VLM direct direction prompts (open models) | Prompt-dependent, near chance | 0.50--0.54 balanced accuracy |
+| VLM integrity prompt (Qwen/Gemma) | Detects forward vs reverse | 0.879 / 0.845 balanced accuracy |
+| LLM fixed-vector probes | Exploratory, no reliable evidence | best observed 0.560 across many configs |
+| V-JEPA 2 encoder-sequence DTW (HDD) | Controlled comparator contrast | AP 0.942 |
+| Directed BoT-to-DTW retrieval | Corrected query-wise protocol | rerun pending |
+| Balanced-chunk scramble | Corrected partitioning | rerun pending |
 
-Order-invariant methods (bag-of-frames, Chamfer) excel at copy detection but are completely blind to temporal manipulation (reversal, scrambling). Order-aware methods (attention trajectory DTW, temporal derivatives) detect manipulation but sacrifice copy detection accuracy. VLM vision towers contain per-frame temporal signal but destroy it through pooling; no standard readout from the LLM backbone recovers it (126 linear + MLP probe configurations at chance via GroupKFold CV). Yet per-position hidden states *do* retain order under full-sequence DTW: symmetric aggregation, not the LLM backbone itself, is the bottleneck. A frontier proprietary model (Claude Opus 4.6) fares no better than the 7B--31B open-weight VLMs; a reasoning model (Gemini 3.1 Pro) shows marginal improvement (~0.60 balanced accuracy) but remains far from reliable. On HDD, an encoder-sequence DTW baseline (AP=0.942) shows that most of the bag-of-tokens→residual gap comes from the comparator (cosine→DTW), though the residual adds a further 1.4 points. No existing method spans both the copy detection and motion retrieval regimes.
+On HDD, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate. This factorial contrast does not establish a causal attribution, and dependent pairs require paired cluster-level uncertainty. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, direct direction prompts are weak, and integrity prompts are much stronger.
 
 ## Methods
 
-| Method | Signal | Order-Aware? |
-|--------|--------|:------------:|
-| **Attention Trajectories** | Spatial center-of-mass of DINOv3 attention maps via DTW | Yes |
-| **Temporal Derivatives** | d(embedding)/d(frame) via DTW | Yes |
-| **V-JEPA 2 Temporal Residual** | Prediction error sequences via DTW | Yes |
-| Bag-of-Frames | Mean CLS embedding cosine similarity | No |
-| Chamfer Similarity | Per-frame best-match average | No |
-| V-JEPA 2 Bag-of-Tokens | Mean-pooled encoder tokens | No |
-| VLM Vision Pooled | Mean-pooled vision tower embeddings (SigLIP/CLIP) | No |
-| VLM Vision Seq DTW | Per-frame vision tower embeddings via DTW | Yes |
-| VLM LLM Hidden State | Mean-pooled LLM hidden states | No |
+| Method | Signal | Diagnostic property |
+|--------|--------|---------------------|
+| **Attention Trajectories** | Spatial center-of-mass of DINOv3 attention maps via DTW | Sequence comparator |
+| **Temporal Derivatives** | d(embedding)/d(frame) via DTW | Sequence comparator |
+| **V-JEPA 2 Temporal Residual** | Prediction-error sequences via DTW | Sequence comparator |
+| Bag-of-Frames | Mean CLS embedding cosine similarity | Exactly invariant for independent frame embeddings |
+| Chamfer Similarity | Per-frame best-match average | Exactly invariant for a fixed frame set |
+| V-JEPA 2 Bag-of-Tokens | Mean-pooled contextual encoder tokens | Empirically tested; not invariant by theorem |
+| VLM Vision Pooled | Mean-pooled vision tower embeddings | Empirically tested |
+| VLM Vision Seq DTW | Per-frame vision tower embeddings via DTW | Sequence comparator |
+| VLM LLM Hidden State | Mean-pooled LLM hidden states | Empirically tested |
 
 ## Installation
 
@@ -73,7 +65,7 @@ Requires Python 3.10+, CUDA GPU recommended.
 
 ## Diagnostic Toolkit
 
-The scramble gradient and reversal test are packaged as reusable evaluation components (see paper Section 5).
+The scramble gradient, reversal test, and feature-by-comparator factorial are packaged as reusable evaluation components.
 
 **Python API:**
 
@@ -81,7 +73,7 @@ The scramble gradient and reversal test are packaged as reusable evaluation comp
 from video_retrieval.diagnostics import temporal_report
 
 report = temporal_report(emb_a, emb_b, pairs, similarity_fn)
-print(report["scramble_gradient"]["verdict"])  # "order-sensitive" or "order-invariant"
+print(report["scramble_gradient"]["verdict"])  # "order-sensitive" or "no-detected-sensitivity"
 ```
 
 **CLI:**
@@ -92,6 +84,10 @@ temporal-diag scramble-gradient \
     --pairs pairs.csv --similarity cosine --k-values 1 4 16
 
 temporal-diag s-rev --embeddings features.pt --similarity dtw
+
+temporal-diag decompose \
+    --baseline-embeddings baseline.pt --alternative-embeddings alternative.pt \
+    --pairs pairs.csv --baseline-comparator cosine --alternative-comparator dtw
 
 temporal-diag report \
     --embeddings-a features_a.pt --embeddings-b features_b.pt \
@@ -133,7 +129,6 @@ python experiments/eval_hdd_ordered_maxsim_vjepa2.py # OrderedMaxSim comparator 
 python experiments/eval_vcdb_ordered_maxsim.py   # OrderedMaxSim on VCDB (both backbones, cached features)
 python experiments/vcdb_violation_diagnostic.py  # Monotonicity violation count (positive pairs)
 python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positive vs negative pairs
-python experiments/alpha_sweep.py                # DTW α-invariance sweep (3 cells × 5 α values)
 ```
 
 ## Benchmarks
@@ -165,7 +160,7 @@ python experiments/alpha_sweep.py                # DTW α-invariance sweep (3 ce
 
 ## Paper
 
-LaTeX draft in `paper/paper.tex`. Title: *"The Temporal Blind Spot in Video Retrieval: Diagnosing Temporal Sensitivity"*
+LaTeX draft in `paper/paper.tex`. Title: *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines"*
 
 ## License
 

@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -30,10 +29,10 @@ from torch import Tensor
 
 from video_retrieval.fingerprints.dtw import dtw_distance
 
+from .decomposition import feature_comparator_decomposition
 from .report import temporal_report
 from .reversal import compute_s_rev
 from .scramble import scramble_gradient
-
 
 # ---- Built-in similarity functions ----------------------------------------
 
@@ -50,8 +49,19 @@ def _dtw_similarity(a: Tensor, b: Tensor) -> float:
     return float(torch.exp(torch.tensor(-dtw_distance(a, b))).item())
 
 
+def _chamfer_similarity(a: Tensor, b: Tensor) -> float:
+    """Symmetric maximum cosine similarity over sequence elements."""
+    a_norm = F.normalize(a, dim=-1)
+    b_norm = F.normalize(b, dim=-1)
+    similarities = a_norm @ b_norm.T
+    return float(
+        0.5 * (similarities.max(dim=1).values.mean() + similarities.max(dim=0).values.mean()).item()
+    )
+
+
 SIMILARITY_FUNCTIONS: dict[str, Callable[[Tensor, Tensor], float]] = {
     "cosine": _cosine_similarity,
+    "chamfer": _chamfer_similarity,
     "dtw": _dtw_similarity,
 }
 
@@ -88,9 +98,7 @@ def _load_pairs(path: str) -> list[tuple[str, str, int]]:
 
 def _get_similarity(name: str) -> Callable[[Tensor, Tensor], float]:
     if name not in SIMILARITY_FUNCTIONS:
-        raise ValueError(
-            f"Unknown similarity '{name}'. Choose from: {list(SIMILARITY_FUNCTIONS)}"
-        )
+        raise ValueError(f"Unknown similarity '{name}'. Choose from: {list(SIMILARITY_FUNCTIONS)}")
     return SIMILARITY_FUNCTIONS[name]
 
 
@@ -112,9 +120,7 @@ def cmd_scramble_gradient(args: argparse.Namespace) -> None:
     pairs = _load_pairs(args.pairs)
     sim_fn = _get_similarity(args.similarity)
 
-    result = scramble_gradient(
-        emb_a, emb_b, pairs, sim_fn, k_values=args.k_values, seed=args.seed
-    )
+    result = scramble_gradient(emb_a, emb_b, pairs, sim_fn, k_values=args.k_values, seed=args.seed)
     _write_output(result, args.output)
 
 
@@ -134,8 +140,22 @@ def cmd_report(args: argparse.Namespace) -> None:
     pairs = _load_pairs(args.pairs)
     sim_fn = _get_similarity(args.similarity)
 
-    result = temporal_report(
-        emb_a, emb_b, pairs, sim_fn, k_values=args.k_values, seed=args.seed
+    result = temporal_report(emb_a, emb_b, pairs, sim_fn, k_values=args.k_values, seed=args.seed)
+    _write_output(result, args.output)
+
+
+def cmd_decompose(args: argparse.Namespace) -> None:
+    baseline = _load_embeddings(args.baseline_embeddings)
+    alternative = _load_embeddings(args.alternative_embeddings)
+    pairs = _load_pairs(args.pairs)
+    comparators = {
+        args.baseline_comparator: _get_similarity(args.baseline_comparator),
+        args.alternative_comparator: _get_similarity(args.alternative_comparator),
+    }
+    result = feature_comparator_decomposition(
+        {"baseline": baseline, "alternative": alternative},
+        comparators,
+        pairs,
     )
     _write_output(result, args.output)
 
@@ -160,7 +180,10 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--pairs", required=True, help="CSV with columns: id_a, id_b, label")
     sg.add_argument("--similarity", default="cosine", choices=list(SIMILARITY_FUNCTIONS))
     sg.add_argument(
-        "--k-values", nargs="+", type=int, default=[1, 4, 16],
+        "--k-values",
+        nargs="+",
+        type=int,
+        default=[1, 4, 16],
         help="Chunk counts to sweep (default: 1 4 16)",
     )
     sg.add_argument("--seed", type=int, default=0)
@@ -187,12 +210,35 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--pairs", required=True, help="CSV with columns: id_a, id_b, label")
     rp.add_argument("--similarity", default="cosine", choices=list(SIMILARITY_FUNCTIONS))
     rp.add_argument(
-        "--k-values", nargs="+", type=int, default=[1, 4, 16],
+        "--k-values",
+        nargs="+",
+        type=int,
+        default=[1, 4, 16],
         help="Chunk counts to sweep (default: 1 4 16)",
     )
     rp.add_argument("--seed", type=int, default=0)
     rp.add_argument("--output", help="Output JSON path (prints to stdout if omitted)")
     rp.set_defaults(func=cmd_report)
+
+    dec = sub.add_parser(
+        "decompose",
+        help="Evaluate a 2x2 feature-vs-comparator factorial.",
+    )
+    dec.add_argument("--baseline-embeddings", required=True)
+    dec.add_argument("--alternative-embeddings", required=True)
+    dec.add_argument("--pairs", required=True, help="CSV with columns: id_a, id_b, label")
+    dec.add_argument(
+        "--baseline-comparator",
+        default="cosine",
+        choices=list(SIMILARITY_FUNCTIONS),
+    )
+    dec.add_argument(
+        "--alternative-comparator",
+        default="dtw",
+        choices=list(SIMILARITY_FUNCTIONS),
+    )
+    dec.add_argument("--output", help="Output JSON path (prints to stdout if omitted)")
+    dec.set_defaults(func=cmd_decompose)
 
     return parser
 

@@ -2,13 +2,17 @@
 
 Diagnostic toolkit for temporal sensitivity in video retrieval embeddings.
 
-Two complementary probes, usable from Python or the `temporal-diag` CLI:
+Three complementary diagnostics, usable from Python or the `temporal-diag` CLI:
 
-- **Scramble gradient** — chunk-shuffle query-side embeddings at increasing `K`
-  and re-score. Flat AP across `K` ⇒ order-invariant. Monotonic drop ⇒
-  sequence-aware.
+- **Scramble gradient** — chunk-shuffle query-side embeddings into near-equal
+  chunks at increasing `K` and re-score. A flat curve means this intervention
+  detected no sensitivity; it does not prove invariance.
 - **Reversal sensitivity (`s_rev`)** — similarity between a clip and its
-  time-reversed copy. `s_rev ≈ 1.0` ⇒ temporally blind.
+  time-reversed copy under a declared comparator. Values are descriptive on
+  that comparator's scale.
+- **Feature-by-comparator factorial** — evaluate multiple feature sets and
+  comparators on one shared pair set. This controls pair composition but does
+  not by itself establish causal attribution.
 
 Both probes operate on pre-extracted embeddings, so the toolkit is
 encoder-agnostic: DINOv3, V-JEPA 2, ViCLIP, or any VLM vision tower output will
@@ -29,6 +33,7 @@ This registers the `temporal-diag` CLI (see `pyproject.toml`).
 ```python
 from video_retrieval.diagnostics import (
     compute_s_rev,
+    feature_comparator_decomposition,
     scramble_gradient,
     temporal_report,
 )
@@ -43,7 +48,7 @@ report = temporal_report(
     k_values=[1, 4, 16],
 )
 # report["scramble_gradient"]["ap_scores"]     -> [AP@1, AP@4, AP@16]
-# report["scramble_gradient"]["verdict"]       -> "order-invariant" | "order-sensitive"
+# report["scramble_gradient"]["verdict"]       -> "no-detected-sensitivity" | "order-sensitive"
 # report["reversal_sensitivity"]["mean"]       -> mean s_rev
 ```
 
@@ -52,6 +57,11 @@ To run either probe in isolation:
 ```python
 sr = compute_s_rev(embeddings, similarity_fn)
 sg = scramble_gradient(embeddings_a, embeddings_b, pairs, similarity_fn)
+factorial = feature_comparator_decomposition(
+    {"baseline": embeddings_a, "alternative": embeddings_b},
+    {"cosine": cosine_fn, "dtw": dtw_fn},
+    pairs,
+)
 ```
 
 ## CLI
@@ -77,28 +87,34 @@ temporal-diag scramble-gradient \
 
 # Just s_rev
 temporal-diag s-rev --embeddings features.pt --similarity cosine
+
+# Feature-by-comparator factorial
+temporal-diag decompose \
+    --baseline-embeddings baseline.pt \
+    --alternative-embeddings alternative.pt \
+    --pairs pairs.csv \
+    --baseline-comparator cosine \
+    --alternative-comparator dtw
 ```
 
-Built-in similarity functions: `cosine` (mean-pooled cosine), `dtw`
-(`exp(-dtw_distance)` on the `(T, D)` sequence). For a custom comparator, use
-the Python API and pass your own callable.
+Built-in similarity functions are `cosine` (mean-pooled cosine), `chamfer`
+(symmetric maximum cosine), and `dtw` (`exp(-dtw_distance)` on the `(T, D)`
+sequence). For a custom comparator, use the Python API and pass a callable.
 
 ## Interpreting the results
 
-| Signal | Order-invariant method | Order-sensitive method |
+| Signal | No detected sensitivity | Detected sensitivity |
 |---|---|---|
 | `ap_scores` across K | flat (≈ constant) | monotonic drop |
-| `verdict` | `"order-invariant"` | `"order-sensitive"` (AP drop > 0.05) |
+| `verdict` | `"no-detected-sensitivity"` | `"order-sensitive"` (AP drop > 0.05) |
 | `s_rev` (pooled / cosine) | ≈ 1.0 | < 1.0 |
 | `s_rev` (sequence / DTW) | ≈ 1.0 | well below 1.0 |
 
-The scramble and reversal probes use different similarity functions
-(cosine vs. DTW), so `s_rev` values are not directly comparable across probe
-families — see Eq. (1) in the paper.
+Cosine and DTW `s_rev` values are not directly comparable. DTW preprocessing
+and the exponential scale parameter also affect the number, so rank only
+results produced by the same probe definition.
 
 ## Reproducing paper numbers
 
-The VCDB scramble gradient figure and the `s_rev` rows of the cross-method
-summary table were produced by these same functions, called from scripts under
-`experiments/`. See `REPRODUCIBILITY.md` at the repo root for the end-to-end
-pipeline (data download, embedding extraction, evaluation).
+Corrected VCDB scramble and EPIC residual values are pending the cluster jobs
+under `slurm_jobs/`. See `REPRODUCIBILITY.md` for data, cache, and output paths.

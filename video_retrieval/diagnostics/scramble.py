@@ -31,18 +31,8 @@ def scramble_embeddings(embeddings: Tensor, n_chunks: int, seed: int = 0) -> Ten
     if n_chunks <= 1:
         return embeddings
 
-    T = embeddings.shape[0]
-    chunk_size = T // n_chunks
-    if chunk_size < 1:
-        chunk_size = 1
-        n_chunks = T
-
-    # Last chunk absorbs the remainder
-    chunks = []
-    for i in range(n_chunks):
-        start = i * chunk_size
-        end = (i + 1) * chunk_size if i < n_chunks - 1 else T
-        chunks.append(embeddings[start:end])
+    n_chunks = min(n_chunks, embeddings.shape[0])
+    chunks = list(torch.tensor_split(embeddings, n_chunks, dim=0))
 
     rng = np.random.RandomState(seed)
     perm = rng.permutation(len(chunks))
@@ -76,7 +66,7 @@ def scramble_gradient(
 
     Returns:
         Dict with ``"k_values"``, ``"ap_scores"``, and ``"verdict"``
-        (``"order-invariant"`` or ``"order-sensitive"``).
+        (``"no-detected-sensitivity"`` or ``"order-sensitive"``).
     """
     k_values = sorted(k_values)
     ap_scores: list[float] = []
@@ -93,9 +83,7 @@ def scramble_gradient(
             emb_b = embeddings_b[id_b]
 
             # Deterministic per-video seed
-            vid_seed = int(
-                hashlib.md5(f"{id_b}_{k}_{seed}".encode()).hexdigest(), 16
-            ) % (2**31)
+            vid_seed = int(hashlib.md5(f"{id_b}_{k}_{seed}".encode()).hexdigest(), 16) % (2**31)
             emb_b_scrambled = scramble_embeddings(emb_b, n_chunks=k, seed=vid_seed)
 
             scores.append(similarity_fn(emb_a, emb_b_scrambled))
@@ -105,19 +93,20 @@ def scramble_gradient(
             ap_scores.append(float("nan"))
             continue
 
-        ap_scores.append(
-            float(average_precision_score(labels, scores))
-        )
+        ap_scores.append(float(average_precision_score(labels, scores)))
 
-    # Verdict: if AP drops by >5% from K=1 to max-K, the method is order-sensitive
-    if len(ap_scores) >= 2 and not any(np.isnan(ap_scores)):
-        drop = ap_scores[0] - ap_scores[-1]
-        verdict = "order-sensitive" if drop > 0.05 else "order-invariant"
+    # A flat finite-sample curve does not prove architectural invariance.
+    if len(ap_scores) >= 2 and not any(np.isnan(ap_scores)) and 1 in k_values:
+        baseline_idx = k_values.index(1)
+        drop = ap_scores[baseline_idx] - ap_scores[-1]
+        verdict = "order-sensitive" if drop > 0.05 else "no-detected-sensitivity"
     else:
+        drop = float("nan")
         verdict = "inconclusive"
 
     return {
         "k_values": k_values,
         "ap_scores": ap_scores,
+        "absolute_ap_drop": drop,
         "verdict": verdict,
     }

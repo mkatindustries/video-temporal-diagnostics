@@ -52,6 +52,9 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",

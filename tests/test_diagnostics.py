@@ -15,10 +15,10 @@ from video_retrieval.diagnostics import (
     temporal_report,
 )
 
-
 # ---------------------------------------------------------------------------
 # Similarity helpers
 # ---------------------------------------------------------------------------
+
 
 def _cosine_sim(a: torch.Tensor, b: torch.Tensor) -> float:
     """Order-invariant similarity: cosine of mean-pooled embeddings."""
@@ -37,6 +37,7 @@ def _ordered_sim(a: torch.Tensor, b: torch.Tensor) -> float:
 # TestComputeSRev
 # ---------------------------------------------------------------------------
 
+
 class TestComputeSRev:
     """Test compute_s_rev reversal sensitivity metric."""
 
@@ -51,8 +52,8 @@ class TestComputeSRev:
             f"Expected s_rev=1.0 for constant embeddings, got {result['mean']}"
         )
 
-    def test_asymmetric_embeddings(self):
-        """Ramp-like sequence that differs when reversed should give s_rev < 1.0."""
+    def test_mean_pooling_is_exactly_order_invariant(self):
+        """Mean-pooled cosine is invariant even for asymmetric sequences."""
         torch.manual_seed(7)
         T, D = 20, 8
         ramp = torch.linspace(0, 1, T).unsqueeze(1)
@@ -61,8 +62,8 @@ class TestComputeSRev:
 
         result = compute_s_rev({"v1": emb}, _cosine_sim)
 
-        assert result["mean"] < 1.0, (
-            f"Expected s_rev < 1.0 for asymmetric embeddings, got {result['mean']}"
+        assert abs(result["mean"] - 1.0) < 1e-6, (
+            f"Expected s_rev=1 for mean pooling, got {result['mean']}"
         )
 
     def test_empty_embeddings(self):
@@ -84,15 +85,14 @@ class TestComputeSRev:
         result = compute_s_rev({"v1": emb}, _cosine_sim)
 
         assert not math.isnan(result["mean"]), "Mean should not be NaN for single video"
-        assert abs(result["std"]) < 1e-8, (
-            f"Expected std=0 for single video, got {result['std']}"
-        )
+        assert abs(result["std"]) < 1e-8, f"Expected std=0 for single video, got {result['std']}"
         assert "v1" in result["per_video"]
 
 
 # ---------------------------------------------------------------------------
 # TestScrambleEmbeddings
 # ---------------------------------------------------------------------------
+
 
 class TestScrambleEmbeddings:
     """Test scramble_embeddings chunk-shuffle utility."""
@@ -109,9 +109,7 @@ class TestScrambleEmbeddings:
         torch.manual_seed(42)
         emb = torch.randn(20, 8)
         result = scramble_embeddings(emb, n_chunks=4)
-        assert result.shape == emb.shape, (
-            f"Expected shape {emb.shape}, got {result.shape}"
-        )
+        assert result.shape == emb.shape, f"Expected shape {emb.shape}, got {result.shape}"
 
     def test_deterministic(self):
         """Same seed should produce identical results."""
@@ -127,23 +125,38 @@ class TestScrambleEmbeddings:
         emb = torch.randn(20, 8)
         r1 = scramble_embeddings(emb, n_chunks=4, seed=0)
         r2 = scramble_embeddings(emb, n_chunks=4, seed=99)
-        assert not torch.equal(r1, r2), (
-            "Different seeds should produce different scrambles"
-        )
+        assert not torch.equal(r1, r2), "Different seeds should produce different scrambles"
 
     def test_k_larger_than_T(self):
         """K > T should still work (clamps to T chunks of size 1)."""
         torch.manual_seed(42)
         emb = torch.randn(5, 4)
         result = scramble_embeddings(emb, n_chunks=100)
-        assert result.shape == emb.shape, (
-            f"Expected shape {emb.shape} when K>T, got {result.shape}"
-        )
+        assert result.shape == emb.shape, f"Expected shape {emb.shape} when K>T, got {result.shape}"
+
+    def test_uneven_split_uses_balanced_chunks(self):
+        """Remainder frames must be distributed instead of forming one large tail."""
+        emb = torch.arange(30).unsqueeze(1)
+        # Seed 1 does not place originally adjacent chunks next to one another.
+        result = scramble_embeddings(emb, n_chunks=16, seed=1).squeeze(1)
+        positions = {int(value): idx for idx, value in enumerate(result)}
+
+        # With balanced chunks, original neighbors are grouped only in pairs.
+        longest_preserved_run = 1
+        current_run = 1
+        for value in range(1, 30):
+            if positions[value] == positions[value - 1] + 1:
+                current_run += 1
+                longest_preserved_run = max(longest_preserved_run, current_run)
+            else:
+                current_run = 1
+        assert longest_preserved_run <= 2
 
 
 # ---------------------------------------------------------------------------
 # TestScrambleGradient
 # ---------------------------------------------------------------------------
+
 
 class TestScrambleGradient:
     """Test scramble_gradient retrieval diagnostic."""
@@ -180,11 +193,15 @@ class TestScrambleGradient:
         """Mean-pooled cosine should produce 'order-invariant' verdict."""
         emb_a, emb_b, pairs = self._make_dataset()
         result = scramble_gradient(
-            emb_a, emb_b, pairs, _cosine_sim, k_values=(1, 4, 16),
+            emb_a,
+            emb_b,
+            pairs,
+            _cosine_sim,
+            k_values=(1, 4, 16),
         )
 
-        assert result["verdict"] == "order-invariant", (
-            f"Expected 'order-invariant' for mean-pooled cosine, "
+        assert result["verdict"] == "no-detected-sensitivity", (
+            f"Expected 'no-detected-sensitivity' for mean-pooled cosine, "
             f"got '{result['verdict']}' (AP scores: {result['ap_scores']})"
         )
         assert len(result["ap_scores"]) == 3
@@ -194,7 +211,11 @@ class TestScrambleGradient:
         """Per-timestep cosine should produce 'order-sensitive' verdict."""
         emb_a, emb_b, pairs = self._make_dataset()
         result = scramble_gradient(
-            emb_a, emb_b, pairs, _ordered_sim, k_values=(1, 4, 16),
+            emb_a,
+            emb_b,
+            pairs,
+            _ordered_sim,
+            k_values=(1, 4, 16),
         )
 
         assert result["verdict"] == "order-sensitive", (
@@ -209,7 +230,11 @@ class TestScrambleGradient:
         pairs = [("missing_a", "missing_b", 1)]
 
         result = scramble_gradient(
-            emb_a, emb_b, pairs, _cosine_sim, k_values=(1, 4),
+            emb_a,
+            emb_b,
+            pairs,
+            _cosine_sim,
+            k_values=(1, 4),
         )
 
         assert all(math.isnan(s) for s in result["ap_scores"]), (
@@ -224,6 +249,7 @@ class TestScrambleGradient:
 # TestTemporalReport
 # ---------------------------------------------------------------------------
 
+
 class TestTemporalReport:
     """Test temporal_report combined diagnostic."""
 
@@ -237,7 +263,12 @@ class TestTemporalReport:
         pairs = [("v1", "v3", 1), ("v2", "v4", 0)]
 
         report = temporal_report(
-            emb_a, emb_b, pairs, _cosine_sim, k_values=(1, 4), seed=0,
+            emb_a,
+            emb_b,
+            pairs,
+            _cosine_sim,
+            k_values=(1, 4),
+            seed=0,
         )
 
         assert "scramble_gradient" in report, "Report must contain 'scramble_gradient'"
@@ -253,6 +284,4 @@ class TestTemporalReport:
         assert "mean" in rs, "reversal_sensitivity must contain 'mean'"
         assert "std" in rs, "reversal_sensitivity must contain 'std'"
         assert "n_videos" in rs, "reversal_sensitivity must contain 'n_videos'"
-        assert rs["n_videos"] == 4, (
-            f"Expected 4 videos (union of both dicts), got {rs['n_videos']}"
-        )
+        assert rs["n_videos"] == 4, f"Expected 4 videos (union of both dicts), got {rs['n_videos']}"

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Cluster-Level Bootstrap CIs for HDD and nuScenes.
+"""Cluster-level bootstrap intervals and paired contrasts for HDD.
 
 Standard pair-level bootstrap underestimates CI width because pairs
 within a GPS cluster share clips, violating independence. This script
 resamples clusters (with replacement) and includes all pairs from each
-sampled cluster, producing properly-widened CIs.
+sampled cluster. Paired method differences use the same sampled clusters.
 
 Usage:
     python experiments/eval_cluster_bootstrap.py \\
@@ -17,81 +17,48 @@ Usage:
 
 import argparse
 import json
-import time
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import average_precision_score
-from tqdm import tqdm
-
 from common import (
+    ManeuverSegment,
     cluster_intersections,
     discover_sessions,
     extract_maneuver_segments,
     filter_mixed_clusters,
     load_gps,
-    ManeuverSegment,
+)
+from sklearn.metrics import average_precision_score
+from tqdm import tqdm
+
+from video_retrieval.diagnostics.statistics import (
+    cluster_bootstrap_ap,
+    paired_cluster_bootstrap_ap_difference,
 )
 
 
-def cluster_bootstrap_ap(
-    cluster_scores: dict[int, tuple[np.ndarray, np.ndarray]],
-    n_resamples: int = 2000,
-    seed: int = 42,
-) -> tuple[float, float, float]:
-    """Block-bootstrap AP by cluster.
-
-    Resamples clusters with replacement, then pools all pairs from each
-    sampled cluster before computing AP.
-
-    Args:
-        cluster_scores: {cluster_id: (scores_array, labels_array)}
-        n_resamples: Number of bootstrap resamples.
-        seed: Random seed.
-
-    Returns:
-        (point_ap, ci_low, ci_high)
-    """
-    # Pool all pairs for point estimate
-    all_scores = np.concatenate([s for s, _ in cluster_scores.values()])
-    all_labels = np.concatenate([l for _, l in cluster_scores.values()])
-
-    if all_labels.sum() == 0 or all_labels.sum() == len(all_labels):
-        return float("nan"), float("nan"), float("nan")
-
-    point_ap = average_precision_score(all_labels, all_scores)
-
-    cluster_ids = list(cluster_scores.keys())
-    n_clusters = len(cluster_ids)
-    rng = np.random.RandomState(seed)
-
-    boot_aps = []
-    for _ in range(n_resamples):
-        sampled = rng.choice(cluster_ids, size=n_clusters, replace=True)
-        boot_scores = np.concatenate([cluster_scores[c][0] for c in sampled])
-        boot_labels = np.concatenate([cluster_scores[c][1] for c in sampled])
-        if boot_labels.sum() == 0 or boot_labels.sum() == len(boot_labels):
-            boot_aps.append(point_ap)
-        else:
-            boot_aps.append(average_precision_score(boot_labels, boot_scores))
-
-    boot_aps = np.array(boot_aps)
-    ci_low = float(np.percentile(boot_aps, 2.5))
-    ci_high = float(np.percentile(boot_aps, 97.5))
-
-    return float(point_ap), ci_low, ci_high
-
-
 def main():
-    parser = argparse.ArgumentParser(
-        description="Cluster-level bootstrap CIs for HDD"
-    )
+    parser = argparse.ArgumentParser(description="Cluster-level bootstrap CIs for HDD")
     parser.add_argument("--hdd-dir", type=str, default="datasets/hdd")
-    parser.add_argument("--pairs-json", type=str, default=None,
-                        help="Pre-computed pair_scores.json (skip re-computation)")
+    parser.add_argument(
+        "--pairs-json",
+        type=str,
+        default=None,
+        help="Pre-computed pair_scores.json (skip re-computation)",
+    )
     parser.add_argument("--n-resamples", type=int, default=2000)
     parser.add_argument("--max-clusters", type=int, default=50)
+    parser.add_argument(
+        "--paired-methods",
+        nargs=2,
+        action="append",
+        metavar=("METHOD_A", "METHOD_B"),
+        help=(
+            "Method pair for a cluster-bootstrap AP difference. May be repeated. "
+            "Defaults to all method pairs with aligned scores."
+        ),
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
@@ -113,8 +80,13 @@ def main():
         except Exception:
             continue
         segs = extract_maneuver_segments(
-            sid, labels, gps_ts, gps_lats, gps_lngs,
-            info["video_path"], info["video_start_unix"],
+            sid,
+            labels,
+            gps_ts,
+            gps_lats,
+            gps_lngs,
+            info["video_path"],
+            info["video_start_unix"],
         )
         all_segments.extend(segs)
 
@@ -159,25 +131,25 @@ def main():
     print("  " + "-" * 85)
 
     results = {}
+    cluster_scores_by_method: dict[str, dict[int, tuple[np.ndarray, np.ndarray]]] = {}
     for method in methods:
         scores = np.array(pair_data[method]["scores"])
         labels_arr = np.array(pair_data[method]["labels"])
+        method_pair_clusters = np.asarray(pair_data[method].get("cluster_ids", pair_to_cluster))
 
-        if len(scores) != len(pair_to_cluster):
-            print(f"  {method}: pair count mismatch ({len(scores)} vs {len(pair_to_cluster)}), skipping")
+        if len(scores) != len(method_pair_clusters):
+            print(
+                f"  {method}: score/cluster count mismatch "
+                f"({len(scores)} vs {len(method_pair_clusters)}), skipping"
+            )
             continue
 
         # Build per-cluster score/label arrays
-        cluster_scores: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-        pair_idx = 0
-        for cid in sorted(cluster_to_indices.keys()):
-            indices = cluster_to_indices[cid]
-            n = len(indices)
-            n_pairs = n * (n - 1) // 2
-            c_scores = scores[pair_idx:pair_idx + n_pairs]
-            c_labels = labels_arr[pair_idx:pair_idx + n_pairs]
-            cluster_scores[cid] = (c_scores, c_labels)
-            pair_idx += n_pairs
+        cluster_scores = {
+            int(cid): (scores[method_pair_clusters == cid], labels_arr[method_pair_clusters == cid])
+            for cid in np.unique(method_pair_clusters)
+        }
+        cluster_scores_by_method[method] = cluster_scores
 
         # Pair-level bootstrap (standard)
         rng = np.random.RandomState(42)
@@ -186,20 +158,18 @@ def main():
         pair_boot = []
         for _ in range(args.n_resamples):
             idx = rng.randint(0, n, size=n)
-            s, l = scores[idx], labels_arr[idx]
-            if l.sum() == 0 or l.sum() == n:
+            sampled_scores, sampled_labels = scores[idx], labels_arr[idx]
+            if sampled_labels.sum() == 0 or sampled_labels.sum() == n:
                 pair_boot.append(point_ap)
             else:
-                pair_boot.append(average_precision_score(l, s))
+                pair_boot.append(average_precision_score(sampled_labels, sampled_scores))
         pair_boot = np.array(pair_boot)
         pair_ci_lo = float(np.percentile(pair_boot, 2.5))
         pair_ci_hi = float(np.percentile(pair_boot, 97.5))
         pair_width = pair_ci_hi - pair_ci_lo
 
         # Cluster-level bootstrap
-        clust_ap, clust_ci_lo, clust_ci_hi = cluster_bootstrap_ap(
-            cluster_scores, args.n_resamples
-        )
+        clust_ap, clust_ci_lo, clust_ci_hi = cluster_bootstrap_ap(cluster_scores, args.n_resamples)
         clust_width = clust_ci_hi - clust_ci_lo
 
         ratio = clust_width / max(pair_width, 1e-9)
@@ -220,10 +190,47 @@ def main():
             f"{ratio:.1f}x wider"
         )
 
+    requested_pairs = args.paired_methods
+    if requested_pairs is None:
+        aligned_methods = sorted(cluster_scores_by_method)
+        requested_pairs = [
+            [aligned_methods[i], aligned_methods[j]]
+            for i in range(len(aligned_methods))
+            for j in range(i + 1, len(aligned_methods))
+        ]
+
+    paired_results = {}
+    print("\nStep 3: Paired cluster-bootstrap AP differences...")
+    for method_a, method_b in requested_pairs:
+        if method_a not in cluster_scores_by_method or method_b not in cluster_scores_by_method:
+            print(f"  {method_a} vs {method_b}: method not found, skipping")
+            continue
+        key = f"{method_a}_minus_{method_b}"
+        try:
+            comparison = paired_cluster_bootstrap_ap_difference(
+                cluster_scores_by_method[method_a],
+                cluster_scores_by_method[method_b],
+                args.n_resamples,
+            )
+        except ValueError as error:
+            print(f"  {method_a} vs {method_b}: {error}, skipping")
+            continue
+        paired_results[key] = comparison
+        ci_low, ci_high = comparison["ci"]
+        print(
+            f"  {method_a} - {method_b}: "
+            f"{comparison['difference_a_minus_b']:+.4f} "
+            f"[{ci_low:+.4f}, {ci_high:+.4f}]"
+        )
+
     # Save
     out_path = hdd_dir / "cluster_bootstrap_results.json"
     with open(out_path, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(
+            {"marginal_intervals": results, "paired_differences": paired_results},
+            f,
+            indent=2,
+        )
     print(f"\nResults saved to {out_path}")
 
 

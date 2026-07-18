@@ -36,7 +36,8 @@ paper/*.fls
 textput.log
 
 # Slurm job outputs
-slurm_jobs/
+slurm_logs/
+slurm-*.out
 
 # Claude Code local config
 .claude/

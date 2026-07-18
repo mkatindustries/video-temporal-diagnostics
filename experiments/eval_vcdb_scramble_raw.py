@@ -11,7 +11,7 @@ embedding scramble.
 
 Usage:
     python experiments/eval_vcdb_scramble_raw.py \\
-        --vcdb-dir datasets/vcdb/core_dataset
+        --vcdb-dir datasets/vcdb
 """
 
 import argparse
@@ -28,6 +28,7 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
+
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 
 logger = logging.getLogger(__name__)
@@ -119,13 +120,7 @@ def load_frames_for_vjepa2(video_path: str, max_resolution: int = 256) -> list[n
 def scramble_frames(frames: list[np.ndarray], n_chunks: int, seed: int) -> list[np.ndarray]:
     if n_chunks <= 1:
         return list(frames)
-    T = len(frames)
-    chunk_size = T // n_chunks
-    chunks = []
-    for i in range(n_chunks):
-        start = i * chunk_size
-        end = (i + 1) * chunk_size if i < n_chunks - 1 else T
-        chunks.append(frames[start:end])
+    chunks = [list(chunk) for chunk in np.array_split(frames, min(n_chunks, len(frames)))]
     rng = np.random.RandomState(seed)
     perm = rng.permutation(len(chunks))
     result = []
@@ -153,9 +148,7 @@ def extract_features(model, processor, frames, device, context_mask, target_mask
         encoder_tokens = enc_out.last_hidden_state[0]
         mean_emb = F.normalize(encoder_tokens.mean(dim=0), dim=0)
 
-        pred_out = model(
-            **inputs, context_mask=[context_mask], target_mask=[target_mask]
-        )
+        pred_out = model(**inputs, context_mask=[context_mask], target_mask=[target_mask])
         predicted = pred_out.predictor_output.last_hidden_state[0]
         ground_truth = pred_out.predictor_output.target_hidden_state[0]
         predicted = predicted.reshape(n_target_steps, VJEPA2_SPATIAL, -1)
@@ -167,7 +160,12 @@ def extract_features(model, processor, frames, device, context_mask, target_mask
 
 def main():
     parser = argparse.ArgumentParser(description="Raw-frame scramble for V-JEPA 2 on VCDB")
-    parser.add_argument("--vcdb-dir", type=str, default="datasets/vcdb/core_dataset")
+    parser.add_argument(
+        "--vcdb-dir",
+        type=str,
+        default="datasets/vcdb",
+        help="Path to VCDB root containing annotation/ and core_dataset/",
+    )
     parser.add_argument("--device", type=str, default="cuda")
     args = parser.parse_args()
 
@@ -260,18 +258,27 @@ def main():
                 seed = int(hashlib.md5(f"{vp}_{K}".encode()).hexdigest(), 16) % (2**31)
                 scrambled = scramble_frames(frames, K, seed)
                 mean_emb, residual = extract_features(
-                    model, processor, scrambled, device,
-                    context_mask, target_mask, n_target_steps,
+                    model,
+                    processor,
+                    scrambled,
+                    device,
+                    context_mask,
+                    target_mask,
+                    n_target_steps,
                 )
                 scrambled_features[vp] = {"mean_emb": mean_emb, "temporal_residual": residual}
             except Exception as e:
-                logger.warning("Failed to extract scrambled V-JEPA 2 features for %s at K=%d: %s", vp, K, e)
+                logger.warning(
+                    "Failed to extract scrambled V-JEPA 2 features for %s at K=%d: %s",
+                    vp,
+                    K,
+                    e,
+                )
                 continue
 
         # Compute similarities
         valid_pairs = [
-            (a, b) for a, b in pairs_to_compute
-            if a in fwd_features and b in scrambled_features
+            (a, b) for a, b in pairs_to_compute if a in fwd_features and b in scrambled_features
         ]
 
         # BoT cosine

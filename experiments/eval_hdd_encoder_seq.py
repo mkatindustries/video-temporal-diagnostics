@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 """V-JEPA 2 Encoder-Sequence DTW Baseline on Honda HDD.
 
-Adds the missing ablation: V-JEPA 2 encoder patches spatially averaged
-per temporal position, compared via DTW. This isolates the comparator
-contribution (DTW vs cosine) from the feature contribution (encoder vs
-predictor residual).
-
-If encoder-seq DTW ~ 0.95: DTW on any good spatiotemporal features is
-sufficient; residuals are not special.
-If encoder-seq DTW ~ 0.85: residuals carry genuinely different
-(motion-specific) information beyond what the encoder provides.
+Evaluates V-JEPA 2 encoder patches spatially averaged per temporal position
+and compared via DTW. Together with pooled cosine and residual DTW, this is
+a controlled feature-by-comparator contrast, not a causal attribution.
 
 Usage:
     python experiments/eval_hdd_encoder_seq.py --hdd-dir datasets/hdd
@@ -24,16 +18,12 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, roc_auc_score
-from tqdm import tqdm
-
 from common import (
-    MANEUVER_NAMES,
-    ManeuverSegment,
     VJEPA2_MODEL_NAME,
     VJEPA2_NUM_FRAMES,
     VJEPA2_SPATIAL,
     VJEPA2_T_PATCHES,
+    ManeuverSegment,
     bootstrap_ap,
     build_temporal_masks,
     cluster_intersections,
@@ -43,6 +33,9 @@ from common import (
     load_clip_vjepa2,
     load_gps,
 )
+from sklearn.metrics import average_precision_score, roc_auc_score
+from tqdm import tqdm
+
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 
 
@@ -89,9 +82,7 @@ def extract_vjepa2_all_features(
                 mean_emb = F.normalize(encoder_tokens.mean(dim=0), dim=0)
 
                 # Reshape to (T, S, D), spatial average -> (T, D)
-                enc_reshaped = encoder_tokens.reshape(
-                    VJEPA2_T_PATCHES, VJEPA2_SPATIAL, -1
-                )
+                enc_reshaped = encoder_tokens.reshape(VJEPA2_T_PATCHES, VJEPA2_SPATIAL, -1)
                 encoder_seq = enc_reshaped.mean(dim=1)  # (32, 1024)
 
                 # Predictor residuals
@@ -103,9 +94,7 @@ def extract_vjepa2_all_features(
                 predicted = pred_out.predictor_output.last_hidden_state[0]
                 ground_truth = pred_out.predictor_output.target_hidden_state[0]
                 predicted = predicted.reshape(n_target_steps, VJEPA2_SPATIAL, -1)
-                ground_truth = ground_truth.reshape(
-                    n_target_steps, VJEPA2_SPATIAL, -1
-                )
+                ground_truth = ground_truth.reshape(n_target_steps, VJEPA2_SPATIAL, -1)
                 residual = (predicted - ground_truth).mean(dim=1)
 
             features[i] = {
@@ -122,13 +111,17 @@ def extract_vjepa2_all_features(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="V-JEPA 2 Encoder-Sequence DTW Baseline on HDD"
-    )
+    parser = argparse.ArgumentParser(description="V-JEPA 2 Encoder-Sequence DTW Baseline on HDD")
     parser.add_argument("--hdd-dir", type=str, default="datasets/hdd")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--context-sec", type=float, default=3.0)
     parser.add_argument("--max-clusters", type=int, default=50)
+    parser.add_argument(
+        "--feature-cache",
+        type=str,
+        default="datasets/hdd/vjepa2_encoder_features.pt",
+        help="Output cache used by the directed reranker.",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
@@ -151,8 +144,13 @@ def main():
         except Exception:
             continue
         segs = extract_maneuver_segments(
-            sid, labels, gps_ts, gps_lats, gps_lngs,
-            info["video_path"], info["video_start_unix"],
+            sid,
+            labels,
+            gps_ts,
+            gps_lats,
+            gps_lngs,
+            info["video_path"],
+            info["video_start_unix"],
         )
         all_segments.extend(segs)
 
@@ -171,10 +169,11 @@ def main():
 
     # Extract features
     print("\nStep 2: Loading V-JEPA 2...")
-    from transformers import AutoModel, AutoVideoProcessor
-
     # Resolve to local checkpoint if VTD_MODEL_DIR is set
     import os
+
+    from transformers import AutoModel, AutoVideoProcessor
+
     vjepa2_path = VJEPA2_MODEL_NAME
     model_dir = os.environ.get("VTD_MODEL_DIR")
     if model_dir:
@@ -182,12 +181,8 @@ def main():
         if local.exists():
             vjepa2_path = str(local)
 
-    model = AutoModel.from_pretrained(
-        vjepa2_path, trust_remote_code=True
-    ).to(device).eval()
-    processor = AutoVideoProcessor.from_pretrained(
-        vjepa2_path, trust_remote_code=True
-    )
+    model = AutoModel.from_pretrained(vjepa2_path, trust_remote_code=True).to(device).eval()
+    processor = AutoVideoProcessor.from_pretrained(vjepa2_path, trust_remote_code=True)
 
     print("  Extracting features...")
     t0 = time.time()
@@ -195,6 +190,13 @@ def main():
         model, processor, eval_segments, device, args.context_sec
     )
     print(f"  Extraction: {time.time() - t0:.1f}s")
+
+    feature_cache = Path(args.feature_cache)
+    if not feature_cache.is_absolute():
+        feature_cache = project_root / feature_cache
+    feature_cache.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"features": features}, feature_cache)
+    print(f"  Feature cache saved to {feature_cache}")
 
     del model, processor
     torch.cuda.empty_cache()
@@ -204,6 +206,7 @@ def main():
     pair_a = []
     pair_b = []
     pair_gt: list[int] = []
+    pair_cluster_ids: list[int] = []
     for cid in sorted(cluster_to_indices.keys()):
         indices = [i for i in cluster_to_indices[cid] if i in features]
         for a in range(len(indices)):
@@ -212,6 +215,7 @@ def main():
                 pair_b.append(indices[b])
                 gt = 1 if eval_segments[indices[a]].label == eval_segments[indices[b]].label else 0
                 pair_gt.append(gt)
+                pair_cluster_ids.append(cid)
 
     labels = np.array(pair_gt)
     n_pairs = len(labels)
@@ -260,6 +264,28 @@ def main():
     with open(out_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nResults saved to {out_path}")
+
+    pair_output = {
+        "bot_cosine": {
+            "scores": bot_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+        "encoder_seq_dtw": {
+            "scores": enc_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+        "temporal_residual_dtw": {
+            "scores": res_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+    }
+    pair_output_path = hdd_dir / "encoder_seq_pair_scores.json"
+    with open(pair_output_path, "w") as f:
+        json.dump(pair_output, f)
+    print(f"Pair scores saved to {pair_output_path}")
 
 
 if __name__ == "__main__":

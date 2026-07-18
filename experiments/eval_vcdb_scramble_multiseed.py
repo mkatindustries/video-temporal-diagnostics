@@ -33,6 +33,7 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
+
 from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
@@ -217,7 +218,7 @@ def extract_all_features(
             logger.warning("Failed to extract DINOv3 features for %s: %s", vp, e)
             continue
 
-    print(f"  Extracted: {len(features)}/{len(video_relpaths)} " f"({failed} failed)")
+    print(f"  Extracted: {len(features)}/{len(video_relpaths)} ({failed} failed)")
     return features
 
 
@@ -247,9 +248,10 @@ def load_frames_for_vjepa2(
 
     container = av.open(video_path)
     stream = container.streams.video[0]
-    video_fps = float(stream.average_rate or 30)
     dur = stream.duration
-    duration = float(dur * stream.time_base) if dur is not None and stream.time_base is not None else 60.0
+    duration = (
+        float(dur * stream.time_base) if dur is not None and stream.time_base is not None else 60.0
+    )
 
     target_fps = VJEPA2_NUM_FRAMES / max(duration, 1.0)
     container.close()
@@ -344,7 +346,7 @@ def extract_vjepa2_features(
             failed += 1
             logger.warning("Failed to extract V-JEPA 2 features for %s: %s", vp, e)
 
-    print(f"  V-JEPA 2: {len(features)}/{len(video_relpaths)} " f"({failed} failed)")
+    print(f"  V-JEPA 2: {len(features)}/{len(video_relpaths)} ({failed} failed)")
     return features
 
 
@@ -399,9 +401,7 @@ def scramble_features_with_rng(
             continue
         feat = features[vp]
         # Deterministic per-video sub-seed
-        video_seed = int(
-            hashlib.md5(f"{vp}_{n_chunks}_{seed}".encode()).hexdigest(), 16
-        ) % (2**31)
+        video_seed = int(hashlib.md5(f"{vp}_{n_chunks}_{seed}".encode()).hexdigest(), 16) % (2**31)
         rng = np.random.RandomState(video_seed)
 
         emb_s = scramble_tensor(feat["embeddings"], n_chunks, rng)
@@ -445,9 +445,9 @@ def evaluate_method(
         y_true.append(1 if pair in copy_pairs else 0)
         y_score.append(sim)
 
-    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
-    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
-    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
+    y_true = np.array(y_true)  # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score)  # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum())  # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:
@@ -477,9 +477,7 @@ def compute_order_invariant_similarities(
     if vjepa2_a is not None and vjepa2_b is not None:
         results["vjepa2_bag_of_tokens"] = {}
 
-    valid_pairs = [
-        (a, b) for a, b in pairs_to_compute if a in features_a and b in features_b
-    ]
+    valid_pairs = [(a, b) for a, b in pairs_to_compute if a in features_a and b in features_b]
 
     for a, b in valid_pairs:
         ea = features_a[a]["embeddings"]
@@ -540,9 +538,7 @@ def compute_sequence_aware_similarities(
     results = {m: {} for m in methods}
 
     valid_pairs = [
-        (a, b)
-        for a, b in pairs_to_compute
-        if a in features_a and b in features_b_scrambled
+        (a, b) for a, b in pairs_to_compute if a in features_a and b in features_b_scrambled
     ]
 
     # --- Batched DTW: temporal_derivative ---
@@ -738,15 +734,11 @@ def main():
     parser.add_argument(
         "--vcdb-dir",
         type=str,
-        default="datasets/vcdb/core_dataset",
-        help="Path to VCDB core_dataset directory",
+        default="datasets/vcdb",
+        help="Path to VCDB root containing annotation/ and core_dataset/",
     )
-    parser.add_argument(
-        "--sample-rate", type=int, default=10, help="Frame sampling rate"
-    )
-    parser.add_argument(
-        "--max-frames", type=int, default=100, help="Max frames per video"
-    )
+    parser.add_argument("--sample-rate", type=int, default=10, help="Frame sampling rate")
+    parser.add_argument("--max-frames", type=int, default=100, help="Max frames per video")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument(
         "--n-seeds",
@@ -767,11 +759,7 @@ def main():
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
-    vcdb_dir = (
-        Path(args.vcdb_dir)
-        if os.path.isabs(args.vcdb_dir)
-        else project_root / args.vcdb_dir
-    )
+    vcdb_dir = Path(args.vcdb_dir) if os.path.isabs(args.vcdb_dir) else project_root / args.vcdb_dir
     ann_dir = vcdb_dir / "annotation"
     vid_dir = vcdb_dir / "core_dataset"
     fig_dir = project_root / "figures"
@@ -817,9 +805,7 @@ def main():
 
     # Also check the legacy cache location used by eval_vcdb_scramble.py
     legacy_cache_dir = vcdb_dir / "feature_cache"
-    legacy_dinov3_cache = (
-        legacy_cache_dir / f"dinov3_sr{args.sample_rate}_mf{args.max_frames}.pt"
-    )
+    legacy_dinov3_cache = legacy_cache_dir / f"dinov3_sr{args.sample_rate}_mf{args.max_frames}.pt"
 
     features = None
     if not args.no_cache:
@@ -870,9 +856,7 @@ def main():
             print("  Loading V-JEPA 2 model...")
             from transformers import AutoModel, AutoVideoProcessor
 
-            vjepa2_model = AutoModel.from_pretrained(
-                VJEPA2_MODEL_NAME, trust_remote_code=True
-            )
+            vjepa2_model = AutoModel.from_pretrained(VJEPA2_MODEL_NAME, trust_remote_code=True)
             vjepa2_model = vjepa2_model.to(args.device).eval()
             vjepa2_processor = AutoVideoProcessor.from_pretrained(
                 VJEPA2_MODEL_NAME, trust_remote_code=True
@@ -943,9 +927,7 @@ def main():
     # Structure: {K_str: {method: {"mean": float, "std": float, "aps": [float]}}}
     multiseed_results: dict[str, dict[str, dict]] = {}
 
-    print(
-        f"\nStep 6: Sweeping {len(K_VALUES)} K values x {n_seeds} seeds...", flush=True
-    )
+    print(f"\nStep 6: Sweeping {len(K_VALUES)} K values x {n_seeds} seeds...", flush=True)
     total_t0 = time.time()
 
     for K in K_VALUES:
@@ -999,9 +981,9 @@ def main():
                 vjepa2_b = {}
                 for vp in vjepa2_features:
                     vf = vjepa2_features[vp]
-                    video_seed = int(
-                        hashlib.md5(f"{vp}_{K}_{seed}".encode()).hexdigest(), 16
-                    ) % (2**31)
+                    video_seed = int(hashlib.md5(f"{vp}_{K}_{seed}".encode()).hexdigest(), 16) % (
+                        2**31
+                    )
                     vjepa2_b[vp] = {
                         "mean_emb": vf["mean_emb"],
                         "temporal_residual": scramble_vjepa2_residual(
@@ -1056,9 +1038,7 @@ def main():
         for method in all_methods:
             entry = k_results[method]
             if entry["std"] > 0:
-                parts.append(
-                    f"{METHOD_LABELS[method]}: {entry['mean']:.3f} +/- {entry['std']:.3f}"
-                )
+                parts.append(f"{METHOD_LABELS[method]}: {entry['mean']:.3f} +/- {entry['std']:.3f}")
             else:
                 parts.append(f"{METHOD_LABELS[method]}: {entry['mean']:.3f}")
         print(f"  {' | '.join(parts)}  ({k_elapsed:.1f}s)", flush=True)

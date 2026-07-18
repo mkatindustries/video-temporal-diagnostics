@@ -1,6 +1,6 @@
-# Reproducibility Guide: The Temporal Blind Spot in Video Retrieval
+# Reproducibility Guide: Diagnosing Temporal Sensitivity in Video Retrieval Pipelines
 
-Exact commands, output artifacts, and environment details for reproducing all results in *The Temporal Blind Spot in Video Retrieval: Diagnosing Temporal Sensitivity*.
+Commands, output artifacts, and environment details for *Diagnosing Temporal Sensitivity in Video Retrieval Pipelines*. Feature caches and datasets are not committed, so this is not yet a one-command exact reproduction. Results marked pending in the paper must be regenerated with the corrected jobs in `slurm_jobs/`.
 
 ## Environment
 
@@ -26,9 +26,9 @@ Numbering follows the compiled paper (`paper.pdf`).
 
 Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (BoT→DTW Rerank Sweep on HDD), Table 4 (VLM Generative), Table 5 (VLM Embedding s_rev).
 
-Main body figures: Figure 1 (Scramble Gradient), Figure 2 (HDD Maneuver Discrimination), Figure 3 (Sensitivity-Invariance Trade-off).
+Main body figures: Figure 1 (Scramble Gradient, pending corrected run), Figure 2 (HDD Maneuver Discrimination).
 
-Appendix tables: Table 6 (FPS Cap), Table 7 (Context Sweep), Table 8 (Layer Ablation), Table 9 (Cross-Method Summary: Encoders), Table 10 (Cross-Method Summary: VLM), Table 11 (Scene Matching), Table 12 (Qwen VCDB), Table 13 (Integrity Probe), Table 14 (Neg-Sampling Sensitivity), Table 15 (Bootstrap CIs), Table 16 (α-Invariance Sweep), Table 17 (BoT→DTW Rerank Full Sweep + RRF), Table 18 (Vision-Token Probes), Table 19 (Scramble Data), Table 20 (Linear+MLP Probes), Table 21 (Computational Costs), Table 22 (Failure-Mode Taxonomy), Table 23 (Licenses). The failure-mode taxonomy, reproducibility scope statement, and license summary live in the last three appendices.
+Appendix tables include the FPS cap, context sweep, layer ablation, cross-method summaries, scene matching, integrity probe, negative-sampling sensitivity, descriptive pair-bootstrap intervals, corrected directed reranking placeholder, vision-token probes, corrected scramble placeholder, exploratory linear/MLP probes, computational costs, failure-mode taxonomy, and licenses. Table numbering may change while pending results are integrated.
 
 Appendix figures: Figure 4 (Reversal Attack bar chart), Figure 5 (Context Sweep), Figure 6 (EPIC Sensitivity), Figure 7 (HDD Qualitative), Figure 8 (nuScenes Maneuver), Figure 9 (Scramble Multi-Seed).
 
@@ -53,6 +53,8 @@ python experiments/eval_vcdb_reversal.py \
 **Output:** `datasets/vcdb/reversal_attack_results.json`, `figures/vcdb_reversal_attack.png`
 
 ### 3. Temporal Scramble Gradient (VCDB) — Table 19 (Appendix R), Figure 1
+
+The implementation now uses near-equal chunk partitions. Results produced before this correction are invalid when the frame count is not divisible by `K`; rerun both the extracted-embedding and raw-frame variants before updating the paper.
 
 ```bash
 python experiments/eval_vcdb_scramble.py \
@@ -96,36 +98,22 @@ python experiments/eval_hdd_encoder_seq.py \
     --hdd-dir /path/to/hdd
 ```
 
-**Output:** `datasets/hdd/encoder_seq_results.json`
+**Output:** `datasets/hdd/encoder_seq_results.json`, `datasets/hdd/encoder_seq_pair_scores.json`, and `datasets/hdd/vjepa2_encoder_features.pt` (paths follow `--hdd-dir`/`--feature-cache`).
 
-### 6b. BoT→DTW Two-Stage Retriever (HDD) — Table 3 (§3.2), Table 17 (Appendix, full sweep + RRF)
+### 6b. BoT→DTW Two-Stage Retriever (HDD) — corrected directed protocol
 
-Prescriptive follow-up to the 89% decomposition: tests whether the pairwise gain composes into a cheap indexable retriever. For each query, score candidates by V-JEPA 2 BoT cosine, keep top-k, rerank survivors with encoder-sequence DTW, score non-survivors below the BoT floor. Reports survivor-AP (main body) and reciprocal-rank-fusion AP (appendix), both with recall@k.
+Tests whether the pair-diagnostic gain composes into a query-wise retriever. For each query, the gallery contains every other cached segment. Relevance requires the same intersection cluster and maneuver label; outside-cluster candidates remain negatives. BoT selects directional top-k candidates and encoder-sequence DTW reranks them. The script reports macro truncated AP@k (normalized by all relevant gallery items), recall@k, and MRR, plus cluster-bootstrap intervals.
 
 ```bash
 python experiments/eval_hdd_bof_dtw_rerank.py \
     --hdd-dir /path/to/hdd
 ```
 
-Requires pre-extracted features at `datasets/vjepa2_hdd_encoder_features.pt` (produced by experiment 6 above or `eval_hdd_ordered_maxsim_vjepa2.py`). No new feature extraction.
+Requires the feature cache produced by experiment 6 (default `datasets/hdd/vjepa2_encoder_features.pt`). Pass the same path to `--feature-cache` if it is stored elsewhere.
 
-**Output:** `datasets/hdd/bof_dtw_rerank_results.json`
+**Output:** `datasets/hdd/bof_dtw_directed_rerank_results.json`
 
-**Measured values** (for verification; 43,673 in-cluster pairs, 1,687 segments, 50 mixed-direction clusters):
-
-| k | recall@k | Survivor AP | RRF AP |
-|---|----------|-------------|--------|
-| — (BoT only) | — | 0.8246 | — |
-| 10 | 0.094 | 0.499 | 0.825 |
-| 25 | 0.163 | 0.536 | 0.826 |
-| 50 | 0.238 | 0.578 | 0.829 |
-| 100 | 0.350 | 0.638 | 0.835 |
-| 250 | 0.568 | 0.755 | 0.855 |
-| 500 | 0.776 | 0.862 | 0.883 |
-| 1000 | 0.957 | **0.934** | 0.910 |
-| full DTW | 1.000 | 0.9416 | — |
-
-Survivor-AP at k=1000 lands within 0.008 of the full-DTW ceiling at ~40% compute saving; at k=100 it collapses to 0.638 because BoT pre-filter recall is only 0.35 (appearance-based filter is orthogonal to maneuver-based task). These numbers are reproduced by the paper's Table 3 and Table 17.
+The former unordered-pair survivor-AP/RRF table is withdrawn. It used an either-endpoint survival rule, excluded out-of-cluster negatives, and could report AP above recall.
 
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 
@@ -358,16 +346,18 @@ python experiments/bootstrap_cis.py \
 
 **Output:** Bootstrap CI JSON files; GPU-accelerated when CUDA is available.
 
-### 24. Cluster-Level Block Bootstrap — Table 15 footnote (Appendix L)
+### 24. Cluster-Level Block Bootstrap — uncertainty appendix
 
-Resamples GPS clusters (not pairs) to produce CIs that account for within-cluster dependence. CIs are 7-32× wider than pair-level.
+Resamples GPS clusters (not pairs) to account for within-cluster dependence. The corrected script also reports paired AP differences between methods on the same resampled clusters; marginal intervals alone do not test method differences.
 
 ```bash
 python experiments/eval_cluster_bootstrap.py \
     --hdd-dir /path/to/hdd --nuscenes-dir /path/to/nuscenes
 ```
 
-**Output:** `datasets/hdd/cluster_bootstrap_cis.json`, `datasets/nuscenes/cluster_bootstrap_cis.json`
+**Output:** `datasets/hdd/cluster_bootstrap_results.json`. The nuScenes job writes aligned
+cluster IDs and runs `eval_grouped_pair_bootstrap.py`, producing
+`datasets/nuscenes/cluster_bootstrap_results.json` (or the corresponding dataset-root path).
 
 ### 25. V-JEPA 2 VCDB Bootstrap CIs — Table 15 (Appendix L)
 
@@ -386,10 +376,11 @@ python experiments/eval_vjepa2_vcdb_bootstrap.py \
 
 ```bash
 python experiments/eval_vcdb_scramble_multiseed.py \
-    --vcdb-dir /path/to/vcdb/core_dataset --n-seeds 10
+    --vcdb-dir /path/to/vcdb --n-seeds 10
 ```
 
-**Output:** `datasets/vcdb/scramble_multiseed_results.json`, `figures/vcdb_scramble_multiseed.png`
+**Output:** `results/scramble_multiseed/vcdb_scramble_multiseed.json`,
+`figures/vcdb_scramble_gradient_errorbars.png`
 
 ### 27. Raw-Frame Scramble (V-JEPA 2, VCDB) — Appendix R
 
@@ -397,10 +388,10 @@ Re-runs V-JEPA 2 encoder+predictor on chunk-shuffled raw video frames (not extra
 
 ```bash
 python experiments/eval_vcdb_scramble_raw.py \
-    --vcdb-dir /path/to/vcdb/core_dataset
+    --vcdb-dir /path/to/vcdb
 ```
 
-**Output:** `datasets/vcdb/scramble_raw_results.json`
+**Output:** `/path/to/vcdb/raw_frame_scramble_results.json`
 
 ### 28. Left-vs-Right Only AP (HDD) — §3.2
 
@@ -563,17 +554,9 @@ python experiments/vcdb_violation_pos_neg.py \
 
 **Output:** Console (no saved artifact)
 
-### 41. DTW α-Invariance Sweep — Table 16 (Appendix M)
+### 41. DTW similarity transform
 
-Verifies that AP ranking is invariant to the similarity-transform temperature α ∈ {0.5, 1, 2, 5, 10} across three representative cells. Uses `normalize=False` for temporal-derivative fingerprints and `normalize=True` for encoder-seq, matching the paper's evaluation protocol.
-
-```bash
-python experiments/alpha_sweep.py \
-    --hdd-dir /path/to/hdd \
-    --vcdb-dir /path/to/vcdb/core_dataset
-```
-
-**Output:** `datasets/alpha_sweep_results.json`
+For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and therefore cannot change AP except through numerical ties. The former empirical sweep mixed preprocessing across result tables and is not part of the paper's evidence.
 
 ## Output Artifact Index
 
@@ -582,13 +565,13 @@ python experiments/alpha_sweep.py \
 | `datasets/vcdb/eval_results.json` | Table 9 (VCDB column) |
 | `datasets/vcdb/reversal_attack_results.json` | Table 1 |
 | `datasets/vcdb/scramble_gradient_results.json` | Table 19 (Appendix R) |
-| `datasets/vcdb/scramble_raw_results.json` | Appendix R (raw-frame scramble) |
+| `/path/to/vcdb/raw_frame_scramble_results.json` | Appendix R (raw-frame scramble) |
 | `datasets/hdd/context_sec_sweep_results.json` | Table 7 (Appendix D) |
 | `datasets/hdd/fps_downsample_results.json` | Table 6 (Appendix A) |
 | `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row), Table 3 (rerank floor/ceiling) |
-| `datasets/hdd/bof_dtw_rerank_results.json` | Table 3 (§3.2), Table 17 (Appendix O) |
+| `datasets/hdd/bof_dtw_directed_rerank_results.json` | Corrected directed reranking tables (pending) |
 | `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
-| `datasets/hdd/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
+| `datasets/hdd/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `datasets/epic_kitchens/temporal_order_results*.json` | Tables 4-5, Table 8 (Appendix E) |
 | `datasets/epic_kitchens/linear_probe_*.json` | Table 20 (Appendix S) |
 | `datasets/epic_kitchens/mlp_probe_results.json` | Table 20 (Appendix S, MLP columns) |
@@ -598,9 +581,8 @@ python experiments/alpha_sweep.py \
 | `figures/hdd_maneuver_discrimination.png` | Figure 2 (main body) |
 | `figures/hdd_context_sweep.png` | Figure 5 (Appendix) |
 | `figures/nuscenes_maneuver_discrimination.png` | Figure 8 (Appendix) |
-| `figures/sensitivity_invariance_tradeoff.png` | Figure 3 |
 | `datasets/nuscenes/vlm_bridge_*_results.json` | Table 10 (nuScenes column) |
-| `datasets/nuscenes/cluster_bootstrap_cis.json` | Table 15 footnote (Appendix L) |
+| `datasets/nuscenes/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `datasets/vcdb/vlm_bridge_*_results.json` | Table 10 (VCDB column) |
 | `datasets/vcdb/vlm_probes_*_results.json` | Supplementary (VCDB VLM generative) |
 | `datasets/hdd/vlm_generative_*_results.json` | Supplementary (HDD VLM generative) |
@@ -610,8 +592,8 @@ python experiments/alpha_sweep.py \
 | `datasets/hdd/retrieval_protocol_results.json` | Appendix (retrieval metrics) |
 | `datasets/vcdb/attack_suite_results.json` | Appendix (attack suite) |
 | `datasets/vcdb/pair_scores_vjepa2.json` | Table 15 (Appendix L) |
-| `datasets/vcdb/scramble_multiseed_results.json` | Appendix R (multi-seed) |
-| `figures/vcdb_scramble_multiseed.png` | Figure 9 (Appendix R) |
+| `results/scramble_multiseed/vcdb_scramble_multiseed.json` | Appendix R (multi-seed) |
+| `figures/vcdb_scramble_gradient_errorbars.png` | Figure 9 (Appendix R) |
 | `datasets/hdd/left_right_results.json` | §3.2 (left-vs-right AP) |
 | `datasets/hdd/optical_flow_results.json` | §3.2 (optical flow baseline) |
 | `datasets/epic_kitchens/claude_probe_results.json` | §3.3, Table 4 (Claude probe) |
@@ -622,7 +604,6 @@ python experiments/alpha_sweep.py \
 | `datasets/hdd/ordered_maxsim_ablation_results.json` | Supplementary (DINOv3 OrderedMaxSim ablation) |
 | `datasets/hdd/ordered_maxsim_vjepa2_ablation_results.json` | Supplementary (V-JEPA 2 OrderedMaxSim ablation) |
 | `datasets/vcdb/ordered_maxsim_ablation_results.json` | Supplementary (VCDB OrderedMaxSim ablation) |
-| `datasets/alpha_sweep_results.json` | Table 16 (Appendix M, α-invariance sweep) |
 
 ## Paper Compilation
 

@@ -2,7 +2,7 @@
 
 Provides two reusable diagnostics:
 - **Scramble gradient**: chunk-shuffle embeddings at increasing K to separate
-  order-invariant from sequence-aware methods.
+  methods with detected sensitivity from methods that remain flat.
 - **Reversal sensitivity (s_rev)**: forward vs. reversed similarity per video.
 
 Quick start::
@@ -12,12 +12,14 @@ Quick start::
     report = temporal_report(emb_a, emb_b, pairs, similarity_fn)
 """
 
-from .reversal import compute_s_rev
+from .decomposition import feature_comparator_decomposition
 from .report import temporal_report
+from .reversal import compute_s_rev
 from .scramble import scramble_embeddings, scramble_gradient
 
 __all__ = [
     "compute_s_rev",
+    "feature_comparator_decomposition",
     "scramble_embeddings",
     "scramble_gradient",
     "temporal_report",

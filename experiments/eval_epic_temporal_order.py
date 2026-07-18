@@ -92,7 +92,7 @@ DEFAULT_CAUSALITY_PROMPTS = [
     "Analyze the physics, motion, and causality in this video. "
     "Is this video playing FORWARD normally, or is it playing in REVERSE (backwards)? "
     "Answer with a single word: either FORWARD or REVERSE.",
-    "Is this video playing forward or in reverse? " "Answer FORWARD or REVERSE.",
+    "Is this video playing forward or in reverse? Answer FORWARD or REVERSE.",
     "Watch the actions in this video carefully. "
     "Are events happening in their natural chronological order, or is the video reversed? "
     "Answer FORWARD or REVERSE.",
@@ -157,8 +157,7 @@ def save_feature_cache(features: dict, cache_path: Path) -> None:
     for k, v in features.items():
         if isinstance(v, dict):
             cpu_features[k] = {
-                fk: fv.cpu() if isinstance(fv, torch.Tensor) else fv
-                for fk, fv in v.items()
+                fk: fv.cpu() if isinstance(fv, torch.Tensor) else fv for fk, fv in v.items()
             }
         elif isinstance(v, torch.Tensor):
             cpu_features[k] = v.cpu()
@@ -315,9 +314,7 @@ def sample_canonical_frames(
         duration = 1.0
 
     # Compute target timestamps (uniform spacing)
-    target_times = [
-        start_sec + (i / max(n_frames - 1, 1)) * duration for i in range(n_frames)
-    ]
+    target_times = [start_sec + (i / max(n_frames - 1, 1)) * duration for i in range(n_frames)]
 
     # Seek to before start
     seek_sec = max(0.0, start_sec - 1.0)
@@ -427,9 +424,7 @@ def scramble_frames(frames: list, n_chunks: int, seed: int = 42) -> list:
     return result
 
 
-def scramble_tensor(
-    tensor: torch.Tensor, n_chunks: int, seed: int = 42
-) -> torch.Tensor:
+def scramble_tensor(tensor: torch.Tensor, n_chunks: int, seed: int = 42) -> torch.Tensor:
     """Split tensor along dim 0 into n_chunks, shuffle chunks, reassemble."""
     if n_chunks <= 1:
         return tensor
@@ -551,8 +546,7 @@ def load_sequences(epic_dir: Path, max_sequences: int = 200) -> list[dict]:
         available = [available[i] for i in indices]
 
     print(
-        f"  Loaded {len(available)} sequences "
-        f"({len(set(s['video_id'] for s in available))} videos)"
+        f"  Loaded {len(available)} sequences ({len(set(s['video_id'] for s in available))} videos)"
     )
 
     return available
@@ -597,9 +591,7 @@ class VLMAdapter(ABC):
     ) -> str:
         """Run generative inference, return decoded text."""
 
-    def extract_vision_repr(
-        self, model: nn.Module, inputs: dict
-    ) -> torch.Tensor | None:
+    def extract_vision_repr(self, model: nn.Module, inputs: dict) -> torch.Tensor | None:
         """Best-effort vision-side representation (pre-projector).
 
         Returns mean-pooled L2-normed vector, or None if not exposed.
@@ -642,9 +634,7 @@ class VLMAdapter(ABC):
         return None
 
     @abstractmethod
-    def extract_llm_repr(
-        self, model: nn.Module, inputs: dict, layer_idx: int = -1
-    ) -> torch.Tensor:
+    def extract_llm_repr(self, model: nn.Module, inputs: dict, layer_idx: int = -1) -> torch.Tensor:
         """LLM-side representation at specified layer.
 
         Always available via output_hidden_states=True.
@@ -867,12 +857,8 @@ class QwenAdapter(VLMAdapter):
                     frame_embs = []
                     for i in range(n_frames):
                         start = i * tokens_per_frame
-                        end = (
-                            (i + 1) * tokens_per_frame if i < n_frames - 1 else n_found
-                        )
-                        frame_embs.append(
-                            F.normalize(vision_hidden[start:end].mean(dim=0), dim=0)
-                        )
+                        end = (i + 1) * tokens_per_frame if i < n_frames - 1 else n_found
+                        frame_embs.append(F.normalize(vision_hidden[start:end].mean(dim=0), dim=0))
                     vision_only_seq = torch.stack(frame_embs)  # (T, D)
 
                 # bos_token: first token in sequence
@@ -990,9 +976,7 @@ class GemmaAdapter(VLMAdapter):
                 # Gemma 4 vision tower requires pixel_position_ids;
                 # processor outputs it as "image_position_ids"
                 kwargs = {}
-                pos_ids = inputs.get(
-                    "image_position_ids", inputs.get("pixel_position_ids")
-                )
+                pos_ids = inputs.get("image_position_ids", inputs.get("pixel_position_ids"))
                 if pos_ids is not None:
                     kwargs["pixel_position_ids"] = pos_ids
                 vision_out = model.model.vision_tower(
@@ -1000,17 +984,13 @@ class GemmaAdapter(VLMAdapter):
                     **kwargs,
                 )
                 tokens = vision_out.last_hidden_state
-                emb = F.normalize(
-                    tokens.reshape(-1, tokens.shape[-1]).mean(dim=0), dim=0
-                )
+                emb = F.normalize(tokens.reshape(-1, tokens.shape[-1]).mean(dim=0), dim=0)
             return emb.cpu()
         except Exception as e:
             warnings.warn(f"GemmaAdapter.extract_vision_repr failed: {e}")
             return None
 
-    def extract_vision_seq(
-        self, model, inputs, processor=None, frames=None, debug_shapes=False
-    ):
+    def extract_vision_seq(self, model, inputs, processor=None, frames=None, debug_shapes=False):
         """Extract per-frame vision features as a (T, D) sequence.
 
         Gemma 4's vision tower requires pixel_position_ids (cannot process
@@ -1063,9 +1043,7 @@ class GemmaAdapter(VLMAdapter):
                         for img_idx in unique_imgs:
                             mask = img_indices == img_idx
                             frame_tokens = tokens[mask]  # (N_i, D)
-                            frame_embs.append(
-                                F.normalize(frame_tokens.mean(dim=0), dim=0)
-                            )
+                            frame_embs.append(F.normalize(frame_tokens.mean(dim=0), dim=0))
                         per_frame = torch.stack(frame_embs)  # (T, D)
                     else:
                         # Can't determine per-frame grouping; fall back to
@@ -1079,9 +1057,7 @@ class GemmaAdapter(VLMAdapter):
                         per_frame = torch.stack(
                             [
                                 F.normalize(
-                                    tokens[
-                                        i * toks_per_img : (i + 1) * toks_per_img
-                                    ].mean(dim=0),
+                                    tokens[i * toks_per_img : (i + 1) * toks_per_img].mean(dim=0),
                                     dim=0,
                                 )
                                 for i in range(T)
@@ -1135,21 +1111,15 @@ class GemmaAdapter(VLMAdapter):
                     # position p in input_ids was replaced by
                     # tokens_per_placeholder vision tokens in hidden_states.
                     n_extra = seq_len_out - seq_len_in
-                    tokens_per_placeholder = (
-                        n_extra + n_placeholders
-                    ) // n_placeholders
+                    tokens_per_placeholder = (n_extra + n_placeholders) // n_placeholders
 
                     # Build list of vision hidden states grouped by frame
                     frame_hidden_list = []
                     for idx, orig_pos in enumerate(vision_positions):
                         # Each placeholder shifts subsequent positions by
                         # (tokens_per_placeholder - 1) for each prior expansion
-                        expanded_pos = int(orig_pos.item()) + idx * (
-                            tokens_per_placeholder - 1
-                        )
-                        frame_toks = hidden[
-                            expanded_pos : expanded_pos + tokens_per_placeholder
-                        ]
+                        expanded_pos = int(orig_pos.item()) + idx * (tokens_per_placeholder - 1)
+                        frame_toks = hidden[expanded_pos : expanded_pos + tokens_per_placeholder]
                         frame_hidden_list.append(frame_toks)
                     vision_hidden = torch.cat(frame_hidden_list, dim=0)
                 else:
@@ -1303,9 +1273,7 @@ class LlavaVideoAdapter(VLMAdapter):
             warnings.warn(f"LlavaVideoAdapter.extract_vision_repr failed: {e}")
             return None
 
-    def extract_vision_seq(
-        self, model, inputs, processor=None, frames=None, debug_shapes=False
-    ):
+    def extract_vision_seq(self, model, inputs, processor=None, frames=None, debug_shapes=False):
         try:
             pixel_values = inputs.get("pixel_values_videos", inputs.get("pixel_values"))
             if pixel_values is None:
@@ -1403,9 +1371,7 @@ class LlavaVideoAdapter(VLMAdapter):
 
                     # In the expanded hidden states, vision tokens start at
                     # first_vis_pos and span n_vision_expanded positions
-                    vision_hidden = hidden[
-                        first_vis_pos : first_vis_pos + n_vision_expanded
-                    ]
+                    vision_hidden = hidden[first_vis_pos : first_vis_pos + n_vision_expanded]
                     n_found = n_vision_expanded
                 else:
                     vision_hidden = hidden[vision_mask]
@@ -1419,12 +1385,8 @@ class LlavaVideoAdapter(VLMAdapter):
                     frame_embs = []
                     for i in range(n_frames):
                         start = i * tokens_per_frame
-                        end = (
-                            (i + 1) * tokens_per_frame if i < n_frames - 1 else n_found
-                        )
-                        frame_embs.append(
-                            F.normalize(vision_hidden[start:end].mean(dim=0), dim=0)
-                        )
+                        end = (i + 1) * tokens_per_frame if i < n_frames - 1 else n_found
+                        frame_embs.append(F.normalize(vision_hidden[start:end].mean(dim=0), dim=0))
                     vision_only_seq = torch.stack(frame_embs)
                 else:
                     vision_only_seq = vision_only_pool.unsqueeze(0)
@@ -1622,10 +1584,7 @@ def extract_vjepa2_features(
             continue
 
     direction = "reverse" if reverse else "forward"
-    print(
-        f"  V-JEPA 2 ({direction}): {len(features)}/{len(sequences)} "
-        f"({failed} failed)"
-    )
+    print(f"  V-JEPA 2 ({direction}): {len(features)}/{len(sequences)} ({failed} failed)")
 
     del model, processor
     torch.cuda.empty_cache()
@@ -1796,10 +1755,7 @@ def extract_vlm_features(
                 print(f"  WARNING: {seq['sequence_id']} failed: {e}")
             continue
 
-    print(
-        f"  VLM embedding ({direction}): {len(features)}/{len(sequences)} "
-        f"({failed} failed)"
-    )
+    print(f"  VLM embedding ({direction}): {len(features)}/{len(sequences)} ({failed} failed)")
 
     del model, processor
     torch.cuda.empty_cache()
@@ -2000,8 +1956,7 @@ def evaluate_vlm_generative(
                 "n_forward": n_fwd,
             }
             print(
-                f"  Prompt {prompt_idx} text-only bias: {bias:.3f} "
-                f"({n_fwd}/{len(text_only_preds)})"
+                f"  Prompt {prompt_idx} text-only bias: {bias:.3f} ({n_fwd}/{len(text_only_preds)})"
             )
 
         # Aggregate text-only bias
@@ -2113,8 +2068,7 @@ def evaluate_vlm_generative(
         )
         cons_point, cons_ci_low, cons_ci_high = bootstrap_ci(consistency_arr)
         print(
-            f"  Consistency (all correct): {cons_point:.3f} "
-            f"[{cons_ci_low:.3f}, {cons_ci_high:.3f}]"
+            f"  Consistency (all correct): {cons_point:.3f} [{cons_ci_low:.3f}, {cons_ci_high:.3f}]"
         )
 
         integrity_final = {
@@ -2154,7 +2108,7 @@ def evaluate_order_sensitivity(
     vlm_rev_features: dict[str, dict] | None = None,
     vlm_family: str | None = None,
 ) -> dict:
-    """Compute order sensitivity s_rev and balanced accuracy per method.
+    """Compute descriptive reversal similarity (s_rev) per method.
 
     s_rev = cosine_similarity(forward_embedding, reversed_embedding)
     Higher s_rev -> method is more order-invariant (blind to reversal)
@@ -2164,7 +2118,7 @@ def evaluate_order_sensitivity(
     For V-JEPA 2, reversed features must be separately extracted.
 
     Returns:
-        Dict mapping method_name -> {s_rev_mean, s_rev_ci, balanced_acc, acc_ci}
+        Dict mapping method names to s_rev means and bootstrap confidence intervals.
     """
     from video_retrieval.fingerprints import (
         TemporalDerivativeFingerprint,
@@ -2192,12 +2146,11 @@ def evaluate_order_sensitivity(
 
     s_rev_arr = np.array(s_rev_bof)
     point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-    # BoF is order-invariant (mean is permutation-invariant), so balanced acc is N/A
+    # BoF is order-invariant because DINOv3 frames are encoded independently.
     results["bag_of_frames"] = {
         "s_rev_mean": round(point, 4),
         "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-        "balanced_acc": None,  # order-invariant, not meaningful
-        "acc_ci": None,
+        "comparator": "cosine",
     }
 
     # 2. Chamfer (pairwise min distances, order-invariant)
@@ -2217,8 +2170,7 @@ def evaluate_order_sensitivity(
     results["chamfer"] = {
         "s_rev_mean": round(point, 4),
         "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-        "balanced_acc": None,  # order-invariant, not meaningful
-        "acc_ci": None,
+        "comparator": "chamfer",
     }
 
     # 3. Temporal derivative (DTW on embedding derivatives)
@@ -2235,13 +2187,10 @@ def evaluate_order_sensitivity(
 
     s_rev_arr = np.array(s_rev_td)
     point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_td])  # pyrefly: ignore [unsupported-operation]
-    acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
     results["temporal_derivative"] = {
         "s_rev_mean": round(point, 4),
         "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-        "balanced_acc": round(acc_point, 4),
-        "acc_ci": [round(acc_ci_low, 4), round(acc_ci_high, 4)],
+        "comparator": "dtw",
     }
 
     # 4. Attention trajectory (DTW on centroid trajectories)
@@ -2258,20 +2207,15 @@ def evaluate_order_sensitivity(
 
     s_rev_arr = np.array(s_rev_traj)
     point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-    acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_traj])  # pyrefly: ignore [unsupported-operation]
-    acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
     results["attention_trajectory"] = {
         "s_rev_mean": round(point, 4),
         "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-        "balanced_acc": round(acc_point, 4),
-        "acc_ci": [round(acc_ci_low, 4), round(acc_ci_high, 4)],
+        "comparator": "dtw",
     }
 
     # --- V-JEPA 2 methods ---
     if vjepa2_fwd_features and vjepa2_rev_features:
-        common_ids = sorted(
-            set(vjepa2_fwd_features.keys()) & set(vjepa2_rev_features.keys())
-        )
+        common_ids = sorted(set(vjepa2_fwd_features.keys()) & set(vjepa2_rev_features.keys()))
 
         # 5. V-JEPA 2 bag-of-tokens
         print("  Computing V-JEPA 2 BoT s_rev...")
@@ -2287,8 +2231,7 @@ def evaluate_order_sensitivity(
         results["vjepa2_bag_of_tokens"] = {
             "s_rev_mean": round(point, 4),
             "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-            "balanced_acc": 0.5,
-            "acc_ci": [0.5, 0.5],
+            "comparator": "cosine",
         }
 
         # 6. V-JEPA 2 temporal residual
@@ -2297,22 +2240,15 @@ def evaluate_order_sensitivity(
         for sid in common_ids:
             fwd_res = vjepa2_fwd_features[sid]["temporal_residual"]
             rev_res = vjepa2_rev_features[sid]["temporal_residual"]
-            fwd_flat = fwd_res.reshape(-1)
-            rev_flat = rev_res.reshape(-1)
-            sim = F.cosine_similarity(
-                fwd_flat.unsqueeze(0), rev_flat.unsqueeze(0)
-            ).item()
-            s_rev_vj_res.append(sim)
+            distance = dtw_distance(fwd_res, rev_res, normalize=True)
+            s_rev_vj_res.append(float(np.exp(-distance)))
 
         s_rev_arr = np.array(s_rev_vj_res)
         point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-        acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_vj_res])  # pyrefly: ignore [unsupported-operation]
-        acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
         results["vjepa2_temporal_residual"] = {
             "s_rev_mean": round(point, 4),
             "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-            "balanced_acc": round(acc_point, 4),
-            "acc_ci": [round(acc_ci_low, 4), round(acc_ci_high, 4)],
+            "comparator": "dtw",
         }
 
     # --- VLM methods ---
@@ -2338,6 +2274,7 @@ def evaluate_order_sensitivity(
             results[f"{family_label}_vision_repr"] = {
                 "s_rev_mean": round(point, 4),
                 "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
+                "comparator": "cosine",
             }
 
         # Vision sequence DTW probe (per-frame, order-sensitive)
@@ -2359,13 +2296,10 @@ def evaluate_order_sensitivity(
             print(f"  Computing {family_label} vision_seq_dtw s_rev...")
             s_rev_arr = np.array(s_rev_vis_seq)
             point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-            acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_vis_seq])
-            acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
             results[f"{family_label}_vision_seq_dtw"] = {
                 "s_rev_mean": round(point, 4),
                 "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-                "balanced_acc": round(acc_point, 4),
-                "acc_ci": [round(acc_ci_low, 4), round(acc_ci_high, 4)],
+                "comparator": "dtw",
             }
 
         # Derivative sign flip check (no DTW, direct diagnostic)
@@ -2407,9 +2341,7 @@ def evaluate_order_sensitivity(
                 fwd_l = vlm_fwd_features[sid].get(layer_key)
                 rev_l = vlm_rev_features[sid].get(layer_key)
                 if fwd_l is not None and rev_l is not None:
-                    sim = F.cosine_similarity(
-                        fwd_l.unsqueeze(0), rev_l.unsqueeze(0)
-                    ).item()
+                    sim = F.cosine_similarity(fwd_l.unsqueeze(0), rev_l.unsqueeze(0)).item()
                     s_rev_llm.append(sim)
 
             if s_rev_llm:
@@ -2419,6 +2351,7 @@ def evaluate_order_sensitivity(
                 results[f"{family_label}_{layer_key}"] = {
                     "s_rev_mean": round(point, 4),
                     "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
+                    "comparator": "cosine",
                 }
 
         # Vision-token-only LLM hidden state probes
@@ -2428,9 +2361,7 @@ def evaluate_order_sensitivity(
             fwd_vp = vlm_fwd_features[sid].get("vision_only_pool")
             rev_vp = vlm_rev_features[sid].get("vision_only_pool")
             if fwd_vp is not None and rev_vp is not None:
-                sim = F.cosine_similarity(
-                    fwd_vp.unsqueeze(0), rev_vp.unsqueeze(0)
-                ).item()
+                sim = F.cosine_similarity(fwd_vp.unsqueeze(0), rev_vp.unsqueeze(0)).item()
                 s_rev_vt_pool.append(sim)
 
         if s_rev_vt_pool:
@@ -2440,6 +2371,7 @@ def evaluate_order_sensitivity(
             results[f"{family_label}_vision_only_pool"] = {
                 "s_rev_mean": round(point, 4),
                 "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
+                "comparator": "cosine",
             }
 
         # 2. vision_only_seq_dtw: temporal derivative DTW
@@ -2458,13 +2390,10 @@ def evaluate_order_sensitivity(
             print(f"  Computing {family_label} vision_only_seq_dtw s_rev...")
             s_rev_arr = np.array(s_rev_vt_seq)
             point, ci_low, ci_high = bootstrap_ci(s_rev_arr)
-            acc_arr = np.array([1.0 if s < 0.8 else 0.0 for s in s_rev_vt_seq])
-            acc_point, acc_ci_low, acc_ci_high = bootstrap_ci(acc_arr)
             results[f"{family_label}_vision_only_seq_dtw"] = {
                 "s_rev_mean": round(point, 4),
                 "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
-                "balanced_acc": round(acc_point, 4),
-                "acc_ci": [round(acc_ci_low, 4), round(acc_ci_high, 4)],
+                "comparator": "dtw",
             }
 
         # 3. bos_token: cosine similarity between fwd and rev
@@ -2483,6 +2412,7 @@ def evaluate_order_sensitivity(
             results[f"{family_label}_bos_token"] = {
                 "s_rev_mean": round(point, 4),
                 "s_rev_ci": [round(ci_low, 4), round(ci_high, 4)],
+                "comparator": "cosine",
             }
 
     return results
@@ -2537,16 +2467,12 @@ def evaluate_retrieval_task(
     labels_bof = []
     for i in range(len(seq_ids)):
         query = all_mean[i]
-        pos_sim = F.cosine_similarity(
-            query.unsqueeze(0), all_rev_mean[i].unsqueeze(0)
-        ).item()
+        pos_sim = F.cosine_similarity(query.unsqueeze(0), all_rev_mean[i].unsqueeze(0)).item()
         scores_bof.append(pos_sim)
         labels_bof.append(1)
         for j in range(len(seq_ids)):
             if j != i:
-                neg_sim = F.cosine_similarity(
-                    query.unsqueeze(0), all_mean[j].unsqueeze(0)
-                ).item()
+                neg_sim = F.cosine_similarity(query.unsqueeze(0), all_mean[j].unsqueeze(0)).item()
                 scores_bof.append(neg_sim)
                 labels_bof.append(0)
 
@@ -2614,9 +2540,7 @@ def evaluate_retrieval_task(
     # --- V-JEPA 2 retrieval ---
     if vjepa2_fwd_features and vjepa2_rev_features:
         common_ids = sorted(
-            set(vjepa2_fwd_features.keys())
-            & set(vjepa2_rev_features.keys())
-            & set(seq_ids)
+            set(vjepa2_fwd_features.keys()) & set(vjepa2_rev_features.keys()) & set(seq_ids)
         )
 
         if len(common_ids) >= 3:
@@ -2626,17 +2550,13 @@ def evaluate_retrieval_task(
             for i, sid_q in enumerate(common_ids):
                 query = vjepa2_fwd_features[sid_q]["mean_emb"]
                 pos = vjepa2_rev_features[sid_q]["mean_emb"]
-                pos_sim = F.cosine_similarity(
-                    query.unsqueeze(0), pos.unsqueeze(0)
-                ).item()
+                pos_sim = F.cosine_similarity(query.unsqueeze(0), pos.unsqueeze(0)).item()
                 scores_vj.append(pos_sim)
                 labels_vj.append(1)
                 for j, sid_g in enumerate(common_ids):
                     if j != i:
                         neg = vjepa2_fwd_features[sid_g]["mean_emb"]
-                        neg_sim = F.cosine_similarity(
-                            query.unsqueeze(0), neg.unsqueeze(0)
-                        ).item()
+                        neg_sim = F.cosine_similarity(query.unsqueeze(0), neg.unsqueeze(0)).item()
                         scores_vj.append(neg_sim)
                         labels_vj.append(0)
 
@@ -2651,19 +2571,13 @@ def evaluate_retrieval_task(
             for i, sid_q in enumerate(common_ids):
                 query = vjepa2_fwd_features[sid_q]["temporal_residual"].reshape(-1)
                 pos = vjepa2_rev_features[sid_q]["temporal_residual"].reshape(-1)
-                pos_sim = F.cosine_similarity(
-                    query.unsqueeze(0), pos.unsqueeze(0)
-                ).item()
+                pos_sim = F.cosine_similarity(query.unsqueeze(0), pos.unsqueeze(0)).item()
                 scores_vj_res.append(pos_sim)
                 labels_vj_res.append(1)
                 for j, sid_g in enumerate(common_ids):
                     if j != i:
-                        neg = vjepa2_fwd_features[sid_g]["temporal_residual"].reshape(
-                            -1
-                        )
-                        neg_sim = F.cosine_similarity(
-                            query.unsqueeze(0), neg.unsqueeze(0)
-                        ).item()
+                        neg = vjepa2_fwd_features[sid_g]["temporal_residual"].reshape(-1)
+                        neg_sim = F.cosine_similarity(query.unsqueeze(0), neg.unsqueeze(0)).item()
                         scores_vj_res.append(neg_sim)
                         labels_vj_res.append(0)
 
@@ -2684,39 +2598,38 @@ def evaluate_retrieval_task(
 
 
 def plot_order_sensitivity(results: dict, output_path: Path) -> None:
-    """Bar chart of 1 - s_rev (order sensitivity) per method."""
-    methods = []
-    sensitivities = []
-    ci_lows = []
-    ci_highs = []
-
+    """Plot comparator-specific reversal values without a shared ranking."""
+    groups: dict[str, list[tuple[str, dict]]] = {"cosine/chamfer": [], "dtw": []}
     for method, data in results.items():
-        if "s_rev_mean" not in data:
+        comparator = data.get("comparator")
+        if "s_rev_mean" not in data or comparator is None:
             continue
-        methods.append(method.replace("_", "\n"))
-        sens = 1.0 - data["s_rev_mean"]
-        sensitivities.append(sens)
-        ci_lows.append(sens - (1.0 - data["s_rev_ci"][1]))
-        ci_highs.append((1.0 - data["s_rev_ci"][0]) - sens)
+        group = "dtw" if comparator == "dtw" else "cosine/chamfer"
+        groups[group].append((method, data))
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    x = np.arange(len(methods))
-    bars = ax.bar(
-        x,
-        sensitivities,
-        yerr=[ci_lows, ci_highs],
-        capsize=4,
-        color="steelblue",
-        edgecolor="black",
-        alpha=0.8,
-    )
-    ax.set_xticks(x)
-    ax.set_xticklabels(methods, fontsize=9)
-    ax.set_ylabel("Order Sensitivity (1 - s_rev)")
-    ax.set_title("EPIC-Kitchens: Temporal Order Sensitivity per Method")
-    ax.set_ylim(bottom=0)
-    ax.grid(axis="y", alpha=0.3)
-    plt.tight_layout()
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), constrained_layout=True)
+    for ax, (group, entries) in zip(axes, groups.items()):
+        methods = [method.replace("_", "\n") for method, _ in entries]
+        values = [data["s_rev_mean"] for _, data in entries]
+        ci_lows = [value - data["s_rev_ci"][0] for value, (_, data) in zip(values, entries)]
+        ci_highs = [data["s_rev_ci"][1] - value for value, (_, data) in zip(values, entries)]
+        x = np.arange(len(methods))
+        ax.bar(
+            x,
+            values,
+            yerr=[ci_lows, ci_highs],
+            capsize=4,
+            color="steelblue",
+            edgecolor="black",
+            alpha=0.8,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(methods, fontsize=8)
+        ax.set_ylabel("s_rev")
+        ax.set_title(f"{group} probes (separate scale)")
+        ax.set_ylim(0, 1.05)
+        ax.grid(axis="y", alpha=0.3)
+    fig.suptitle("EPIC-Kitchens: Comparator-Specific Reversal Similarity")
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {output_path}")
@@ -2819,18 +2732,14 @@ def plot_s_rev_distributions(
         for sid in common:
             fwd = vjepa2_fwd[sid]["mean_emb"]
             rev = vjepa2_rev[sid]["mean_emb"]
-            s_rev_vj.append(
-                F.cosine_similarity(fwd.unsqueeze(0), rev.unsqueeze(0)).item()
-            )
+            s_rev_vj.append(F.cosine_similarity(fwd.unsqueeze(0), rev.unsqueeze(0)).item())
         distributions["V-JEPA 2 BoT"] = s_rev_vj
 
         s_rev_vj_res = []
         for sid in common:
             fwd = vjepa2_fwd[sid]["temporal_residual"].reshape(-1)
             rev = vjepa2_rev[sid]["temporal_residual"].reshape(-1)
-            s_rev_vj_res.append(
-                F.cosine_similarity(fwd.unsqueeze(0), rev.unsqueeze(0)).item()
-            )
+            s_rev_vj_res.append(F.cosine_similarity(fwd.unsqueeze(0), rev.unsqueeze(0)).item())
         distributions["V-JEPA 2 Residual"] = s_rev_vj_res
 
     n_plots = len(distributions)
@@ -2903,9 +2812,7 @@ def plot_vlm_integrity(vlm_results: dict, vlm_family: str, output_path: Path) ->
     print(f"  Saved: {output_path}")
 
 
-def plot_vlm_prompt_variance(
-    vlm_results: dict, vlm_family: str, output_path: Path
-) -> None:
+def plot_vlm_prompt_variance(vlm_results: dict, vlm_family: str, output_path: Path) -> None:
     """Bar chart of balanced accuracy per prompt variant."""
     per_prompt = vlm_results["per_prompt"]
 
@@ -2926,9 +2833,7 @@ def plot_vlm_prompt_variance(
         edgecolor="black",
         alpha=0.8,
     )
-    ax.bar(
-        x, rev_accs, width, label="Rev Acc", color="coral", edgecolor="black", alpha=0.8
-    )
+    ax.bar(x, rev_accs, width, label="Rev Acc", color="coral", edgecolor="black", alpha=0.8)
     ax.bar(
         x + width,
         accs,
@@ -2973,9 +2878,7 @@ def main():
         help="Path to EPIC-Kitchens data directory",
     )
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument(
-        "--skip-vjepa2", action="store_true", help="Skip V-JEPA 2 extraction"
-    )
+    parser.add_argument("--skip-vjepa2", action="store_true", help="Skip V-JEPA 2 extraction")
 
     # VLM adapter flags
     parser.add_argument(
@@ -3047,9 +2950,7 @@ def main():
         "(vision_only_pool, vision_only_seq, bos_token)",
     )
 
-    parser.add_argument(
-        "--no-cache", action="store_true", help="Disable feature caching"
-    )
+    parser.add_argument("--no-cache", action="store_true", help="Disable feature caching")
     parser.add_argument(
         "--max-sequences",
         type=int,
@@ -3121,9 +3022,7 @@ def main():
     print("\n" + "=" * 60)
     print("Step 2: DINOv3 feature extraction")
     print("=" * 60)
-    dinov3_cache = (
-        cache_dir / f"dinov3_fps{args.target_fps}.pt" if not args.no_cache else None
-    )
+    dinov3_cache = cache_dir / f"dinov3_fps{args.target_fps}.pt" if not args.no_cache else None
     dinov3_features = extract_dinov3_features(
         sequences,
         device,
@@ -3207,7 +3106,7 @@ def main():
     # Step 5: Order sensitivity evaluation
     # ====================================================================
     print("\n" + "=" * 60)
-    print("Step 5: Order sensitivity (s_rev + balanced accuracy)")
+    print("Step 5: Descriptive reversal similarity (s_rev)")
     print("=" * 60)
     order_results = evaluate_order_sensitivity(
         dinov3_features,
@@ -3221,8 +3120,7 @@ def main():
     for method, data in order_results.items():
         s_rev = data.get("s_rev_mean", "N/A")
         ci = data.get("s_rev_ci", ["N/A", "N/A"])
-        acc = data.get("balanced_acc", "N/A")
-        print(f"  {method}: s_rev={s_rev} [{ci[0]}, {ci[1]}], acc={acc}")
+        print(f"  {method}: s_rev={s_rev} [{ci[0]}, {ci[1]}]")
 
     # ====================================================================
     # Step 6: Retrieval evaluation
@@ -3306,9 +3204,7 @@ def main():
         # Save canonical timestamps for auditability
         sample_seq = next(iter(vlm_fwd.values()), None)
         if sample_seq and "timestamps" in sample_seq:
-            all_results["metadata"]["canonical_timestamps_sample"] = sample_seq[
-                "timestamps"
-            ]
+            all_results["metadata"]["canonical_timestamps_sample"] = sample_seq["timestamps"]
 
     # VLM generative results
     if vlm_generative_results:

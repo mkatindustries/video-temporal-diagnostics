@@ -21,8 +21,9 @@ rsync -a \
     --exclude='LICENSE' \
     --exclude='texput.log' \
     --exclude='datasets' \
-    --exclude='slurm_jobs' \
     --exclude='__pycache__' \
+    --exclude='.pytest_cache' \
+    --exclude='.ruff_cache' \
     --exclude='*.pyc' \
     --exclude='*.egg-info' \
     --exclude='.venv' \

@@ -1,7 +1,7 @@
 """Regenerate VCDB reversal attack bar chart with unified model-family colors.
 
 Values match the most recent eval_vcdb_reversal.py run. Colors follow the same
-scheme used by plot_hdd_all_methods.py and plot_sensitivity_invariance.py.
+scheme used by the other benchmark plots.
 """
 
 from pathlib import Path

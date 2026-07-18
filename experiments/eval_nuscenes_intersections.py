@@ -651,7 +651,10 @@ def compute_all_similarities(
     features: dict[int, dict],
     cluster_to_indices: dict[int, list[int]],
     vjepa2_features: dict[int, dict] | None = None,
-) -> dict[str, tuple[list[float], list[int]]]:
+) -> tuple[
+    dict[str, tuple[list[float], list[int]]],
+    dict[str, list[int]],
+]:
     """Compute pairwise similarities within each cluster.
 
     Same 7 methods as HDD evaluation:
@@ -659,7 +662,7 @@ def compute_all_similarities(
     - V-JEPA 2: bag_of_tokens, encoder_seq_dtw, temporal_residual
 
     Returns:
-        Dict mapping method_name → (scores_list, labels_list).
+        Score/label arrays and aligned cluster IDs for each method.
     """
     deriv_fp = TemporalDerivativeFingerprint()
     traj_fp = TrajectoryFingerprint()
@@ -682,6 +685,7 @@ def compute_all_similarities(
         all_scores["vjepa2_bag_of_tokens"] = ([], [])
         all_scores["vjepa2_encoder_seq_dtw"] = ([], [])
         all_scores["vjepa2_temporal_residual"] = ([], [])
+    cluster_ids_by_method = {method: [] for method in all_scores}
 
     total_pairs = 0
     for cid in sorted(cluster_to_indices.keys()):
@@ -717,6 +721,7 @@ def compute_all_similarities(
                 )
                 all_scores["bag_of_frames"][0].append(bof_sim)
                 all_scores["bag_of_frames"][1].append(gt)
+                cluster_ids_by_method["bag_of_frames"].append(cid)
 
                 # Chamfer (max symmetric)
                 sim_matrix = torch.mm(ea, eb.t())
@@ -725,16 +730,19 @@ def compute_all_similarities(
                 chamfer_sim = (max_ab + max_ba) / 2
                 all_scores["chamfer"][0].append(chamfer_sim)
                 all_scores["chamfer"][1].append(gt)
+                cluster_ids_by_method["chamfer"].append(cid)
 
                 # Temporal derivative DTW
                 d_sim = deriv_fp.compare(deriv_fps[a_idx], deriv_fps[b_idx])
                 all_scores["temporal_derivative"][0].append(d_sim)
                 all_scores["temporal_derivative"][1].append(gt)
+                cluster_ids_by_method["temporal_derivative"].append(cid)
 
                 # Attention trajectory DTW
                 t_sim = traj_fp.compare(traj_fps[a_idx], traj_fps[b_idx])
                 all_scores["attention_trajectory"][0].append(t_sim)
                 all_scores["attention_trajectory"][1].append(gt)
+                cluster_ids_by_method["attention_trajectory"].append(cid)
 
                 # V-JEPA 2 methods
                 if (
@@ -748,6 +756,7 @@ def compute_all_similarities(
                     bot_sim = float(torch.dot(va["mean_emb"], vb["mean_emb"]).item())
                     all_scores["vjepa2_bag_of_tokens"][0].append(bot_sim)
                     all_scores["vjepa2_bag_of_tokens"][1].append(gt)
+                    cluster_ids_by_method["vjepa2_bag_of_tokens"].append(cid)
 
                     if "encoder_seq" in va and "encoder_seq" in vb:
                         enc_dist = dtw_distance(
@@ -758,6 +767,7 @@ def compute_all_similarities(
                         enc_sim = float(torch.exp(torch.tensor(-enc_dist)).item())
                         all_scores["vjepa2_encoder_seq_dtw"][0].append(enc_sim)
                         all_scores["vjepa2_encoder_seq_dtw"][1].append(gt)
+                        cluster_ids_by_method["vjepa2_encoder_seq_dtw"].append(cid)
 
                     res_dist = dtw_distance(
                         va["temporal_residual"],
@@ -767,8 +777,9 @@ def compute_all_similarities(
                     res_sim = float(torch.exp(torch.tensor(-res_dist)).item())
                     all_scores["vjepa2_temporal_residual"][0].append(res_sim)
                     all_scores["vjepa2_temporal_residual"][1].append(gt)
+                    cluster_ids_by_method["vjepa2_temporal_residual"].append(cid)
 
-    return all_scores
+    return all_scores, cluster_ids_by_method
 
 
 # ---------------------------------------------------------------------------
@@ -1299,7 +1310,7 @@ def main():
     # ------------------------------------------------------------------
     print("\nStep 6: Computing pairwise similarities...")
     t_sim_start = time.time()
-    all_scores = compute_all_similarities(
+    all_scores, cluster_ids_by_method = compute_all_similarities(
         eval_segments,
         features,
         cluster_to_indices,
@@ -1388,6 +1399,7 @@ def main():
         pair_data[method_name] = {
             "scores": [float(s) for s in scores_list],
             "labels": [int(l) for l in labels_list],
+            "cluster_ids": cluster_ids_by_method[method_name],
         }
 
     pair_path = data_dir / "pair_scores.json"

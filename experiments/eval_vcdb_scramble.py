@@ -31,11 +31,12 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
+
 from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
 )
-from video_retrieval.fingerprints.dtw import dtw_distance, dtw_distance_batch
+from video_retrieval.fingerprints.dtw import dtw_distance_batch
 from video_retrieval.models import DINOv3Encoder
 from video_retrieval.utils.video import load_video
 
@@ -198,7 +199,7 @@ def extract_all_features(
             logger.warning("Failed to extract DINOv3 features for %s: %s", vp, e)
             continue
 
-    print(f"  Extracted: {len(features)}/{len(video_relpaths)} " f"({failed} failed)")
+    print(f"  Extracted: {len(features)}/{len(video_relpaths)} ({failed} failed)")
     return features
 
 
@@ -228,7 +229,6 @@ def load_frames_for_vjepa2(
 
     container = av.open(video_path)
     stream = container.streams.video[0]
-    video_fps = float(stream.average_rate or 30)
     # pyrefly: ignore [unsupported-operation]
     duration = float(stream.duration * stream.time_base) if stream.duration else 60.0
 
@@ -326,7 +326,7 @@ def extract_vjepa2_features(
             failed += 1
             logger.warning("Failed to extract V-JEPA 2 features for %s: %s", vp, e)
 
-    print(f"  V-JEPA 2: {len(features)}/{len(video_relpaths)} " f"({failed} failed)")
+    print(f"  V-JEPA 2: {len(features)}/{len(video_relpaths)} ({failed} failed)")
     return features
 
 
@@ -349,18 +349,8 @@ def scramble_tensor(tensor: torch.Tensor, n_chunks: int, seed: int) -> torch.Ten
     if n_chunks <= 1:
         return tensor
 
-    T = tensor.shape[0]
-    chunk_size = T // n_chunks
-    if chunk_size < 1:
-        chunk_size = 1
-        n_chunks = T
-
-    # Split into chunks (last chunk may be larger to absorb remainder)
-    chunks = []
-    for i in range(n_chunks):
-        start = i * chunk_size
-        end = (i + 1) * chunk_size if i < n_chunks - 1 else T
-        chunks.append(tensor[start:end])
+    n_chunks = min(n_chunks, tensor.shape[0])
+    chunks = list(torch.tensor_split(tensor, n_chunks, dim=0))
 
     # Shuffle chunks
     rng = np.random.RandomState(seed)
@@ -426,9 +416,9 @@ def evaluate_method(
         y_true.append(1 if pair in copy_pairs else 0)
         y_score.append(sim)
 
-    y_true = np.array(y_true) # pyrefly: ignore [bad-assignment]
-    y_score = np.array(y_score) # pyrefly: ignore [bad-assignment]
-    n_pos = int(y_true.sum()) # pyrefly: ignore [missing-attribute]
+    y_true = np.array(y_true)  # pyrefly: ignore [bad-assignment]
+    y_score = np.array(y_score)  # pyrefly: ignore [bad-assignment]
+    n_pos = int(y_true.sum())  # pyrefly: ignore [missing-attribute]
     n_neg = len(y_true) - n_pos
 
     if n_pos == 0 or n_neg == 0:
@@ -479,9 +469,7 @@ def compute_scrambled_similarities(
     results = {m: {} for m in methods}
 
     # Filter to valid pairs
-    valid_pairs = [
-        (a, b) for a, b in pairs_to_compute if a in features_a and b in features_b
-    ]
+    valid_pairs = [(a, b) for a, b in pairs_to_compute if a in features_a and b in features_b]
 
     # --- Non-DTW methods (already fast, compute per-pair) ---
     for a, b in valid_pairs:
@@ -548,11 +536,7 @@ def compute_scrambled_similarities(
                 results["attention_trajectory"][(a, b)] = float(sims[idx].item())
 
     # --- Batched DTW: vjepa2_temporal_residual ---
-    if (
-        "vjepa2_temporal_residual" in results
-        and vjepa2_a is not None
-        and vjepa2_b is not None
-    ):
+    if "vjepa2_temporal_residual" in results and vjepa2_a is not None and vjepa2_b is not None:
         dtw_pairs_vj = []
         seqs_a_vj = []
         seqs_b_vj = []
@@ -594,9 +578,7 @@ def plot_scramble_gradient(
         aucs = [sweep_results[k][method]["auc"] for k in levels]
 
         ax1.plot(levels, aps, "o-", color=color, label=label, linewidth=2, markersize=6)
-        ax2.plot(
-            levels, aucs, "o-", color=color, label=label, linewidth=2, markersize=6
-        )
+        ax2.plot(levels, aucs, "o-", color=color, label=label, linewidth=2, markersize=6)
 
     ax1.set_xlabel("Number of Chunks (scramble level)", fontsize=12)
     ax1.set_ylabel("Average Precision", fontsize=12)
@@ -615,8 +597,7 @@ def plot_scramble_gradient(
     ax2.grid(True, alpha=0.3)
 
     fig.suptitle(
-        "VCDB Temporal Scramble Gradient\n"
-        "(K=1: no scramble, K=16: fine-grained chunk shuffle)",
+        "VCDB Temporal Scramble Gradient\n(K=1: no scramble, K=16: fine-grained chunk shuffle)",
         fontsize=14,
         fontweight="bold",
     )
@@ -638,15 +619,11 @@ def main():
     parser.add_argument(
         "--vcdb-dir",
         type=str,
-        default="datasets/vcdb/core_dataset",
-        help="Path to VCDB core_dataset directory",
+        default="datasets/vcdb",
+        help="Path to VCDB root containing annotation/ and core_dataset/",
     )
-    parser.add_argument(
-        "--sample-rate", type=int, default=10, help="Frame sampling rate"
-    )
-    parser.add_argument(
-        "--max-frames", type=int, default=100, help="Max frames per video"
-    )
+    parser.add_argument("--sample-rate", type=int, default=10, help="Frame sampling rate")
+    parser.add_argument("--max-frames", type=int, default=100, help="Max frames per video")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument(
         "--skip-vjepa2", action="store_true", help="Skip V-JEPA 2 (DINOv3 only, faster)"
@@ -659,11 +636,7 @@ def main():
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
-    vcdb_dir = (
-        Path(args.vcdb_dir)
-        if os.path.isabs(args.vcdb_dir)
-        else project_root / args.vcdb_dir
-    )
+    vcdb_dir = Path(args.vcdb_dir) if os.path.isabs(args.vcdb_dir) else project_root / args.vcdb_dir
     ann_dir = vcdb_dir / "annotation"
     vid_dir = vcdb_dir / "core_dataset"
     fig_dir = project_root / "figures"
@@ -735,16 +708,12 @@ def main():
         print("\nStep 3: Loading V-JEPA 2 features...")
         vjepa2_cache = cache_dir / "vjepa2.pt"
 
-        vjepa2_features = (
-            load_feature_cache(vjepa2_cache) if not args.no_cache else None
-        )
+        vjepa2_features = load_feature_cache(vjepa2_cache) if not args.no_cache else None
         if vjepa2_features is None:
             print("  Loading V-JEPA 2 model...")
             from transformers import AutoModel, AutoVideoProcessor
 
-            vjepa2_model = AutoModel.from_pretrained(
-                VJEPA2_MODEL_NAME, trust_remote_code=True
-            )
+            vjepa2_model = AutoModel.from_pretrained(VJEPA2_MODEL_NAME, trust_remote_code=True)
             vjepa2_model = vjepa2_model.to(args.device).eval()
             vjepa2_processor = AutoVideoProcessor.from_pretrained(
                 VJEPA2_MODEL_NAME, trust_remote_code=True
@@ -799,7 +768,7 @@ def main():
             neg_count += 1
         neg_attempts += 1
 
-    print(f"  Total pairs: {len(pairs_to_compute)} " f"({n_pos} pos + {neg_count} neg)")
+    print(f"  Total pairs: {len(pairs_to_compute)} ({n_pos} pos + {neg_count} neg)")
 
     # ------------------------------------------------------------------
     # Step 5: Sweep scramble levels
@@ -823,9 +792,7 @@ def main():
         if vjepa2_features is not None:
             vjepa2_b = {}
             for vp in vjepa2_features:
-                seed = int(hashlib.md5(f"{vp}_{n_chunks}".encode()).hexdigest(), 16) % (
-                    2**31
-                )
+                seed = int(hashlib.md5(f"{vp}_{n_chunks}".encode()).hexdigest(), 16) % (2**31)
                 vf = vjepa2_features[vp]
                 vjepa2_b[vp] = {
                     "mean_emb": vf["mean_emb"],  # order-invariant

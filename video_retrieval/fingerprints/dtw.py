@@ -7,11 +7,10 @@ torch ops. Batching N pairs into (N, T1, T2) processes all pairs simultaneously.
 """
 
 import torch
-import torch.nn.functional as F
 
 
 def _normalize_sequence(seq: torch.Tensor) -> torch.Tensor:
-    """Normalize sequence to [0, 1] per dimension."""
+    """Independently min-max normalize each feature dimension over time."""
     if seq.shape[0] <= 1:
         return seq
     min_vals = seq.min(dim=0).values
@@ -56,10 +55,10 @@ def _wavefront_dtw_batch(
         # Gather predecessors: (N, len(i_idx))
         prev = torch.minimum(
             torch.minimum(
-                dtw[:, i_idx - 1, j_idx],      # from above
-                dtw[:, i_idx, j_idx - 1],       # from left
+                dtw[:, i_idx - 1, j_idx],  # from above
+                dtw[:, i_idx, j_idx - 1],  # from left
             ),
-            dtw[:, i_idx - 1, j_idx - 1],       # from diagonal
+            dtw[:, i_idx - 1, j_idx - 1],  # from diagonal
         )
 
         # Update: dtw[i,j] = cost[i-1,j-1] + min(predecessors)
@@ -82,10 +81,11 @@ def dtw_distance(
     Args:
         seq1: First sequence (T1, D).
         seq2: Second sequence (T2, D).
-        normalize: Normalize sequences to [0, 1] before comparing.
+        normalize: Independently min-max normalize each sequence and feature
+            dimension over time before comparing.
 
     Returns:
-        DTW distance normalized by path length (lower = more similar).
+        DTW accumulated cost divided by ``T1 + T2`` (lower = more similar).
     """
     s1 = seq1.clone()
     s2 = seq2.clone()
@@ -119,11 +119,12 @@ def dtw_distance_batch(
     Args:
         seqs_a: List of N tensors, each (T_i, D).
         seqs_b: List of N tensors, each (T_j, D).
-        normalize: Normalize sequences to [0, 1] before comparing.
+        normalize: Independently min-max normalize each sequence and feature
+            dimension over time before comparing.
         chunk_size: Max pairs per GPU batch (controls memory usage).
 
     Returns:
-        (N,) tensor of DTW distances normalized by path length.
+        (N,) tensor of DTW accumulated costs divided by ``T1 + T2``.
     """
     assert len(seqs_a) == len(seqs_b), "Must have same number of sequences"
     N = len(seqs_a)
@@ -158,12 +159,13 @@ def dtw_distance_batch(
         for i in range(B):
             t1, t2 = int(lens1[i].item()), int(lens2[i].item())
             cost[i, :t1, :t2] = torch.cdist(
-                chunk_a[i].unsqueeze(0), chunk_b[i].unsqueeze(0),
+                chunk_a[i].unsqueeze(0),
+                chunk_b[i].unsqueeze(0),
             ).squeeze(0)
 
         dists = _wavefront_dtw_batch(cost, lens1, lens2)
 
-        # Normalize by path length
+        # Normalize by the sum of input lengths, not the realized warping path.
         path_lengths = (lens1 + lens2).float()
         dists = dists / path_lengths
 

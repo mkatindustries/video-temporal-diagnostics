@@ -1,392 +1,302 @@
 #!/usr/bin/env python3
-"""BoF (BoT) -> Encoder-Sequence DTW reranker on Honda HDD.
+"""Directed BoT-to-DTW retrieval evaluation on Honda HDD.
 
-Prescriptive follow-up to the feature-vs-comparator decomposition:
-if 89 percent of the BoT-to-residual gap lives in the matching stage,
-a two-stage pipeline (cheap pre-filter + expensive rerank) should
-recover most of the full-DTW AP at a fraction of the compute.
+For each query segment, the full corpus is the gallery. A candidate is relevant
+only when it belongs to the same GPS intersection cluster and has the same
+maneuver label. BoT retrieves a directional top-k candidate set; encoder-token
+DTW reranks only those candidates. Metrics are macro-averaged per query and
+cluster-bootstrap confidence intervals account for queries that share an
+intersection.
 
-Pipeline per query q over the full corpus of segments:
-    1. Rank all other segments by BoT cosine similarity.
-    2. Keep the top-k candidates (the "rerank set").
-    3. Score rerank survivors with DTW; push non-survivors to the bottom.
-    4. Compute AP, AUC, and recall@k = fraction of positive pairs where
-       at least one end survives the top-k filter.
-
-Two scoring strategies:
-    - Survivor-only: survivors get DTW score, non-survivors get a sentinel
-      below BoT's minimum (honest two-stage retriever evaluation).
-    - RRF (Reciprocal Rank Fusion): rank-based fusion of BoT and DTW
-      rankings, sidestepping the score-scale mismatch.
-
-Usage (assumes cached features from eval_hdd_ordered_maxsim_vjepa2.py):
-    python experiments/eval_hdd_bof_dtw_rerank.py --hdd-dir datasets/hdd
-
-Output: datasets/hdd/bof_dtw_rerank_results.json
+This supersedes the earlier unordered-pair protocol, which used an OR over the
+two retrieval directions and omitted out-of-cluster gallery negatives.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import time
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, roc_auc_score
-from tqdm import tqdm
-
 from common import (
     ManeuverSegment,
-    bootstrap_ap,
     cluster_intersections,
     discover_sessions,
     extract_maneuver_segments,
     filter_mixed_clusters,
     load_gps,
 )
+from tqdm import tqdm
+
+from video_retrieval.diagnostics.statistics import truncated_average_precision
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 
 
-# ---------------------------------------------------------------------------
-# Candidate set construction (global BoT top-k per query)
-# ---------------------------------------------------------------------------
+def reciprocal_rank(relevant: np.ndarray) -> float:
+    hits = np.flatnonzero(relevant)
+    return 0.0 if len(hits) == 0 else float(1.0 / (hits[0] + 1))
 
 
-def build_bot_topk(
-    mean_embs: torch.Tensor,
-    k_values: list[int],
-) -> dict[int, dict[int, set[int]]]:
-    """For each k, compute the top-k BoT neighbor set for each segment.
-
-    mean_embs: (N, D) L2-normalized mean embeddings for all eval segments.
-    Returns: {k: {query_idx: set(candidate_idx, ...)}}, size <= k
-    (self-matches excluded).
-    """
-    n = mean_embs.shape[0]
-    # Full pairwise cosine similarity; L2-normalized already.
-    sim = mean_embs @ mean_embs.T  # (N, N)
-    # Mask self.
-    sim.fill_diagonal_(-float("inf"))
-
-    out: dict[int, dict[int, set[int]]] = {}
-    max_k = max(k_values)
-    max_k = min(max_k, n - 1)
-    # One topk at the largest k; slice down for smaller k.
-    topk_vals, topk_idx = torch.topk(sim, k=max_k, dim=1)  # (N, max_k)
-    topk_idx = topk_idx.cpu().numpy()
-
-    for k in k_values:
-        k_eff = min(k, n - 1)
-        neighbors: dict[int, set[int]] = {}
-        for q in range(n):
-            neighbors[q] = set(topk_idx[q, :k_eff].tolist())
-        out[k] = neighbors
-    return out
+def cluster_bootstrap_mean(
+    values: np.ndarray,
+    query_clusters: np.ndarray,
+    n_resamples: int,
+    seed: int,
+) -> tuple[float, float, float]:
+    """Macro mean and percentile CI from intersection-cluster resampling."""
+    point = float(np.mean(values))
+    clusters = np.unique(query_clusters)
+    by_cluster = {cluster: values[query_clusters == cluster] for cluster in clusters}
+    rng = np.random.RandomState(seed)
+    samples = np.empty(n_resamples, dtype=np.float64)
+    for sample_idx in range(n_resamples):
+        selected = rng.choice(clusters, size=len(clusters), replace=True)
+        samples[sample_idx] = np.mean(np.concatenate([by_cluster[c] for c in selected]))
+    return point, float(np.percentile(samples, 2.5)), float(np.percentile(samples, 97.5))
 
 
-# ---------------------------------------------------------------------------
-# Scoring strategies
-# ---------------------------------------------------------------------------
-
-
-def survivor_scores(
-    pair_a: list[int],
-    pair_b: list[int],
-    bot_scores: np.ndarray,
-    dtw_scores: np.ndarray,
-    topk_neighbors: dict[int, set[int]],
-) -> np.ndarray:
-    """Survivors get DTW score; non-survivors get a sentinel below all DTW values.
-
-    This is the honest two-stage retriever: non-survivors are strictly ranked
-    last, so AP is capped by recall@k.
-    """
-    sentinel = float(dtw_scores.min()) - 1.0
-    scores = np.full_like(bot_scores, sentinel)
-    for i, (a, b) in enumerate(zip(pair_a, pair_b)):
-        if b in topk_neighbors.get(a, set()) or a in topk_neighbors.get(b, set()):
-            scores[i] = dtw_scores[i]
-    return scores
-
-
-def rrf_scores(
-    pair_a: list[int],
-    pair_b: list[int],
-    bot_scores: np.ndarray,
-    dtw_scores: np.ndarray,
-    topk_neighbors: dict[int, set[int]],
-    rrf_k: int = 60,
-) -> np.ndarray:
-    """Reciprocal Rank Fusion of BoT and DTW rankings.
-
-    All pairs get a BoT rank contribution.  Survivor pairs additionally get a
-    DTW rank contribution; non-survivors get only the BoT term.
-    """
-    n = len(bot_scores)
-    # Ranks: 0 = highest score.
-    bot_rank = np.empty(n, dtype=np.float64)
-    bot_rank[np.argsort(-bot_scores)] = np.arange(n)
-
-    dtw_rank = np.empty(n, dtype=np.float64)
-    dtw_rank[np.argsort(-dtw_scores)] = np.arange(n)
-
-    scores = 1.0 / (rrf_k + bot_rank)
-    for i, (a, b) in enumerate(zip(pair_a, pair_b)):
-        if b in topk_neighbors.get(a, set()) or a in topk_neighbors.get(b, set()):
-            scores[i] += 1.0 / (rrf_k + dtw_rank[i])
-    return scores
-
-
-def recall_at_k(
-    pair_a: list[int],
-    pair_b: list[int],
-    labels: np.ndarray,
-    topk_neighbors: dict[int, set[int]],
-) -> float:
-    """Fraction of positive pairs where at least one end survives the top-k."""
-    pos_idx = np.where(labels == 1)[0]
-    if len(pos_idx) == 0:
-        return float("nan")
-    hit = 0
-    for i in pos_idx:
-        a, b = pair_a[i], pair_b[i]
-        if b in topk_neighbors.get(a, set()) or a in topk_neighbors.get(b, set()):
-            hit += 1
-    return hit / len(pos_idx)
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="BoF->DTW reranker on HDD (prescriptive follow-up to §3.2)."
+def summarize(
+    values: list[float],
+    query_clusters: list[int],
+    n_resamples: int,
+    seed: int,
+) -> dict[str, float | list[float]]:
+    point, low, high = cluster_bootstrap_mean(
+        np.asarray(values), np.asarray(query_clusters), n_resamples, seed
     )
-    parser.add_argument("--hdd-dir", type=str, default="datasets/hdd")
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--context-sec", type=float, default=3.0)
+    return {"mean": point, "cluster_ci": [low, high]}
+
+
+def load_evaluation_segments(
+    hdd_dir: Path,
+    max_clusters: int,
+) -> tuple[list[ManeuverSegment], dict[int, list[int]], dict[int, int]]:
+    sessions = discover_sessions(hdd_dir)
+    all_segments: list[ManeuverSegment] = []
+    for session_id in tqdm(sorted(sessions), desc="Loading HDD metadata"):
+        info = sessions[session_id]
+        labels = np.load(info["label_path"])
+        try:
+            gps_ts, gps_lats, gps_lngs = load_gps(info["gps_path"])
+        except Exception:
+            continue
+        all_segments.extend(
+            extract_maneuver_segments(
+                session_id,
+                labels,
+                gps_ts,
+                gps_lats,
+                gps_lngs,
+                info["video_path"],
+                info["video_start_unix"],
+            )
+        )
+
+    mixed = filter_mixed_clusters(cluster_intersections(all_segments), max_clusters=max_clusters)
+    eval_segments: list[ManeuverSegment] = []
+    cluster_to_indices: dict[int, list[int]] = defaultdict(list)
+    segment_to_cluster: dict[int, int] = {}
+    for cluster_id, segments in mixed.items():
+        for segment in segments:
+            index = len(eval_segments)
+            eval_segments.append(segment)
+            cluster_to_indices[cluster_id].append(index)
+            segment_to_cluster[index] = cluster_id
+    return eval_segments, dict(cluster_to_indices), segment_to_cluster
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hdd-dir", default="datasets/hdd")
+    parser.add_argument("--device", default="cuda")
     parser.add_argument("--max-clusters", type=int, default=50)
-    parser.add_argument(
-        "--k-sweep",
-        type=int,
-        nargs="+",
-        default=[10, 25, 50, 100, 250, 500, 1000],
-        help="Top-k candidate budgets to sweep.",
-    )
+    parser.add_argument("--k-sweep", type=int, nargs="+", default=[10, 25, 50, 100, 250])
     parser.add_argument(
         "--feature-cache",
-        type=str,
-        default="datasets/vjepa2_hdd_encoder_features.pt",
-        help="Pre-extracted V-JEPA 2 encoder features (encoder_seq + mean_emb).",
+        default="datasets/hdd/vjepa2_encoder_features.pt",
+        help="Cache containing per-segment mean_emb and encoder_seq tensors.",
+    )
+    parser.add_argument("--n-bootstrap", type=int, default=2000)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--full-dtw",
+        action="store_true",
+        help="Also rank the full gallery by encoder-sequence DTW.",
+    )
+    parser.add_argument(
+        "--dtw-batch-size",
+        type=int,
+        default=256,
+        help="Candidate batch size for full-gallery DTW.",
     )
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent
     hdd_dir = project_root / args.hdd_dir
+    cache_path = project_root / args.feature_cache
     device = torch.device(args.device)
 
-    print("=" * 70)
-    print("BoF -> Encoder-Seq DTW RERANKER (HDD)")
-    print("=" * 70)
-
-    # -- Step 1: Rebuild the eval protocol from eval_hdd_encoder_seq.py --
-    print("\nStep 1: Loading sessions and segments...")
-    sessions = discover_sessions(hdd_dir)
-    all_segments: list[ManeuverSegment] = []
-    for sid in tqdm(sorted(sessions.keys()), desc="Loading sessions"):
-        info = sessions[sid]
-        labels_arr = np.load(info["label_path"])
-        try:
-            gps_ts, gps_lats, gps_lngs = load_gps(info["gps_path"])
-        except Exception:
-            continue
-        segs = extract_maneuver_segments(
-            sid, labels_arr, gps_ts, gps_lats, gps_lngs,
-            info["video_path"], info["video_start_unix"],
-        )
-        all_segments.extend(segs)
-
-    clusters = cluster_intersections(all_segments)
-    mixed = filter_mixed_clusters(clusters, max_clusters=args.max_clusters)
-
-    eval_segments: list[ManeuverSegment] = []
-    cluster_to_indices: dict[int, list[int]] = defaultdict(list)
-    for cid, segs in mixed.items():
-        for seg in segs:
-            idx = len(eval_segments)
-            eval_segments.append(seg)
-            cluster_to_indices[cid].append(idx)
-    n_segments = len(eval_segments)
-    print(f"  {n_segments} segments in {len(mixed)} mixed clusters")
-
-    # -- Step 2: Load cached V-JEPA 2 features --
-    cache_path = project_root / args.feature_cache
+    eval_segments, cluster_to_indices, segment_to_cluster = load_evaluation_segments(
+        hdd_dir, args.max_clusters
+    )
     if not cache_path.exists():
         raise FileNotFoundError(
-            f"Feature cache not found at {cache_path}. Run "
-            "eval_hdd_ordered_maxsim_vjepa2.py first to populate it."
+            f"Feature cache not found at {cache_path}; run eval_hdd_encoder_seq.py first"
         )
-    print(f"\nStep 2: Loading cached features from {cache_path.name}...")
-    ckpt = torch.load(cache_path, map_location="cpu", weights_only=True)
-    features: dict[int, dict] = ckpt["features"]
-    missing = [i for i in range(n_segments) if i not in features]
-    if missing:
-        print(
-            f"  WARNING: {len(missing)} segments missing from cache "
-            f"(first few: {missing[:5]}); they will be dropped."
+    cache = torch.load(cache_path, map_location="cpu", weights_only=True)
+    features: dict[int, dict] = cache["features"]
+    corpus_indices = [idx for idx in range(len(eval_segments)) if idx in features]
+    if len(corpus_indices) < 2:
+        raise ValueError("feature cache contains fewer than two evaluation segments")
+
+    dense_to_segment = corpus_indices
+    segment_to_dense = {segment: dense for dense, segment in enumerate(dense_to_segment)}
+    mean_embeddings = F.normalize(
+        torch.stack([features[idx]["mean_emb"] for idx in dense_to_segment]).to(device),
+        dim=-1,
+    )
+    bot_similarity = mean_embeddings @ mean_embeddings.T
+    bot_similarity.fill_diagonal_(-float("inf"))
+
+    max_k = min(max(args.k_sweep), len(corpus_indices) - 1)
+    top_scores, top_dense = torch.topk(bot_similarity, k=max_k, dim=1)
+    top_scores = top_scores.cpu().numpy()
+    top_dense = top_dense.cpu().numpy()
+
+    metric_values: dict[str, dict[int, dict[str, list[float]]]] = {
+        "bot": defaultdict(lambda: defaultdict(list)),
+        "dtw_rerank": defaultdict(lambda: defaultdict(list)),
+    }
+    query_clusters: list[int] = []
+    full_bot_ap: list[float] = []
+    full_bot_mrr: list[float] = []
+    full_dtw_ap: list[float] = []
+    full_dtw_mrr: list[float] = []
+    evaluated_queries: list[int] = []
+
+    for query_dense, query_segment in enumerate(tqdm(dense_to_segment, desc="Queries")):
+        query_cluster = segment_to_cluster[query_segment]
+        query_label = eval_segments[query_segment].label
+        relevant_segments = {
+            candidate
+            for candidate in cluster_to_indices[query_cluster]
+            if candidate != query_segment
+            and candidate in segment_to_dense
+            and eval_segments[candidate].label == query_label
+        }
+        if not relevant_segments:
+            continue
+
+        candidate_dense = top_dense[query_dense]
+        candidate_segments = np.asarray([dense_to_segment[idx] for idx in candidate_dense])
+        candidate_relevance = np.isin(candidate_segments, list(relevant_segments)).astype(np.int64)
+
+        query_sequence = features[query_segment]["encoder_seq"].to(device)
+        candidate_sequences = [
+            features[idx]["encoder_seq"].to(device) for idx in candidate_segments
+        ]
+        distances = (
+            dtw_distance_batch(
+                [query_sequence] * len(candidate_sequences),
+                candidate_sequences,
+                normalize=True,
+            )
+            .cpu()
+            .numpy()
         )
-    valid_idx = [i for i in range(n_segments) if i in features]
-    print(f"  Using {len(valid_idx)}/{n_segments} cached segments.")
 
-    # -- Step 3: Enumerate in-cluster pairs (same protocol as §3.2) --
-    print("\nStep 3: Enumerating in-cluster pairs...")
-    pair_a: list[int] = []
-    pair_b: list[int] = []
-    pair_gt: list[int] = []
-    for cid in sorted(cluster_to_indices.keys()):
-        indices = [i for i in cluster_to_indices[cid] if i in features]
-        for a in range(len(indices)):
-            for b in range(a + 1, len(indices)):
-                pair_a.append(indices[a])
-                pair_b.append(indices[b])
-                gt = 1 if eval_segments[indices[a]].label == eval_segments[indices[b]].label else 0
-                pair_gt.append(gt)
-    labels = np.array(pair_gt)
-    n_pairs = len(labels)
-    n_pos = int(labels.sum())
-    print(f"  {n_pairs} pairs (pos={n_pos}, neg={n_pairs - n_pos})")
+        all_order = torch.argsort(bot_similarity[query_dense], descending=True).cpu().numpy()
+        all_order = all_order[all_order != query_dense]
+        all_segments = [dense_to_segment[idx] for idx in all_order]
+        all_relevance = np.isin(all_segments, list(relevant_segments)).astype(np.int64)
+        full_bot_ap.append(truncated_average_precision(all_relevance, len(relevant_segments)))
+        full_bot_mrr.append(reciprocal_rank(all_relevance))
 
-    # -- Step 4: Compute baseline scores (BoT cosine, full DTW) --
-    print("\nStep 4: Computing baseline pairwise scores...")
-    # BoT cosine (already L2-normalized in cache).
-    mean_a = torch.stack([features[i]["mean_emb"] for i in pair_a]).to(device)
-    mean_b = torch.stack([features[i]["mean_emb"] for i in pair_b]).to(device)
-    bot_scores = (mean_a * mean_b).sum(dim=1).cpu().numpy()
+        if args.full_dtw:
+            full_distances = []
+            for start in range(0, len(all_segments), args.dtw_batch_size):
+                batch_segments = all_segments[start : start + args.dtw_batch_size]
+                batch_sequences = [
+                    features[idx]["encoder_seq"].to(device) for idx in batch_segments
+                ]
+                full_distances.append(
+                    dtw_distance_batch(
+                        [query_sequence] * len(batch_sequences),
+                        batch_sequences,
+                        normalize=True,
+                    ).cpu()
+                )
+            full_dtw_order = torch.argsort(torch.cat(full_distances)).numpy()
+            full_dtw_relevance = all_relevance[full_dtw_order]
+            full_dtw_ap.append(
+                truncated_average_precision(full_dtw_relevance, len(relevant_segments))
+            )
+            full_dtw_mrr.append(reciprocal_rank(full_dtw_relevance))
 
-    # Encoder-sequence DTW on all pairs (this is the full-DTW ceiling).
-    enc_seqs_a = [features[i]["encoder_seq"].to(device) for i in pair_a]
-    enc_seqs_b = [features[i]["encoder_seq"].to(device) for i in pair_b]
-    t0 = time.time()
-    enc_dists = dtw_distance_batch(enc_seqs_a, enc_seqs_b, normalize=True)
-    dtw_scores = torch.exp(-enc_dists).cpu().numpy()
-    print(f"  Full DTW over {n_pairs} pairs: {time.time() - t0:.1f}s")
+        for k_requested in sorted(set(args.k_sweep)):
+            k = min(k_requested, max_k)
+            bot_relevance = candidate_relevance[:k]
+            rerank_order = np.argsort(distances[:k])
+            reranked_relevance = bot_relevance[rerank_order]
 
-    # -- Step 5: Build corpus-wide BoT top-k neighbor sets --
-    print("\nStep 5: Building BoT top-k candidate sets over the full corpus...")
-    mean_embs_corpus = torch.stack(
-        [features[i]["mean_emb"] for i in range(n_segments) if i in features]
-    )
-    # Map: dense corpus row -> original segment index.
-    corpus_idx = [i for i in range(n_segments) if i in features]
-    corpus_to_dense = {seg_idx: dense for dense, seg_idx in enumerate(corpus_idx)}
+            for method, relevance in (("bot", bot_relevance), ("dtw_rerank", reranked_relevance)):
+                metric_values[method][k_requested]["ap"].append(
+                    truncated_average_precision(relevance, len(relevant_segments))
+                )
+                metric_values[method][k_requested]["recall"].append(
+                    float(relevance.sum() / len(relevant_segments))
+                )
+                metric_values[method][k_requested]["mrr"].append(reciprocal_rank(relevance))
 
-    mean_embs_corpus = mean_embs_corpus.to(device)
-    # Normalize in case cache wasn't strict (defensive).
-    mean_embs_corpus = F.normalize(mean_embs_corpus, dim=-1)
-    topk_dense = build_bot_topk(mean_embs_corpus, args.k_sweep)
+        query_clusters.append(query_cluster)
+        evaluated_queries.append(query_segment)
 
-    # Translate dense-index neighbor sets back to original segment indices.
-    topk_by_k: dict[int, dict[int, set[int]]] = {}
-    for k, neighbors_dense in topk_dense.items():
-        neighbors_seg: dict[int, set[int]] = {}
-        for q_dense, cand_set in neighbors_dense.items():
-            q_seg = corpus_idx[q_dense]
-            neighbors_seg[q_seg] = {corpus_idx[c] for c in cand_set}
-        topk_by_k[k] = neighbors_seg
-
-    # -- Step 6: Sweep k: composite AP / AUC / recall@k --
-    print("\n" + "=" * 70)
-    print("RESULTS")
-    print("=" * 70)
-
-    # Baselines first, for the table.
-    bot_ap, bot_lo, bot_hi = bootstrap_ap(bot_scores, labels)
-    bot_auc = roc_auc_score(labels, bot_scores)
-    dtw_ap, dtw_lo, dtw_hi = bootstrap_ap(dtw_scores, labels)
-    dtw_auc = roc_auc_score(labels, dtw_scores)
-    print(
-        f"  {'BoT only (k=1 floor)':<32s}"
-        f"  AP={bot_ap:.4f} [{bot_lo:.4f},{bot_hi:.4f}]  AUC={bot_auc:.4f}"
-    )
-    print(
-        f"  {'Full DTW (k=N ceiling)':<32s}"
-        f"  AP={dtw_ap:.4f} [{dtw_lo:.4f},{dtw_hi:.4f}]  AUC={dtw_auc:.4f}"
-    )
-    print()
+    if not evaluated_queries:
+        raise ValueError("no query has a relevant gallery item")
 
     results: dict[str, object] = {
-        "n_pairs": int(n_pairs),
-        "n_segments": int(len(valid_idx)),
-        "n_positives": int(n_pos),
-        "baselines": {
-            "bot_only": {
-                "ap": float(bot_ap),
-                "ap_ci": [float(bot_lo), float(bot_hi)],
-                "auc": float(bot_auc),
-            },
-            "full_encoder_seq_dtw": {
-                "ap": float(dtw_ap),
-                "ap_ci": [float(dtw_lo), float(dtw_hi)],
-                "auc": float(dtw_auc),
-            },
+        "protocol": {
+            "directional": True,
+            "gallery": "all cached HDD evaluation segments except the query",
+            "relevance": "same GPS cluster and same maneuver label",
+            "uncertainty": "intersection-cluster bootstrap over query metrics",
         },
-        "rerank_sweep": [],
+        "n_segments": len(corpus_indices),
+        "n_queries": len(evaluated_queries),
+        "n_clusters": len(set(query_clusters)),
+        "bot_full_gallery": {
+            "map": summarize(full_bot_ap, query_clusters, args.n_bootstrap, args.seed),
+            "mrr": summarize(full_bot_mrr, query_clusters, args.n_bootstrap, args.seed),
+        },
+        "k_sweep": {},
     }
 
-    for k in args.k_sweep:
-        neighbors = topk_by_k[k]
-        r_at_k = recall_at_k(pair_a, pair_b, labels, neighbors)
-        pos_idx = np.where(labels == 1)[0]
-        pos_overrides = sum(
-            1 for i in pos_idx
-            if pair_b[i] in neighbors.get(pair_a[i], set())
-            or pair_a[i] in neighbors.get(pair_b[i], set())
-        )
+    if args.full_dtw:
+        results["encoder_seq_dtw_full_gallery"] = {
+            "map": summarize(full_dtw_ap, query_clusters, args.n_bootstrap, args.seed),
+            "mrr": summarize(full_dtw_mrr, query_clusters, args.n_bootstrap, args.seed),
+        }
 
-        # Survivor-only scoring.
-        surv = survivor_scores(pair_a, pair_b, bot_scores, dtw_scores, neighbors)
-        surv_ap, surv_lo, surv_hi = bootstrap_ap(surv, labels)
-        surv_auc = roc_auc_score(labels, surv)
+    for k in sorted(set(args.k_sweep)):
+        k_result: dict[str, object] = {"dtw_ops_per_query": min(k, max_k)}
+        for method in ("bot", "dtw_rerank"):
+            k_result[method] = {
+                metric: summarize(values, query_clusters, args.n_bootstrap, args.seed)
+                for metric, values in metric_values[method][k].items()
+            }
+        results["k_sweep"][str(k)] = k_result  # type: ignore[index]
 
-        # RRF scoring.
-        rrf = rrf_scores(pair_a, pair_b, bot_scores, dtw_scores, neighbors)
-        rrf_ap, rrf_lo, rrf_hi = bootstrap_ap(rrf, labels)
-        rrf_auc = roc_auc_score(labels, rrf)
+    output_path = hdd_dir / "bof_dtw_directed_rerank_results.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as output_file:
+        json.dump(results, output_file, indent=2)
 
-        label = f"k={k:<4d}"
-        print(
-            f"  {label}  recall={r_at_k:.3f}  "
-            f"survivor AP={surv_ap:.4f} [{surv_lo:.4f},{surv_hi:.4f}]  "
-            f"RRF AP={rrf_ap:.4f} [{rrf_lo:.4f},{rrf_hi:.4f}]  "
-            f"(pos_rerank={pos_overrides}/{n_pos})"
-        )
-        results["rerank_sweep"].append({  # pyrefly: ignore [missing-attribute]
-            "k": int(k),
-            "recall_at_k": float(r_at_k),
-            "positives_reranked": int(pos_overrides),
-            "survivor": {
-                "ap": float(surv_ap),
-                "ap_ci": [float(surv_lo), float(surv_hi)],
-                "auc": float(surv_auc),
-            },
-            "rrf": {
-                "ap": float(rrf_ap),
-                "ap_ci": [float(rrf_lo), float(rrf_hi)],
-                "auc": float(rrf_auc),
-            },
-        })
-
-    # -- Step 7: Save --
-    out_path = hdd_dir / "bof_dtw_rerank_results.json"
-    with open(out_path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"\nResults saved to {out_path}")
+    print(json.dumps(results, indent=2))
+    print(f"Results saved to {output_path}")
 
 
 if __name__ == "__main__":
