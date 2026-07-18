@@ -167,39 +167,48 @@ def main():
 
     print(f"  {len(eval_segments)} segments in {len(mixed)} mixed clusters")
 
-    # Extract features
-    print("\nStep 2: Loading V-JEPA 2...")
-    # Resolve to local checkpoint if VTD_MODEL_DIR is set
-    import os
-
-    from transformers import AutoModel, AutoVideoProcessor
-
-    vjepa2_path = VJEPA2_MODEL_NAME
-    model_dir = os.environ.get("VTD_MODEL_DIR")
-    if model_dir:
-        local = Path(model_dir) / VJEPA2_MODEL_NAME.split("/")[-1]
-        if local.exists():
-            vjepa2_path = str(local)
-
-    model = AutoModel.from_pretrained(vjepa2_path, trust_remote_code=True).to(device).eval()
-    processor = AutoVideoProcessor.from_pretrained(vjepa2_path, trust_remote_code=True)
-
-    print("  Extracting features...")
-    t0 = time.time()
-    features = extract_vjepa2_all_features(
-        model, processor, eval_segments, device, args.context_sec
-    )
-    print(f"  Extraction: {time.time() - t0:.1f}s")
-
+    # Resolve feature-cache path up front so we can reuse it across runs.
     feature_cache = Path(args.feature_cache)
     if not feature_cache.is_absolute():
         feature_cache = project_root / feature_cache
-    feature_cache.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"features": features}, feature_cache)
-    print(f"  Feature cache saved to {feature_cache}")
 
-    del model, processor
-    torch.cuda.empty_cache()
+    if feature_cache.exists():
+        # Reuse cached features (keyed by segment index) instead of re-extracting.
+        # Extraction is deterministic for a fixed segment set, so this is exact,
+        # and pair enumeration below already skips any index missing from features.
+        print(f"\nStep 2: Loading cached V-JEPA 2 features from {feature_cache}")
+        features = torch.load(feature_cache, weights_only=False)["features"]
+        print(f"  Loaded {len(features)} cached features")
+    else:
+        print("\nStep 2: Loading V-JEPA 2...")
+        # Resolve to local checkpoint if VTD_MODEL_DIR is set
+        import os
+
+        from transformers import AutoModel, AutoVideoProcessor
+
+        vjepa2_path = VJEPA2_MODEL_NAME
+        model_dir = os.environ.get("VTD_MODEL_DIR")
+        if model_dir:
+            local = Path(model_dir) / VJEPA2_MODEL_NAME.split("/")[-1]
+            if local.exists():
+                vjepa2_path = str(local)
+
+        model = AutoModel.from_pretrained(vjepa2_path, trust_remote_code=True).to(device).eval()
+        processor = AutoVideoProcessor.from_pretrained(vjepa2_path, trust_remote_code=True)
+
+        print("  Extracting features...")
+        t0 = time.time()
+        features = extract_vjepa2_all_features(
+            model, processor, eval_segments, device, args.context_sec
+        )
+        print(f"  Extraction: {time.time() - t0:.1f}s")
+
+        feature_cache.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"features": features}, feature_cache)
+        print(f"  Feature cache saved to {feature_cache}")
+
+        del model, processor
+        torch.cuda.empty_cache()
 
     # Enumerate pairs
     print("\nStep 3: Computing pairwise similarities...")
