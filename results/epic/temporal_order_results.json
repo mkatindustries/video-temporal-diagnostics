@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "vlm_family": null,
+    "vlm_model": null,
+    "vlm_num_frames": 16,
+    "n_sequences": 500,
+    "n_videos": 19,
+    "duration_range": [
+      6,
+      15
+    ],
+    "fps": 3.0,
+    "date": "2026-07-18 17:54",
+    "device": "cuda",
+    "elapsed_sec": 18889.2,
+    "skip_vjepa2": false,
+    "vision_token_probe": false,
+    "causality_prompts": [
+      "Analyze the physics, motion, and causality in this video. Is this video playing FORWARD normally, or is it playing in REVERSE (backwards)? Answer with a single word: either FORWARD or REVERSE.",
+      "Is this video playing forward or in reverse? Answer FORWARD or REVERSE.",
+      "Watch the actions in this video carefully. Are events happening in their natural chronological order, or is the video reversed? Answer FORWARD or REVERSE."
+    ],
+    "integrity_prompt": "Is this video temporally intact (normal chronological order), or has it been temporally manipulated (reversed or scrambled)? Answer with one word: INTACT or TAMPERED.",
+    "prompts_file": null
+  },
+  "order_sensitivity": {
+    "bag_of_frames": {
+      "s_rev_mean": 1.0,
+      "s_rev_ci": [
+        1.0,
+        1.0
+      ],
+      "comparator": "cosine"
+    },
+    "chamfer": {
+      "s_rev_mean": 0.9999,
+      "s_rev_ci": [
+        0.9999,
+        0.9999
+      ],
+      "comparator": "chamfer"
+    },
+    "temporal_derivative": {
+      "s_rev_mean": 0.4997,
+      "s_rev_ci": [
+        0.499,
+        0.5004
+      ],
+      "comparator": "dtw"
+    },
+    "attention_trajectory": {
+      "s_rev_mean": 0.192,
+      "s_rev_ci": [
+        0.1868,
+        0.1974
+      ],
+      "comparator": "dtw"
+    },
+    "vjepa2_bag_of_tokens": {
+      "s_rev_mean": 0.9835,
+      "s_rev_ci": [
+        0.9824,
+        0.9844
+      ],
+      "comparator": "cosine"
+    },
+    "vjepa2_temporal_residual": {
+      "s_rev_mean": 0.0033,
+      "s_rev_ci": [
+        0.0031,
+        0.0034
+      ],
+      "comparator": "dtw"
+    }
+  },
+  "retrieval": {
+    "bag_of_frames": {
+      "ap": 1.0,
+      "auc": 1.0
+    },
+    "temporal_derivative": {
+      "ap": 0.3649,
+      "auc": 0.9842
+    },
+    "attention_trajectory": {
+      "ap": 0.0052,
+      "auc": 0.5575
+    },
+    "vjepa2_bag_of_tokens": {
+      "ap": 0.7345,
+      "auc": 0.9994
+    },
+    "vjepa2_temporal_residual": {
+      "ap": 0.0582,
+      "auc": 0.7108
+    }
+  }
+}

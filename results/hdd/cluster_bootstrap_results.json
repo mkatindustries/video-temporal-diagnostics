@@ -1,0 +1,81 @@
+{
+  "marginal_intervals": {
+    "bot_cosine": {
+      "ap": 0.8245766194217132,
+      "pair_ci": [
+        0.821366991089522,
+        0.827848964523389
+      ],
+      "pair_width": 0.006481973433866917,
+      "cluster_ci": [
+        0.7674156833624438,
+        0.8905009222618601
+      ],
+      "cluster_width": 0.12308523889941625,
+      "width_ratio": 18.988852724437645
+    },
+    "encoder_seq_dtw": {
+      "ap": 0.9415774012808162,
+      "pair_ci": [
+        0.9400193121399048,
+        0.9431634312527394
+      ],
+      "pair_width": 0.0031441191128346313,
+      "cluster_ci": [
+        0.869341033133346,
+        0.9660892858799638
+      ],
+      "cluster_width": 0.0967482527466178,
+      "width_ratio": 30.771179231626775
+    },
+    "temporal_residual_dtw": {
+      "ap": 0.9562205981988992,
+      "pair_ci": [
+        0.954873982423202,
+        0.9576260174849889
+      ],
+      "pair_width": 0.002752035061786895,
+      "cluster_ci": [
+        0.8895799194057116,
+        0.977569677356567
+      ],
+      "cluster_width": 0.0879897579508554,
+      "width_ratio": 31.972615164911343
+    }
+  },
+  "paired_differences": {
+    "encoder_seq_dtw_minus_bot_cosine": {
+      "ap_a": 0.9415774012808162,
+      "ap_b": 0.8245766194217132,
+      "difference_a_minus_b": 0.11700078185910301,
+      "ci": [
+        0.04426783754712349,
+        0.12741220338121872
+      ],
+      "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 50
+    },
+    "temporal_residual_dtw_minus_encoder_seq_dtw": {
+      "ap_a": 0.9562205981988992,
+      "ap_b": 0.9415774012808162,
+      "difference_a_minus_b": 0.014643196918082912,
+      "ci": [
+        0.00037945621535553367,
+        0.03379397679068799
+      ],
+      "bootstrap_probability_a_gt_b": 0.9775,
+      "n_clusters": 50
+    },
+    "temporal_residual_dtw_minus_bot_cosine": {
+      "ap_a": 0.9562205981988992,
+      "ap_b": 0.8245766194217132,
+      "difference_a_minus_b": 0.13164397877718592,
+      "ci": [
+        0.04805966496261319,
+        0.14859960700347133
+      ],
+      "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 50
+    }
+  }
+}

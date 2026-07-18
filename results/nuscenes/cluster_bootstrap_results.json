@@ -1,0 +1,95 @@
+{
+  "marginal_intervals": {
+    "bag_of_frames": {
+      "ap": 0.6130718333454248,
+      "cluster_ci": [
+        0.5494694418107618,
+        0.6916450238740197
+      ],
+      "n_clusters": 50
+    },
+    "chamfer": {
+      "ap": 0.6123971631726759,
+      "cluster_ci": [
+        0.5492711946417097,
+        0.6880031691873477
+      ],
+      "n_clusters": 50
+    },
+    "temporal_derivative": {
+      "ap": 0.623031180512825,
+      "cluster_ci": [
+        0.5528547621908725,
+        0.7151979195037655
+      ],
+      "n_clusters": 50
+    },
+    "attention_trajectory": {
+      "ap": 0.584259583710141,
+      "cluster_ci": [
+        0.5204795100978007,
+        0.6652446902613959
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_bag_of_tokens": {
+      "ap": 0.7913818145617917,
+      "cluster_ci": [
+        0.7287894032686362,
+        0.8609338269033122
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_encoder_seq_dtw": {
+      "ap": 0.8667430111699571,
+      "cluster_ci": [
+        0.8319103691494105,
+        0.9058706456709229
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual": {
+      "ap": 0.8151706828524619,
+      "cluster_ci": [
+        0.7820544216075781,
+        0.8560384995140803
+      ],
+      "n_clusters": 50
+    }
+  },
+  "paired_differences": {
+    "vjepa2_encoder_seq_dtw_minus_vjepa2_bag_of_tokens": {
+      "ap_a": 0.8667430111699571,
+      "ap_b": 0.7913818145617917,
+      "difference_a_minus_b": 0.07536119660816543,
+      "ci": [
+        0.028492066852728756,
+        0.12806716591958717
+      ],
+      "bootstrap_probability_a_gt_b": 0.999,
+      "n_clusters": 50
+    },
+    "vjepa2_encoder_seq_dtw_minus_vjepa2_temporal_residual": {
+      "ap_a": 0.8667430111699571,
+      "ap_b": 0.8151706828524619,
+      "difference_a_minus_b": 0.05157232831749525,
+      "ci": [
+        0.036496600953638804,
+        0.06365543785588927
+      ],
+      "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual_minus_vjepa2_bag_of_tokens": {
+      "ap_a": 0.8151706828524619,
+      "ap_b": 0.7913818145617917,
+      "difference_a_minus_b": 0.023788868290670173,
+      "ci": [
+        -0.03116700014424103,
+        0.09025155302094631
+      ],
+      "bootstrap_probability_a_gt_b": 0.774,
+      "n_clusters": 50
+    }
+  }
+}
