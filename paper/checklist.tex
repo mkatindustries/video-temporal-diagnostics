@@ -5,7 +5,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract distinguishes exact invariance of fixed independently encoded elements from empirical behavior of contextual representations, identifies pair-classification results as diagnostics, and avoids causal attribution. Results invalidated by implementation or protocol changes are marked pending rerun.
+    \item[] Justification: The abstract distinguishes exact invariance of fixed independently encoded elements from empirical behavior of contextual representations, identifies pair-classification results as diagnostics, and avoids causal attribution. It also reports that the corrected global HDD retrieval result reverses the conditional pair-diagnostic ranking.
 
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
@@ -19,8 +19,8 @@
 
     \item {\bf Experimental result reproducibility}
     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
-    \item[] Answer: \answerNo{}
-    \item[] Justification: The code and guide specify the current protocols, but corrected scramble, EPIC residual, paired-bootstrap, and directed-reranking results are pending. Exact feature caches and a locked environment are not included. This answer should be revisited after the documented cluster jobs complete.
+    \item[] Answer: \answerYes{}
+    \item[] Justification: The code, frozen-model revisions, dataset versions, pair construction, evaluation parameters, corrected SLURM jobs, compact result summaries, and artifact provenance are supplied. Feature caches and licensed datasets are not redistributed, but the guide documents how to regenerate the caches from the specified source data and model revisions.
 
 \item {\bf Open access to data and code}
     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
@@ -35,7 +35,7 @@
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: Existing pair-resampling intervals are now labeled descriptive because pairs share clips. HDD and nuScenes require paired cluster-bootstrap contrasts, and analogous independent-unit analyses are not yet available for every benchmark. Prompt standard deviations measure prompt sensitivity, not sampling uncertainty.
+    \item[] Justification: Pair-resampling intervals are labeled descriptive because pairs share clips. The main HDD and nuScenes method comparisons use paired intersection-cluster bootstrap contrasts, and the VCDB scramble uses variation over 10 seeds. Analogous independent-unit analyses are not available for VCDB pair AP, Nymeria, MUVR, or SSv2, so the paper avoids inferential claims for those comparisons. Prompt standard deviations measure prompt sensitivity, not sampling uncertainty.
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?

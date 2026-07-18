@@ -52,10 +52,12 @@ comparator-specific reversal score $s_\text{rev}$, and a controlled feature--com
 factorial. Across seven benchmarks and three open-weight VLMs, the diagnostics distinguish
 exact permutation invariance of independently encoded frame sets from empirical
 near-invariance of contextual representations. On Honda HDD, replacing pooled cosine by
-per-frame dynamic time warping descriptively closes 89\% of the pair-classification AP gap between a
-V-JEPA~2 bag-of-tokens baseline and its temporal residual; nuScenes supports the same
-qualitative conclusion, while Something-Something V2 favors a different representation
-and comparator. VLM results are readout- and prompt-dependent: sequence comparisons expose
+per-frame dynamic time warping closes 89\% of the observed pair-classification AP gap between a
+V-JEPA~2 bag-of-tokens baseline and its temporal residual, with a paired cluster-bootstrap
+difference of $+0.117$ [0.044, 0.127]. However, the ranking reverses in corrected global
+retrieval (DTW 0.177 vs. bag-of-tokens 0.256 mAP). nuScenes supports the conditional pair
+contrast, while Something-Something V2 favors a different representation and comparator.
+VLM results are readout- and prompt-dependent: sequence comparisons expose
 forward/reverse changes that pooling suppresses, direct direction prompts are weak, and
 an integrity prompt can classify the same clips well. We consolidate the observed failure
 modes into a taxonomy and executable protocol, and release a toolkit implementing all
@@ -152,14 +154,12 @@ BoF and Chamfer yield zero AP delta under reversal. Only attention-trajectory DT
 
 \begin{figure}[ht]
     \centering
-    \fbox{\parbox{0.82\textwidth}{\centering\vspace{1.2em}
-    Corrected balanced-chunk scramble results pending cluster rerun.
-    \vspace{1.2em}}}
-    \caption{Temporal Scramble Gradient on VCDB. This figure will be regenerated with near-equal chunk partitions; the original implementation produced an oversized tail chunk when $T$ was not divisible by $K$ (Appendix~\ref{sec:scramble_data}).}
+    \includegraphics[width=0.9\textwidth]{../figures/vcdb_scramble_gradient_errorbars.png}
+    \caption{Corrected temporal scramble gradient on VCDB using near-equal chunks and 10 shuffle seeds per $K$. BoF, Chamfer, and V-JEPA~2 BoT remain flat; sequence comparators decline, with standard deviation at most 0.0101 (Appendix~\ref{sec:scramble_data}).}
     \label{fig:scramble_gradient}
 \end{figure}
 
-The corrected implementation uses near-equal chunks and reports multi-seed uncertainty. We defer numerical interpretation until that run is complete; the previous single-seed curve used an unbalanced tail partition and is not evidence for a quantitative ranking.
+With the corrected partitions, exact fixed-set comparators remain flat: BoF stays at AP\,=\,0.979 and Chamfer at 0.989, while contextual BoT is empirically flat at 0.837. Attention-trajectory AP falls from 0.700 to 0.575 and temporal-derivative AP from 0.775 to 0.726. The V-JEPA~2 residual drops sharply after the first shuffle and ends at 0.633, but is non-monotonic across intermediate $K$; the diagnostic detects sensitivity without supporting a monotonic-severity claim.
 
 \subsection{High-Overlap Motion: Honda HDD \& nuScenes}
 \label{sec:motion}
@@ -204,21 +204,24 @@ PL-Stitch DTW (raw emb.) & 0.540 & 0.548 \\
 
 DINOv3 methods are near chance under this protocol. V-JEPA~2 temporal residuals achieve AP\,=\,0.956; a pixel-difference motion proxy has Spearman $r = 0.051$ (Appendix~\ref{sec:hdd_leakage}), and optical flow (RAFT) achieves AP\,=\,0.478. These controls make a simple intensity explanation unlikely but do not identify the mechanism. Restricting to left-vs-right pairs yields AP\,=\,0.960 [0.958, 0.963] under pair resampling.
 
-Encoder-sequence DTW reaches AP\,=\,0.942. Descriptively, the switch from pooled cosine to per-frame DTW closes 89\% of the observed BoT-to-residual AP gap (0.825$\to$0.956). Cluster-level CIs are 7--32$\times$ wider than pair-level intervals (Appendix~\ref{sec:bootstrap_cis}); formal method comparisons require a paired cluster bootstrap, which we report with the corrected run. Symmetric-max aggregation~\cite{kordopatis2019visil} on the same encoder-sequence patches reaches AP\,=\,0.914. Comparing these observed point estimates, Chamfer closes 76\% of the BoT$\to$encoder-sequence-DTW gap; this contrast does not uniquely attribute the remainder to DTW's monotonicity because the comparators differ in more than that constraint.
+Encoder-sequence DTW reaches AP\,=\,0.942. Descriptively, the switch from pooled cosine to per-frame DTW closes 89\% of the observed BoT-to-residual AP gap (0.825$\to$0.956). A paired intersection-cluster bootstrap estimates encoder-sequence DTW minus BoT at $+0.117$ [0.044, 0.127]; residual DTW minus encoder-sequence DTW is $+0.015$ [0.0004, 0.034] (Appendix~\ref{sec:bootstrap_cis}). Symmetric-max aggregation~\cite{kordopatis2019visil} on the same encoder-sequence patches reaches AP\,=\,0.914. Comparing these observed point estimates, Chamfer closes 76\% of the BoT$\to$encoder-sequence-DTW gap; this contrast does not uniquely attribute the remainder to DTW's monotonicity because the comparators differ in more than that constraint.
 
-\textbf{Diagnostic-protocol stress test: does the decomposition compose into a fast retriever?} We evaluate an indexable BoT first stage followed by encoder-sequence-DTW reranking. The corrected protocol is directed and query-wise: every cached HDD segment is a gallery candidate; relevance requires the same GPS cluster and maneuver label; candidates outside the query's cluster remain negatives; and truncated AP@$k$ is normalized by the query's total number of relevant items, so it is bounded by recall@$k$. The previous unordered-pair experiment admitted a pair when either endpoint survived and omitted out-of-cluster negatives, so its AP values are withdrawn. Corrected query-macro AP, recall, and MRR are pending the cluster run (Appendix~\ref{sec:rerank_appendix}).
+\textbf{Diagnostic-protocol stress test: does the decomposition compose into a fast retriever?} We evaluate an indexable BoT first stage followed by encoder-sequence-DTW reranking. The corrected protocol is directed and query-wise: every cached HDD segment is a gallery candidate; relevance requires the same GPS cluster and maneuver label; candidates outside the query's cluster remain negatives; and truncated AP@$k$ is normalized by the query's total number of relevant items. The result reverses the conditional pair ranking: full-gallery BoT reaches macro AP\,=\,0.256, while full-gallery encoder-sequence DTW reaches 0.177. At every $k$, DTW reranking reduces both AP and MRR relative to BoT on the same candidate set (Table~\ref{tab:rerank_hdd}; Appendix~\ref{sec:rerank_appendix}). Thus strong discrimination \emph{within a known intersection} does not imply global retrieval once out-of-intersection negatives are restored.
 
 \begin{table}[ht]
 \centering
-\caption{Corrected directed BoT$\to$DTW reranking protocol on HDD. Numerical results are pending rerun.}
+\caption{Corrected directed HDD retrieval (1{,}673 eligible queries, 50 clusters). Intervals are reported in Appendix~\ref{sec:rerank_appendix}.}
 \label{tab:rerank_hdd}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Method} & \textbf{macro AP} & \textbf{recall@$k$} & \textbf{MRR} \\
 \midrule
-V-JEPA~2 BoT only & \multicolumn{3}{c}{\emph{pending corrected run}} \\
-\; + DTW rerank, $k\!\in\!\{10,25,50,100,250\}$ & \multicolumn{3}{c}{\emph{pending corrected run}} \\
-V-JEPA~2 Encoder-Seq DTW (full) & \multicolumn{3}{c}{\emph{pending corrected run}} \\
+BoT, full gallery & 0.256 & 1.000 & 0.766 \\
+Encoder-Seq DTW, full gallery & 0.177 & 1.000 & 0.640 \\
+BoT@$100$ & 0.196 & 0.445 & 0.765 \\
+\; + DTW rerank@$100$ & 0.144 & 0.445 & 0.657 \\
+BoT@$250$ & 0.223 & 0.651 & 0.766 \\
+\; + DTW rerank@$250$ & 0.156 & 0.651 & 0.645 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -228,23 +231,23 @@ TARA~\cite{tara}, a 7B MLLM trained with chiral negatives, has AP\,=\,0.547 unde
 \subsubsection{Sampling Density: Context Window Sweep}
 \label{sec:context_sweep}
 
-We fix the backbone and pair set on HDD and sweep context padding $c \in \{1.0, \ldots, 8.0\}$ seconds before and after each maneuver, always extracting 64 unique frames. The actual clip duration is the maneuver duration plus $2c$, so $c$ is not itself the clip duration or the denominator of an exact effective-frame-rate calculation. V-JEPA~2 temporal residual degrades more slowly than BoT as context widens; the observed residual-vs-BoT gap grows from $+0.038$ at $c\!=\!1$\,s to $+0.224$ at $c\!=\!8$\,s (Appendix~\ref{sec:context_sweep_table}, Figure~\ref{fig:context_sweep}).
+We fix the backbone and pair set on HDD and sweep context padding $c \in \{1.0, \ldots, 8.0\}$ seconds before and after each maneuver, always extracting 64 unique frames. The actual clip duration is the maneuver duration plus $2c$, so $c$ is not itself the clip duration or the denominator of an exact effective-frame-rate calculation. V-JEPA~2 temporal residual degrades more slowly than BoT as context widens; the observed residual-vs-BoT gap grows from $+0.038$ at $c\!=\!1$\,s to $+0.224$ at $c\!=\!8$\,s (Appendix~\ref{sec:context_sweep_table}).
 
 \subsubsection{Cross-Dataset Validation: nuScenes}
 \label{sec:nuscenes}
 
 To test whether the ranking transfers, we evaluate on nuScenes~\cite{nuscenes}. Turn labels come from CAN bus, and intersections are clustered via DBSCAN ($\epsilon\!=\!30$m), yielding 264 segments across 50 mixed-direction clusters (950 pairs).
 
-The point-estimate ranking is directionally consistent with a comparator effect (Table~\ref{tab:summary_encoders}). V-JEPA~2 encoder-sequence DTW reaches AP\,=\,0.867, ahead of the temporal residual (0.815) and BoT (0.791), while DINOv3 methods are at $\leq$0.623. The reported marginal intervals overlap for the top two ([0.842,\,0.890] vs.\ [0.785,\,0.844]; Appendix~\ref{sec:bootstrap_cis}) and do not test paired method differences. We therefore treat both the residual--DTW ordering and the BoT contrast as descriptive until paired cluster-bootstrap results are available. Differences in native sampling are one possible explanation, not an identified cause.
+V-JEPA~2 encoder-sequence DTW reaches AP\,=\,0.867, ahead of the temporal residual (0.815) and BoT (0.791), while DINOv3 methods are at $\leq$0.623. Paired intersection-cluster bootstrap differences support encoder-sequence DTW over BoT ($+0.075$ [0.029, 0.128]) and over the residual ($+0.052$ [0.036, 0.064]). The residual--BoT contrast is less certain ($+0.024$ [$-0.031$, 0.090]). Differences in native sampling are one possible explanation, not an identified cause.
 
 \subsubsection{Cross-Domain Validation: Something-Something V2}
 \label{sec:ssv2}
 
 Something-Something V2~\cite{ssv2} is a non-driving cross-domain test: tabletop manipulation with chiral template pairs (Section~\ref{sec:methods}; 400 clips, four pairs, 50 per template). DINOv3 attention-trajectory DTW achieves AP\,=\,0.720, the strongest result; V-JEPA~2 temporal residual (0.556) and BoT (0.555) show only modest transfer from ego-motion driving, and all DINOv3 pooled methods sit at chance (AP\,=\,0.500). The split (attention trajectories on tabletop scenes vs.\ residuals on driving) is interpreted alongside HDD and nuScenes in Section~\ref{sec:discussion}.
 
-\subsection{VLM Temporal Blindness (EPIC-Kitchens)}
+\subsection{VLM Prompt and Readout Dependence (EPIC-Kitchens)}
 
-Prior work documents temporal blindness in VLMs for generative QA~\cite{tomato,temporalbench,tempcompass,infact,videozerobench}. We extend this to \emph{retrieval embeddings}, probing where temporal signal dies. We evaluate three VLMs on 500 EPIC-Kitchens-100~\cite{epickitchens} sequences: Qwen3-VL-8B, Gemma-4-31B, and LLaVA-Video-7B (preliminary VCDB results in Appendix~\ref{sec:qwen_vcdb} confirm the qualitative pattern).
+Prior work documents weak temporal performance in VLM generative QA~\cite{tomato,temporalbench,tempcompass,infact,videozerobench}. We extend the analysis to \emph{retrieval embeddings} and compare readouts rather than assuming signal absence. We evaluate three VLMs on 500 EPIC-Kitchens-100~\cite{epickitchens} sequences: Qwen3-VL-8B, Gemma-4-31B, and LLaVA-Video-7B (preliminary VCDB results appear in Appendix~\ref{sec:qwen_vcdb}).
 
 \subsubsection{Generative Probes}
 \label{sec:vlm_generative}
@@ -271,7 +274,7 @@ Gemini 3.1 Pro & 0.585 & 0.608 & 0.603 & $0.599 \pm 0.010$ \\
 
 Under these direct prompts, the open-weight models are near chance and Gemini~3.1 Pro~\cite{gemini31pro} reaches $0.599 \pm 0.010$. This is not evidence that the outputs contain no temporal information: an intact-vs.-tampered integrity prompt on the same clips reaches balanced accuracy 0.879 for Qwen3-VL and 0.845 for Gemma-4 (Appendix~\ref{sec:integrity_probe}). Together with strong answer-prior changes across prompt phrasings (Appendix~\ref{sec:prompt_details}), the result demonstrates prompt- and readout-dependence.
 
-\subsubsection{Embedding Probes: Where Temporal Signal Dies}
+\subsubsection{Embedding Probes Across Readouts}
 \label{sec:vlm_embedding}
 
 Direct direction prompts are weak. We next probe how forward/reverse changes appear under fixed comparisons of internal representations.
@@ -291,8 +294,8 @@ Direct direction prompts are weak. We next probe how forward/reverse changes app
 \quad Attention Trajectory & 0.192 [0.187, 0.197] \\
 \midrule
 \multicolumn{2}{l}{\emph{V-JEPA 2}} \\
-\quad BoT & 0.984 \\
-\quad Temporal Residual & \emph{rerun with sequence DTW} \\
+\quad BoT (cosine) & 0.9835 [0.9824, 0.9844] \\
+\quad Temporal Residual (DTW) & 0.0033 [0.0031, 0.0034] \\
 \midrule
 \multicolumn{2}{l}{\emph{VLM vision towers (pooled)}} \\
 \quad Gemma-4 (SigLIP) & 1.000$^\dagger$ \\
@@ -309,11 +312,11 @@ Direct direction prompts are weak. We next probe how forward/reverse changes app
 \bottomrule
 \end{tabular}
 \begin{flushleft}
-\small $^*$DINOv3 300M params, CLIP (ViT-L) 304M, SigLIP (SO-400M) 400M. Order-invariance follows from the aggregation operator~\cite{deepsets}, not model capacity. $^\dagger$Raw values 1.001--1.002 from f32 precision; clamped to 1.000. We omit Qwen3-VL vision probes from this table because its ViT uses dynamic-resolution spatial grids with 3D temporal--spatial merging, which disrupts clean per-frame token grouping for the detailed $s_\text{rev}$ analysis; the mechanism behind its anomalously low pooled VCDB AP (0.491 vs.\ 0.915--0.926 for CLIP/SigLIP; Table~\ref{tab:summary_vlm}) warrants further investigation. Approximate pooled and sequence results appear in Table~\ref{tab:summary_vlm}. The LLM hidden-state probe (below) is unaffected.
+\small $^*$DINOv3 300M params, CLIP (ViT-L) 304M, SigLIP (SO-400M) 400M. Exact invariance follows only when a symmetric comparator receives fixed independently encoded elements; pooled contextual values are empirical. $^\dagger$Raw values 1.001--1.002 from f32 precision; clamped to 1.000. We omit Qwen3-VL vision probes from this table because its ViT uses dynamic-resolution spatial grids with 3D temporal--spatial merging, which disrupts clean per-frame token grouping for the detailed $s_\text{rev}$ analysis; approximate pooled and sequence results appear in Table~\ref{tab:summary_vlm}. The LLM hidden-state probe is unaffected.
 \end{flushleft}
 \end{table}
 
-\textbf{Sequence comparisons expose changes that pooling suppresses.} Pooled VLM vision embeddings have cosine $s_\text{rev} \approx 1.0$, while retaining per-frame tokens and comparing their derivatives via DTW gives substantially lower values on that comparator's separate scale. Mean-pooled LLM readouts similarly have $s_\text{rev} \approx 1.0$ across layers (Appendix~\ref{sec:layer_ablation}), while per-position hidden states change enough for sequence DTW to detect (Appendix~\ref{sec:vision_token_probe}). The current fixed-dimensional learned probes do not provide reliable evidence of direction decoding (best observed accuracy 0.560 across many configurations; Appendix~\ref{sec:linear_probe}), but this exploratory multiple-comparison result is not a proof of absence.
+\textbf{Sequence comparisons expose changes that pooling suppresses.} Pooled VLM vision embeddings have cosine $s_\text{rev} \approx 1.0$, while retaining per-frame tokens and comparing their derivatives via DTW gives substantially lower values on that comparator's separate scale. V-JEPA~2 shows the same readout dependence particularly strongly: BoT cosine is 0.9835, whereas temporal-residual DTW is 0.0033. Mean-pooled LLM readouts similarly have $s_\text{rev} \approx 1.0$ across layers (Appendix~\ref{sec:layer_ablation}), while per-position hidden states change enough for sequence DTW to detect (Appendix~\ref{sec:vision_token_probe}). The current fixed-dimensional learned probes do not provide reliable evidence of direction decoding (best observed accuracy 0.560 across many configurations; Appendix~\ref{sec:linear_probe}), but this exploratory multiple-comparison result is not a proof of absence.
 
 \subsection{Cross-Method Summary}
 
@@ -335,11 +338,11 @@ Full cross-method comparisons across the seven benchmarks are in Appendix~\ref{s
 
 \textbf{Scene matching} (VCDB, Nymeria, MUVR). BoF wins; temporal methods add noise (Appendix~\ref{sec:scene_matching}). Order-invariance is a feature here, not a bug.
 
-\textbf{Motion dynamics} (HDD, nuScenes, SSv2). The best observed representation--comparator combination is domain-dependent: V-JEPA~2 variants have the strongest HDD and nuScenes point estimates, while attention trajectories lead on the selected SSv2 split. Temporal-training controls (TARA~\cite{tara}, PL-Stitch~\cite{plstitch}, ViCLIP~\cite{viclip}, X-CLIP~\cite{xclip}) do not lead these particular evaluations, but the evidence does not support a universal comparator ranking.
+\textbf{Motion dynamics} (HDD, nuScenes, SSv2). The best observed representation--comparator combination is domain-dependent: V-JEPA~2 variants have the strongest HDD and nuScenes conditional pair results, while attention trajectories lead on the selected SSv2 split. Paired cluster contrasts support encoder-sequence DTW over BoT on both driving datasets. However, the corrected global HDD gallery reverses that ranking, showing that conditional pair discrimination and end-to-end retrieval test different capabilities. Temporal-training controls (TARA~\cite{tara}, PL-Stitch~\cite{plstitch}, ViCLIP~\cite{viclip}, X-CLIP~\cite{xclip}) do not lead these evaluations.
 
 \textbf{Temporal manipulation} (reversal, scrambling). Exact invariance applies to fixed independently encoded frame sets under symmetric comparison. Contextual video encoders and VLMs instead show probe-dependent sensitivity: sequence comparisons detect changes, direct direction prompts are weak, and integrity prompts are substantially stronger. These outcomes should not be collapsed into one cross-comparator $s_\text{rev}$ ranking.
 
-\textbf{Architecture implications.} Symmetric aggregation over independently encoded elements guarantees invariance; contextual encoding can retain temporal effects before pooling. Indexable order-sensitive retrieval may therefore require permutation-sensitive pooling, trajectory tokenization, or motion-aware first-stage descriptors (Section~\ref{sec:motion}).
+\textbf{Architecture implications.} Symmetric aggregation over independently encoded elements guarantees invariance; contextual encoding can retain temporal effects before pooling. The HDD query-wise result also shows that replacing the comparator after an appearance-based candidate stage is insufficient: the temporal score must retain global location discrimination or be fused with the first-stage score under a validated ranking rule.
 
 \textbf{World model implications.} V-JEPA~2's results are consistent with its predictive objective~\cite{lecun_worldmodel,vjepa2}, but these experiments do not isolate that objective as the cause. Concurrent interpretability~\cite{joseph2026physics} localizes physics representations to an intermediate-depth V-JEPA~2 transition with distributed directional encoding, consistent with temporal effects surviving in the backbone but requiring task-specific readouts.
 
@@ -359,7 +362,7 @@ Full cross-method comparisons across the seven benchmarks are in Appendix~\ref{s
 
 \section{Conclusion}
 
-We introduced executable diagnostics for locating temporal sensitivity in video-retrieval pipelines. Exact invariance is confined to symmetric comparisons of fixed element representations; contextual encoders, comparator choice, prompt, and readout all affect the empirical outcome. The strongest observed representation--comparator combination is domain-dependent, and the current pair-classification results do not automatically imply an effective end-to-end retriever. A corrected directed reranking evaluation and paired group-level uncertainty estimates are therefore part of the required validation.\footnote{Toolkit code: \url{https://anonymous.4open.science/r/video-temporal-diagnostics-F450}.}
+We introduced executable diagnostics for locating temporal sensitivity in video-retrieval pipelines. Exact invariance is confined to symmetric comparisons of fixed element representations; contextual encoders, comparator choice, prompt, and readout all affect the empirical outcome. Paired cluster contrasts support comparator effects on the conditional HDD and nuScenes pair tasks, while corrected directed retrieval shows that the same DTW score underperforms BoT in a global gallery. Temporal sensitivity is therefore necessary for some motion queries but not sufficient for retrieval: evaluation must test both the intended conditional distinction and the full candidate distribution.\footnote{Toolkit code: \url{https://anonymous.4open.science/r/video-temporal-diagnostics-F450}.}
 
 \FloatBarrier  % Force all main-body floats before references
 
@@ -477,17 +480,7 @@ Figure~\ref{fig:reversal_attack} visualizes Table~\ref{tab:vcdb_reversal_attack}
 \section{Context Sweep Table}
 \label{sec:context_sweep_table}
 
-Table~\ref{tab:context_sweep} and Figure~\ref{fig:context_sweep} report the Section~\ref{sec:context_sweep} context experiment. The parameter $c \in \{1.0, 2.0, 3.0, 4.0, 6.5, 8.0\}$ is seconds of padding on each side of a variable-duration maneuver; it is not the final clip duration. We extract 64 unique frames from each resulting window.
-
-\begin{figure}[h]
-    \centering
-    \fbox{\parbox{0.82\textwidth}{\centering\vspace{1.2em}
-    Context plot pending regeneration with per-side padding on the horizontal
-    axis and without the invalid $64/c$ effective-FPS axis.
-    \vspace{1.2em}}}
-    \caption{V-JEPA~2 context-padding sweep on Honda HDD; numerical values remain in Table~\ref{tab:context_sweep}.}
-    \label{fig:context_sweep}
-\end{figure}
+Table~\ref{tab:context_sweep} reports the Section~\ref{sec:context_sweep} context experiment. The parameter $c \in \{1.0, 2.0, 3.0, 4.0, 6.5, 8.0\}$ is seconds of padding on each side of a variable-duration maneuver; it is not the final clip duration. We extract 64 unique frames from each resulting window.
 
 \begin{table}[h]
 \centering
@@ -536,11 +529,8 @@ All probed LLM layers produce mean-pooled cosine $s_\text{rev} \approx 1.0$, so 
 
 \begin{figure}[h]
     \centering
-    \fbox{\parbox{0.82\textwidth}{\centering\vspace{1.2em}
-    Replacement visualization will separate cosine and DTW scales; the former
-    shared-axis chart is withdrawn.
-    \vspace{1.2em}}}
-    \caption{Comparator-specific $s_\text{rev}$ visualization pending corrected V-JEPA~2 residual run.}
+    \includegraphics[width=0.95\textwidth]{../figures/epic_temporal_order_sensitivity.png}
+    \caption{Comparator-specific $s_\text{rev}$ on EPIC-Kitchens. Cosine/Chamfer and DTW probes are separated because their numerical scales are not commensurate.}
     \label{fig:epic_sensitivity}
 \end{figure}
 
@@ -564,7 +554,7 @@ DINOv3 Temporal Deriv. & 0.775 & 0.498 & 0.623 & 0.503 & 0.500 \\
 DINOv3 Attn.\ Trajectory & 0.700 & 0.507 & 0.584 & \textbf{0.720} & \textbf{0.192} \\
 V-JEPA 2 BoT & 0.838 & 0.825 & 0.791 & 0.555 & 0.984 \\
 V-JEPA 2 Encoder-Seq DTW & --- & 0.942 & \textbf{0.867} & --- & --- \\
-V-JEPA 2 Temporal Res. & 0.698 & \textbf{0.956} & 0.815 & 0.556 & \emph{rerun} \\
+V-JEPA 2 Temporal Res. & 0.698 & \textbf{0.956} & 0.815 & 0.556 & 0.0033 \\
 ViCLIP (InternVid-10M) & 0.907 & 0.542 & 0.618 & --- & 0.996 \\
 X-CLIP (16-frame) & 0.960 & --- & --- & --- & 0.980 \\
 TARA (chiral, cosine) & --- & 0.547 & --- & --- & 0.955 \\
@@ -575,7 +565,7 @@ Optical Flow (RAFT) DTW & --- & 0.478 & --- & --- & --- \\
 \end{tabular}
 }
 \begin{flushleft}
-\small --- = not evaluated. VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $s_\text{rev}$ values from cosine and DTW are not cross-comparable; the temporal-residual value is pending rerun after replacing flattened cosine with sequence DTW.
+\small --- = not evaluated. VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $s_\text{rev}$ values from cosine and DTW are not cross-comparable; V-JEPA~2 BoT uses cosine and its residual uses sequence DTW.
 \end{flushleft}
 \end{table}
 
@@ -689,17 +679,17 @@ LLaVA-Video produces constant ``TAMPERED'' regardless of input (text-only baseli
 \section{HDD Leakage Analysis}
 \label{sec:hdd_leakage}
 
-Since V-JEPA~2 temporal residuals achieve AP\,=\,0.956 on Honda HDD, well above the next-best method (BoT, AP\,=\,0.825), we verify that no metadata leakage inflates this result.
+Since V-JEPA~2 temporal residuals achieve AP\,=\,0.956 on Honda HDD, above encoder-sequence DTW (0.942) and BoT (0.825), we test several potential shortcut explanations.
 
 \textbf{Feature inputs.} All six methods receive \emph{only} decoded video frames. GPS is used exclusively for DBSCAN clustering; timestamps select the frame window ($\pm$3\,s) and are discarded before extraction.
 
-\textbf{Segment duration.} Maneuver segments span 7.0--46.0\,s (mean 10.1\,s). Left and right turns have similar duration distributions (left: $10.3 \pm 3.8$\,s; right: $9.9 \pm 3.6$\,s), ruling out duration as a shortcut. V-JEPA~2 pads all segments to 64 frames, eliminating length signal.
+\textbf{Segment duration.} Maneuver segments span 7.0--46.0\,s (mean 10.1\,s). Left and right turns have similar duration distributions (left: $10.3 \pm 3.8$\,s; right: $9.9 \pm 3.6$\,s), making duration an unlikely direct shortcut. V-JEPA~2 pads all segments to 64 frames, removing tensor length as an explicit signal, although duration still affects sampling density.
 
 \textbf{Cluster composition.} Only ``mixed'' clusters containing both turn directions are used. Within each, all $\binom{n}{2}$ pairs are evaluated, ensuring models must distinguish maneuver type at the same location.
 
 \textbf{Cross-session control.} To test session adjacency as one potential confound, we re-evaluate excluding same-session pairs (91.4\% of pairs are already cross-session). AP changes little: V-JEPA~2 temporal residual 0.957 (cross-session) vs.\ 0.956 (all pairs); BoF 0.536 vs.\ 0.530. This makes that specific explanation unlikely but does not rule out other correlations.
 
-\textbf{Mechanistic explanation.} The context sweep (Section~\ref{sec:context_sweep}) shows temporal residual AP degrades monotonically as context narrows, consistent with genuine temporal processing. BoF methods remain near chance across all windows.
+\textbf{Context-sensitivity control.} In the context sweep (Section~\ref{sec:context_sweep}), temporal-residual AP generally declines as padding widens, from 0.962 at $c\!=\!1$\,s to 0.838 at $c\!=\!8$\,s; BoT declines more sharply. Because padding changes visual context and sampling density together, this control does not identify a mechanism.
 
 \textbf{Motion proxy check.} We compute mean pixel difference between consecutive frames for each segment and correlate pairwise proxy similarity with V-JEPA~2 residual similarity across all 97{,}731 pairs. Spearman $r = 0.051$; the motion proxy itself achieves AP\,=\,0.474. This argues against this particular motion-magnitude proxy as the explanation, but it does not identify what the residual encodes.
 
@@ -783,8 +773,27 @@ Table~\ref{tab:bootstrap} reports percentile intervals from resampling individua
 \bottomrule
 \end{tabular}
 \begin{flushleft}
-\small Pair-level intervals are especially narrow on HDD and Nymeria because many pairs reuse the same clips. On HDD, resampling intersection clusters instead widens the V-JEPA~2 temporal-residual interval from [0.955,\,0.958] to [0.890,\,0.978]. Marginal intervals do not test method differences; paired cluster-bootstrap contrasts are required and are pending the corrected run. Analogous independent-unit definitions are needed for VCDB, Nymeria, MUVR, and SSv2 before inferential claims.
+\small Pair-level intervals are especially narrow on HDD and Nymeria because many pairs reuse the same clips. On HDD, resampling intersection clusters instead widens the V-JEPA~2 temporal-residual interval from [0.955,\,0.958] to [0.890,\,0.978]. Marginal intervals do not test method differences; paired intersection-cluster contrasts for HDD and nuScenes are in Table~\ref{tab:paired_bootstrap}. Analogous independent-unit definitions are needed for VCDB, Nymeria, MUVR, and SSv2 before inferential claims.
 \end{flushleft}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Paired intersection-cluster bootstrap differences in pooled pair AP (2{,}000 resamples). Intervals that include zero are not evidence of a directional difference.}
+\label{tab:paired_bootstrap}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Dataset} & \textbf{Contrast (A $-$ B)} & \textbf{$\Delta$ AP} & \textbf{95\% interval} \\
+\midrule
+HDD & Encoder-Seq DTW $-$ BoT & +0.117 & [0.044, 0.127] \\
+HDD & Temporal Residual $-$ Encoder-Seq DTW & +0.015 & [0.0004, 0.034] \\
+HDD & Temporal Residual $-$ BoT & +0.132 & [0.048, 0.149] \\
+\midrule
+nuScenes & Encoder-Seq DTW $-$ BoT & +0.075 & [0.029, 0.128] \\
+nuScenes & Encoder-Seq DTW $-$ Temporal Residual & +0.052 & [0.036, 0.064] \\
+nuScenes & Temporal Residual $-$ BoT & +0.024 & [$-0.031$, 0.090] \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 \section{DTW Similarity-Transform $\alpha$-Invariance}
@@ -808,35 +817,39 @@ Complementing the quantitative results, we present qualitative evidence that V-J
 \label{fig:hdd_qualitative}
 \end{figure}
 
-\section{BoT$\to$DTW Rerank: Full Sweep and RRF Alternative}
+\section{BoT$\to$DTW Rerank: Corrected Directed Evaluation}
 \label{sec:rerank_appendix}
 
-The original experiment ranked unordered in-cluster pairs, admitted a pair when either endpoint survived, omitted out-of-cluster gallery negatives, and normalized AP by retrieved positives. Those choices can produce AP above recall and do not represent per-query retrieval. We withdraw that table.
+The original experiment ranked unordered in-cluster pairs, admitted a pair when either endpoint survived, omitted out-of-cluster gallery negatives, and normalized AP by retrieved positives. Those choices could produce AP above recall and did not represent per-query retrieval. Table~\ref{tab:rerank_full} reports the replacement experiment.
 
 \begin{table}[h]
 \centering
-\caption{Corrected directed, query-wise HDD reranking evaluation. Results are pending rerun.}
+\caption{Corrected directed HDD retrieval. Candidate recall is unchanged by reranking; AP@$k$ counts unreturned relevant items as misses.}
 \label{tab:rerank_full}
-\begin{tabular}{rccc}
+\begin{tabular}{rccccc}
 \toprule
-$k$ & macro AP@$k$ & recall@$k$ & MRR \\
+$k$ & recall@$k$ & BoT AP@$k$ & DTW AP@$k$ & BoT MRR & DTW MRR \\
 \midrule
-10, 25, 50, 100, 250 & \multicolumn{3}{c}{\emph{pending corrected run}} \\
+10  & 0.165 & 0.127 & 0.109 & 0.761 & 0.700 \\
+25  & 0.245 & 0.156 & 0.126 & 0.764 & 0.682 \\
+50  & 0.331 & 0.176 & 0.136 & 0.765 & 0.665 \\
+100 & 0.445 & 0.196 & 0.144 & 0.765 & 0.657 \\
+250 & 0.651 & 0.223 & 0.156 & 0.766 & 0.645 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-For each query, the corrected gallery contains every other cached segment. Relevance requires both the same GPS cluster and the same maneuver label; all other segments are negatives. The BoT ranking selects directional top-$k$ candidates, DTW reranks only those candidates, and AP@$k$ divides by the total relevant count for the query. Metrics are averaged over eligible queries, with intersection-cluster bootstrap intervals. The implementation is \texttt{experiments/eval\_hdd\_bof\_dtw\_rerank.py}.
+For each query, the corrected gallery contains every other cached segment. Relevance requires both the same GPS cluster and the same maneuver label; all other segments are negatives. Metrics are macro-averaged over 1{,}673 eligible queries, with intersection-cluster bootstrap intervals. Full-gallery BoT mAP is 0.256 [0.218, 0.288] and full-gallery encoder-sequence-DTW mAP is 0.177 [0.135, 0.212]. At $k=100$, the BoT and reranked AP intervals are [0.175, 0.229] and [0.130, 0.160], respectively; reranking is worse throughout the sweep. The implementation is \texttt{experiments/eval\_hdd\_bof\_dtw\_rerank.py}.
 
 \section{nuScenes Cross-Dataset Visualization}
 \label{sec:nuscenes_figure}
 
-Figure~\ref{fig:nuscenes_maneuver} visualizes the nuScenes maneuver-discrimination results reported in Section~\ref{sec:nuscenes}. Encoder-sequence DTW (AP\,=\,0.867) leads, followed by the temporal residual (AP\,=\,0.815) and BoT (AP\,=\,0.791), with DINOv3 methods below 0.625. The ordering makes concrete the Section~\ref{sec:discussion} observation that on nuScenes the matching-stage contribution saturates the BoT$\to$best-method gap by itself, so the residual transform adds nothing statistically distinguishable here.
+Figure~\ref{fig:nuscenes_maneuver} visualizes the nuScenes maneuver-discrimination results reported in Section~\ref{sec:nuscenes}. Encoder-sequence DTW (AP\,=\,0.867) leads, followed by the temporal residual (AP\,=\,0.815) and BoT (AP\,=\,0.791), with DINOv3 methods below 0.625. Paired cluster contrasts support encoder-sequence DTW over both alternatives; the residual--BoT interval includes zero (Table~\ref{tab:paired_bootstrap}).
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/nuscenes_maneuver_discrimination.png}
-    \caption{nuScenes pair diagnostic (264 segments, 950 pairs, 50 intersection clusters). V-JEPA~2 encoder-sequence DTW has the largest point estimate (AP\,=\,0.867), followed by the temporal residual (0.815); a paired cluster-bootstrap contrast is pending.}
+    \caption{nuScenes pair diagnostic (264 segments, 950 pairs, 50 intersection clusters). V-JEPA~2 encoder-sequence DTW has the largest AP (0.867); paired cluster contrasts are in Table~\ref{tab:paired_bootstrap}.}
     \label{fig:nuscenes_maneuver}
 \end{figure}
 
@@ -872,33 +885,29 @@ LLaVA-Video-7B & 0.999 [0.998, 0.999] & \textbf{0.517} [0.516, 0.518] & 1.000$^\
 \section{Scramble Gradient Data}
 \label{sec:scramble_data}
 
-The original single-seed and raw-frame scripts formed $K-1$ short chunks plus one oversized tail when $T$ was not divisible by $K$ (for example, $T\!=\!30,K\!=\!16$ produced fifteen one-frame chunks and one fifteen-frame chunk). The corrected implementation uses near-equal partitions from \texttt{tensor\_split}/\texttt{array\_split}. Table~\ref{tab:scramble_data} is intentionally left pending until the corrected multi-seed and raw-frame runs complete.
+The original single-seed and raw-frame scripts formed $K-1$ short chunks plus one oversized tail when $T$ was not divisible by $K$ (for example, $T\!=\!30,K\!=\!16$ produced fifteen one-frame chunks and one fifteen-frame chunk). The corrected implementation uses near-equal partitions from \texttt{tensor\_split}/\texttt{array\_split}. Table~\ref{tab:scramble_data} reports means over 10 shuffle seeds.
 
 \begin{table}[h]
 \centering
-\caption{Corrected AP across near-equal scramble partitions on VCDB. Results are pending rerun.}
+\caption{Corrected AP across near-equal scramble partitions on VCDB (10 seeds). Across nontrivial $K$, the maximum standard deviation is 0.0101; invariant rows have zero variance.}
 \label{tab:scramble_data}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lc}
+\begin{tabular}{lcccccccc}
 \toprule
-\textbf{Method} & \textbf{Corrected multi-seed gradient} \\
+\textbf{Method} & $K\!=\!1$ & $2$ & $3$ & $4$ & $6$ & $8$ & $12$ & $16$ \\
 \midrule
-All methods & \emph{pending corrected run} \\
+BoF & 0.979 & 0.979 & 0.979 & 0.979 & 0.979 & 0.979 & 0.979 & 0.979 \\
+Chamfer & 0.989 & 0.989 & 0.989 & 0.989 & 0.989 & 0.989 & 0.989 & 0.989 \\
+Temporal Derivative & 0.775 & 0.730 & 0.733 & 0.730 & 0.726 & 0.725 & 0.725 & 0.726 \\
+Attention Trajectory & 0.700 & 0.636 & 0.626 & 0.618 & 0.603 & 0.594 & 0.583 & 0.575 \\
+V-JEPA~2 BoT & 0.837 & 0.837 & 0.837 & 0.837 & 0.837 & 0.837 & 0.837 & 0.837 \\
+V-JEPA~2 Temporal Residual & 0.698 & 0.597 & 0.628 & 0.614 & 0.632 & 0.626 & 0.631 & 0.633 \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
 
-The extracted-embedding gradient tests the comparator's response while keeping token values fixed. The raw-frame variant re-encodes each shuffled video and therefore measures the combined encoder and comparator response. We will report both, with identical partition semantics and seeds, rather than attributing non-monotonicity before the corrected run.
-
-\begin{figure}[h]
-    \centering
-    \fbox{\parbox{0.82\textwidth}{\centering\vspace{1.2em}
-    Corrected multi-seed balanced-chunk results pending cluster rerun.
-    \vspace{1.2em}}}
-    \caption{Corrected multi-seed scramble gradient placeholder; the figure will be regenerated from near-equal chunk partitions.}
-    \label{fig:scramble_multiseed}
-\end{figure}
+The extracted-embedding gradient tests the comparator's response while keeping token values fixed. The raw-frame variant re-encodes each shuffled video and therefore measures the combined encoder and comparator response. Under raw-frame scrambling, V-JEPA~2 BoT remains approximately flat (0.839 at $K\!=\!1$, 0.840 at $K\!=\!16$), while residual AP falls from 0.705 to 0.651. This supports combined encoder--comparator sensitivity but does not make the extracted-embedding residual curve monotonic.
 
 \section{Linear Probe on LLM Hidden States}
 \label{sec:linear_probe}
@@ -1010,11 +1019,11 @@ This appendix documents inputs, intended use, and known limitations of the \text
 
 \textbf{Inputs.} Embeddings are \texttt{\{video\_id: (T, D)\}} dictionaries in PyTorch \texttt{.pt} format; pair lists are CSVs with \texttt{(id\_a, id\_b, label)} tuples. Supported similarity functions are cosine, Chamfer (symmetric-max aggregation), and DTW with configurable $\alpha$ (Equation~\ref{eq:srev}). DTW uses unconstrained warping, L2 cost, accumulated-cost normalization by $T_1+T_2$, and GPU-vectorized anti-diagonal wavefront processing.
 
-\textbf{Seeds, splits, and variance.} Unless specified, all randomness is controlled by seed~42. Scramble chunk-shuffling is seeded per-$K$; bootstrap resamples use seed~42 with 2{,}000 iterations (pair-level) or 1{,}000 iterations (cluster-level block bootstrap). Negative-sampling is seeded in VCDB; sensitivity across seeds yields $\pm0.06$ AP drift (Appendix~\ref{sec:neg_sampling}), with rank order preserved. No train/val/test split is needed because the suite evaluates frozen models zero-shot.
+\textbf{Seeds, splits, and variance.} Unless specified, all randomness is controlled by seed~42. The corrected scramble uses 10 shuffle seeds per $K$; pair and grouped cluster bootstraps use 2{,}000 resamples, while EPIC reversal intervals use 1{,}000. Negative-sampling is seeded in VCDB; sensitivity across seeds yields $\pm0.06$ AP drift (Appendix~\ref{sec:neg_sampling}), with rank order preserved. No train/val/test split is needed because the suite evaluates frozen models zero-shot.
 
-\textbf{Known limitations.} (1)~Pair-level bootstrap CIs underestimate uncertainty by 7--32$\times$ under GPS-clustered pair sets; cluster-level block bootstrap is the faithful estimator on HDD and nuScenes (Appendix~\ref{sec:bootstrap_cis}). (2)~Probe analyses run in a $p\gg n$ regime (400 samples, $D\approx4{,}000$), bounding recoverability rather than proving absence. (3)~Cross-family $s_\text{rev}$ comparisons (pooled cosine vs.\ sequence DTW) are not unit-commensurate; the toolkit reports both families but recommends within-family ranking only. (4)~Qwen3-VL's 3D temporal--spatial merging prevents clean per-frame token grouping (Table~\ref{tab:vlm_embedding} footnote); approximate values are reported but flagged.
+\textbf{Known limitations.} (1)~Pair-level bootstrap CIs underestimate uncertainty by 7--32$\times$ under GPS-clustered pair sets; we use paired intersection-cluster bootstrap on HDD and nuScenes (Appendix~\ref{sec:bootstrap_cis}), but analogous independent units remain undefined for several other datasets. (2)~Probe analyses run in a $p\gg n$ regime (400 samples, $D\approx4{,}000$), bounding recoverability rather than proving absence. (3)~Cross-family $s_\text{rev}$ comparisons (pooled cosine vs.\ sequence DTW) are not unit-commensurate. (4)~Qwen3-VL's 3D temporal--spatial merging prevents clean per-frame token grouping (Table~\ref{tab:vlm_embedding} footnote); approximate values are flagged.
 
-\textbf{Reproduction recipe.} Experiment entry points and required caches are documented in \texttt{REPRODUCIBILITY.md}. The repository does not yet provide a one-command reproduction target or committed feature caches, so runtime depends on local data access and model downloads. The corrected cluster jobs supplied with the code regenerate the invalidated scramble, EPIC residual, and directed HDD reranking results before submission.
+\textbf{Reproduction recipe.} Experiment entry points and required caches are documented in \texttt{REPRODUCIBILITY.md}. Compact corrected summaries and their commit, job, dataset, and model provenance are tracked under \texttt{results/}; feature caches remain external because of their size and dataset licenses. The supplied SLURM jobs regenerate the balanced-chunk scramble, EPIC residual, grouped bootstrap contrasts, and directed HDD retrieval results.
 
 \textbf{License.} Code is released under the MIT License. Dataset and model-weight licenses are summarized in Appendix~\ref{sec:licenses}; users must independently obtain each asset under its own license terms.
 

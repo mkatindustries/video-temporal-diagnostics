@@ -116,5 +116,7 @@ results produced by the same probe definition.
 
 ## Reproducing paper numbers
 
-Corrected VCDB scramble and EPIC residual values are pending the cluster jobs
-under `slurm_jobs/`. See `REPRODUCIBILITY.md` for data, cache, and output paths.
+Corrected VCDB scramble, EPIC residual, HDD retrieval, and paired-bootstrap
+summaries are tracked under `results/`, with provenance in
+`results/PROVENANCE.md`. See `REPRODUCIBILITY.md` for data, cache, and output
+paths and `slurm_jobs/` for the exact rerun jobs.

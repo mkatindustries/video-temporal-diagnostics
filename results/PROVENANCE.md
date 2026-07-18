@@ -27,4 +27,4 @@ Notes:
   (`7e67fe7`) and the HDD feature-cache-reuse fix (`290619c`). Their original runs
   (`9634578`, `9634577`) failed and are superseded.
 - VCDB (multiseed + raw) and EPIC ran cleanly at the original submission commit `c2daec7`.
-- Full run configuration and expected outputs: `slurm_logs/rerun_manifest_20260718.md`.
+- Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.

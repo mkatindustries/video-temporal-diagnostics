@@ -6,7 +6,7 @@ Diagnostic code for *Diagnosing Temporal Sensitivity in Video Retrieval Pipeline
 
 Scalable video retrieval often uses global descriptors that are insensitive to motion direction. This repository implements three diagnostics for locating that behavior: a temporal scramble gradient, a forward/reverse score under a declared comparator, and a controlled feature-by-comparator factorial evaluated on one shared pair set. Exact permutation invariance applies to symmetric comparisons of fixed independently encoded elements. Contextual video tokens and VLM outputs instead require empirical tests. Scores from cosine and DTW are comparator-specific and must not be put on one numerical scale.
 
-The current paper reports pooled pair-classification diagnostics across seven benchmarks. These are not standard query-wise retrieval metrics. The old HDD reranking results and unbalanced-chunk scramble results have been withdrawn; corrected runs are explicitly marked pending in the manuscript and are covered by the jobs in `slurm_jobs/`.
+The paper reports pooled pair-classification diagnostics across seven benchmarks. These are not standard query-wise retrieval metrics. The old HDD reranking results and unbalanced-chunk scramble results were withdrawn and replaced by corrected runs. Compact summaries and provenance are tracked under `results/`; the exact rerun jobs are under `slurm_jobs/`.
 
 ## The Problem
 
@@ -35,10 +35,11 @@ Selected point estimates from the valid pair diagnostics:
 | VLM integrity prompt (Qwen/Gemma) | Detects forward vs reverse | 0.879 / 0.845 balanced accuracy |
 | LLM fixed-vector probes | Exploratory, no reliable evidence | best observed 0.560 across many configs |
 | V-JEPA 2 encoder-sequence DTW (HDD) | Controlled comparator contrast | AP 0.942 |
-| Directed BoT-to-DTW retrieval | Corrected query-wise protocol | rerun pending |
-| Balanced-chunk scramble | Corrected partitioning | rerun pending |
+| Directed BoT-to-DTW retrieval (HDD) | BoT beats encoder-sequence DTW globally | full-gallery mAP 0.256 vs. 0.177 |
+| Balanced-chunk scramble (VCDB) | BoF / Chamfer / BoT remain flat | max std over 10 seeds 0.0101 |
+| V-JEPA 2 reversal (EPIC) | Temporal residual under DTW | s_rev 0.0033 [0.0031, 0.0034] |
 
-On HDD, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate. This factorial contrast does not establish a causal attribution, and dependent pairs require paired cluster-level uncertainty. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, direct direction prompts are weak, and integrity prompts are much stronger.
+On the conditional HDD pair task, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate; a paired intersection-cluster bootstrap estimates encoder-sequence DTW minus BoT at +0.117 [0.044, 0.127]. The result does not compose into global retrieval: encoder-sequence DTW has lower full-gallery mAP than BoT (0.177 vs. 0.256) and lowers AP and MRR throughout the rerank sweep. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, direct direction prompts are weak, and integrity prompts are much stronger.
 
 ## Methods
 

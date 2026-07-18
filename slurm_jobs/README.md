@@ -1,5 +1,9 @@
 # Corrected Cluster Runs
 
+These are the exact jobs used for the validated 2026-07-18 rerun. Compact outputs and
+run provenance are tracked under `results/`; dataset-local caches and per-pair files are
+intentionally excluded.
+
 Submit these jobs from the repository root after creating the log directory:
 
 ```bash
@@ -17,20 +21,15 @@ environment-specific Python executable, or set `CONDA_SH` and `CONDA_ENV` (defau
 `video_retrieval`). Model downloads can be redirected with the experiment-specific
 environment variables documented in `REPRODUCIBILITY.md`.
 
-## Outputs To Integrate
+## Validated Outputs
 
-1. VCDB extracted-embedding multi-seed gradient and raw-frame gradient: replace the pending
-   scramble table, figure, and text. Confirm each partition has chunk sizes differing by at
-   most one.
-2. HDD directed retrieval: integrate macro AP@k, recall@k, MRR, and cluster intervals from
-   `bof_dtw_directed_rerank_results.json`, including the full-gallery encoder-sequence-DTW
-   baseline. Do not restore the withdrawn unordered-pair table.
-3. HDD paired contrasts: integrate AP-difference intervals from
-   `cluster_bootstrap_results.json`, especially encoder-sequence DTW minus BoT.
-4. EPIC residual: replace the pending V-JEPA 2 residual `s_rev` value. Do not add a balanced
-   accuracy column for embedding similarities.
-5. nuScenes: integrate the paired cluster-bootstrap contrasts from
-   `cluster_bootstrap_results.json`; do not infer a paired difference from marginal intervals.
+1. VCDB uses near-equal scramble chunks and 10 seeds; chunk sizes differ by at most one.
+2. HDD reports directed query-wise AP@k, recall@k, MRR, full-gallery baselines, and paired
+   intersection-cluster contrasts. The withdrawn unordered-pair table must not be restored.
+3. EPIC reports V-JEPA 2 temporal-residual `s_rev` under sequence DTW, without treating it
+   as an embedding classification accuracy.
+4. nuScenes reports paired intersection-cluster contrasts rather than differences inferred
+   from marginal intervals.
 
-Before updating the paper, archive the command, git commit, SLURM log, output JSON, model
-checkpoint revision, and dataset version for every run.
+See `results/PROVENANCE.md` for generating commits, SLURM job IDs, dataset versions, model
+revisions, and the recorded software environment.
