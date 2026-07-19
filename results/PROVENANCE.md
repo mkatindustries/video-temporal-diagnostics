@@ -21,10 +21,15 @@ Shared configuration for every artifact below:
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
+| `hdd/fusion_results.json` | `b72592e` | `9641251` | HDD release_2019_07_08 |
 
 Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
   (`7e67fe7`) and the HDD feature-cache-reuse fix (`290619c`). Their original runs
   (`9634578`, `9634577`) failed and are superseded.
 - VCDB (multiseed + raw) and EPIC ran cleanly at the original submission commit `c2daec7`.
+- `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
+  DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines are
+  bit-identical to `hdd/bof_dtw_directed_rerank_results.json` (0.2556 / 0.1766 mAP). Honest null:
+  fused mAP 0.2566, fused−BoT +0.0010 (95% CI [−0.0031, 0.0036]); α*=0.95 in all 50 folds.
 - Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.
