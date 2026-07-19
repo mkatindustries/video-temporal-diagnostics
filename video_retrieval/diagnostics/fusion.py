@@ -281,6 +281,71 @@ def leave_one_cluster_out_alpha(
     }
 
 
+def bot_dtw_cascade(
+    bot_similarity: np.ndarray,
+    dtw_distance: np.ndarray,
+    relevance: np.ndarray,
+    query_indices: Sequence[int] | np.ndarray,
+    k_values: Sequence[int] | np.ndarray,
+) -> dict[int, dict[str, dict[str, np.ndarray]]]:
+    """BoT top-k retrieval then DTW rerank of that candidate set.
+
+    For each requested ``k`` and query, the gallery is every candidate except the
+    query. ``bot`` keeps the top-k BoT ranking; ``dtw_rerank`` reorders that same
+    top-k by ascending DTW distance. AP@k is truncated by the query's total number
+    of relevant items (so AP@k never exceeds recall@k), matching
+    ``eval_hdd_bof_dtw_rerank``. Returns
+    ``{k: {"bot"|"dtw_rerank": {"ap"|"recall"|"mrr": np.ndarray}}}`` with per-query
+    arrays aligned to ``query_indices``.
+    """
+    bot = np.asarray(bot_similarity, dtype=np.float64)
+    dtw = np.asarray(dtw_distance, dtype=np.float64)
+    relevant = np.asarray(relevance, dtype=bool)
+    query_ids = np.asarray(query_indices, dtype=np.int64)
+    ks = sorted({int(k) for k in k_values})
+    n_segments = bot.shape[0]
+    if not (bot.shape == dtw.shape == relevant.shape == (n_segments, n_segments)):
+        raise ValueError("score and relevance matrices must be square and identically shaped")
+    if query_ids.ndim != 1 or len(query_ids) == 0:
+        raise ValueError("query_indices must be a non-empty 1D sequence")
+    if not ks or ks[0] < 1:
+        raise ValueError("k_values must be positive")
+    max_k = min(ks[-1], n_segments - 1)
+
+    out: dict[int, dict[str, dict[str, list[float]]]] = {
+        k: {"bot": {"ap": [], "recall": [], "mrr": []},
+            "dtw_rerank": {"ap": [], "recall": [], "mrr": []}}
+        for k in ks
+    }
+    for query_idx in query_ids:
+        valid = np.ones(n_segments, dtype=bool)
+        valid[query_idx] = False
+        query_relevance = relevant[query_idx]
+        total_relevant = int(query_relevance[valid].sum())
+        if total_relevant == 0:
+            raise ValueError(f"query {int(query_idx)} has no relevant gallery item")
+        scores = np.where(valid, bot[query_idx], -np.inf)
+        bot_order = np.argsort(-scores, kind="stable")  # query lands last via -inf
+        for k in ks:
+            k_eff = min(k, max_k)
+            top = bot_order[:k_eff]
+            bot_rel = query_relevance[top].astype(np.int64)
+            rerank = top[np.argsort(dtw[query_idx, top], kind="stable")]
+            dtw_rel = query_relevance[rerank].astype(np.int64)
+            for name, ranked in (("bot", bot_rel), ("dtw_rerank", dtw_rel)):
+                out[k][name]["ap"].append(
+                    truncated_average_precision(ranked, total_relevant)
+                )
+                out[k][name]["recall"].append(float(ranked.sum() / total_relevant))
+                out[k][name]["mrr"].append(reciprocal_rank(ranked))
+    return {
+        k: {name: {metric: np.asarray(values, dtype=np.float64)
+                   for metric, values in method.items()}
+            for name, method in methods.items()}
+        for k, methods in out.items()
+    }
+
+
 def paired_cluster_bootstrap_mean_difference(
     values_a: np.ndarray,
     values_b: np.ndarray,
