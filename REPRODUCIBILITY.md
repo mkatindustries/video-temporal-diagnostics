@@ -111,6 +111,25 @@ Requires the feature cache produced by experiment 6 (default `datasets/hdd/vjepa
 
 The former unordered-pair survivor-AP/RRF table is withdrawn. It used an either-endpoint survival rule, excluded out-of-cluster negatives, and could report AP above recall. In the corrected run, full-gallery BoT mAP is 0.256 [0.218, 0.288], while full-gallery encoder-sequence DTW mAP is 0.177 [0.135, 0.212]. DTW reranking lowers AP and MRR at every tested `k`; see `results/hdd/bof_dtw_directed_rerank_results.json`.
 
+### 6c. Held-Out BoT/DTW Score Fusion (HDD)
+
+Tests whether global BoT location discrimination and encoder-sequence DTW temporal
+discrimination compose at score level. Scores are z-normalized per query and combined as
+`alpha*z(BoT) + (1-alpha)*z(-DTW)`. Leave-one-intersection-out cross-validation selects
+`alpha` without using the held-out cluster as either tuning queries or tuning gallery
+candidates; held-out queries are then evaluated against the full gallery.
+
+```bash
+python experiments/eval_hdd_fusion.py \
+    --hdd-dir /path/to/hdd \
+    --feature-cache datasets/hdd/vjepa2_encoder_features.pt
+```
+
+**Output:** `<hdd-dir>/fusion_results.json` and the reusable, untracked
+`datasets/hdd/fusion_score_cache.pt`. The compact result is tracked at
+`results/hdd/fusion_results.json`. The 50-fold evaluation selects `alpha=0.95` in every
+fold and finds no detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
+
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 
 ```bash
@@ -567,6 +586,7 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 | `datasets/hdd/fps_downsample_results.json` | Table 6 (Appendix A) |
 | `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row) |
 | `results/hdd/bof_dtw_directed_rerank_results.json` | Corrected directed retrieval tables |
+| `results/hdd/fusion_results.json` | Held-out score-fusion result in Section 3.2 |
 | `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
 | `results/hdd/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `results/epic/temporal_order_results.json` | Corrected EPIC residual result; Tables 4-5 |

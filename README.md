@@ -117,6 +117,7 @@ python experiments/eval_epic_claude_probe.py     # Claude Opus 4.6 API probe
 python experiments/eval_epic_gemini_probe.py     # Gemini 3.1 Pro API probe
 python experiments/eval_hdd_left_vs_right.py     # Left-vs-right only HDD evaluation
 python experiments/eval_hdd_encoder_seq.py       # V-JEPA 2 encoder-seq DTW ablation on HDD
+python experiments/eval_hdd_fusion.py            # Held-out BoT/DTW global-retrieval fusion
 python experiments/eval_hdd_optical_flow.py      # Optical flow (RAFT) baseline on HDD
 python experiments/eval_vcdb_scramble_multiseed.py # Multi-seed scramble gradient
 python experiments/eval_vcdb_scramble_raw.py     # Raw-frame scramble (V-JEPA 2 re-extraction)
