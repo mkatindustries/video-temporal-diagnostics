@@ -20,6 +20,24 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 **Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude Opus 4.6 and Gemini 3.1 Pro are API-only (see experiments 32--33).
 
+**Job telemetry (corrected rerun + fusion runs, 2026-07-18/19).** SLURM accounting for the runs
+behind the tracked corrected results (`sacct`; single H200 GPU each). This documents these runs
+only and does not by itself justify a "Yes" compute-checklist answer, since the older pre-rerun
+experiments lack complete telemetry.
+
+| Job | Experiment | Elapsed | MaxRSS (GiB) | Alloc |
+|-----|-----------|---------|--------------|-------|
+| 9634576_0 | VCDB scramble multiseed | 00:15:25 | 10.6 | 8 cpu / 1 gpu / 64G |
+| 9634576_1 | VCDB raw-frame scramble | 02:28:27 | 8.8 | 8 cpu / 1 gpu / 64G |
+| 9636031 | nuScenes intersections (rerun) | 00:02:17 | 8.2 | 10 cpu / 1 gpu / 96G |
+| 9636095 | HDD encoder-seq + directed rerank (rerun) | 00:31:29 | 5.2 | 12 cpu / 1 gpu / 96G |
+| 9634579 | EPIC temporal-order | 05:15:52 | 17.4 | 8 cpu / 1 gpu / 64G |
+| 9641251 | HDD held-out fusion | 00:19:28 | 1.7 | 12 cpu / 1 gpu / 96G |
+| 9645008 | nuScenes directed retrieval + fusion | 00:01:54 | 6.2 | 10 cpu / 1 gpu / 96G |
+
+All jobs completed with exit code 0. Reruns 9636031/9636095 supersede failed originals
+9634578/9634577 (int64 JSON-serialization bug, fixed in commit 7e67fe7).
+
 ## Table and Figure Reference Map
 
 Numbering follows the compiled paper (`paper.pdf`).
@@ -129,6 +147,29 @@ python experiments/eval_hdd_fusion.py \
 `datasets/hdd/fusion_score_cache.pt`. The compact result is tracked at
 `results/hdd/fusion_results.json`. The 50-fold evaluation selects `alpha=0.95` in every
 fold and finds no detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
+
+### 6d. Directed Full-Gallery Retrieval + Held-Out Fusion (nuScenes)
+
+Applies the §6b/§6c protocol to nuScenes to test whether HDD's conditional-vs-global reversal
+generalizes. Relevance = same intersection cluster and maneuver label; full-gallery BoT and
+encoder-sequence DTW; BoT→DTW cascade; leakage-safe leave-one-intersection-out linear fusion.
+Reuses the cached V-JEPA 2 features (no re-extraction); only full-gallery DTW runs on GPU.
+
+```bash
+NUSCENES_DIR=/path/to/nuscenes NUSCENES_VERSION=v1.0-trainval \
+  sbatch --account=<acct> --qos=<qos> slurm_jobs/rerun_nuscenes_fusion.sbatch
+# or directly:
+python experiments/eval_nuscenes_fusion.py \
+    --nuscenes-dir /path/to/nuscenes --version v1.0-trainval --max-clusters 50
+```
+
+**Output:** `<nuscenes-dir>/fusion_results.json` and the reusable, untracked
+`<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`. The compact result is
+tracked at `results/nuscenes/fusion_results.json` (job 9645008). The evaluation uses 264 segments
+from 50 clusters, with 222 eligible queries from 40 clusters. It replicates the reversal: global
+BoT mAP 0.315 [0.254, 0.395] vs encoder-sequence DTW 0.141 [0.106, 0.183] (paired DTW − BoT
+−0.1745 [−0.245, −0.117]); the cascade lowers AP at every evaluated k; and fusion selects
+`alpha=1.0` in all 40 folds, so the fused ranking is exactly identical to BoT (difference 0).
 
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 
