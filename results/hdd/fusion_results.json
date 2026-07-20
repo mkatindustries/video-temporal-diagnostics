@@ -105,6 +105,17 @@
       ],
       "bootstrap_probability_a_gt_b": 1.0,
       "n_clusters": 50
+    },
+    "encoder_seq_dtw_minus_bot": {
+      "mean_a": 0.17654976238882303,
+      "mean_b": 0.2555970502146472,
+      "difference_a_minus_b": -0.0790472878258241,
+      "ci": [
+        -0.10592691053106375,
+        -0.06168799175539384
+      ],
+      "bootstrap_probability_a_gt_b": 0.0,
+      "n_clusters": 50
     }
   },
   "alpha_selected": {
