@@ -22,6 +22,7 @@ RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/hdd/fusion_results.json}"
     --feature-cache "$FEATURE_CACHE" \
     --dist-cache "$DIST_CACHE" \
     --output "$RESULTS_OUTPUT" \
+    --evaluate-temporal-residual \
     --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"

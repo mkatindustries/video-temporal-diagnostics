@@ -22,14 +22,16 @@ Usage:
         --nuscenes-dir ./data/nuscenes --version v1.0-mini
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -37,12 +39,15 @@ import torch.nn.functional as F
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
+
 from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
 )
 from video_retrieval.fingerprints.trajectory import dtw_distance
-from video_retrieval.models import DINOv3Encoder
+
+if TYPE_CHECKING:
+    from video_retrieval.models import DINOv3Encoder
 
 
 # ---------------------------------------------------------------------------
@@ -455,6 +460,8 @@ def load_keyframe_images(
     max_resolution: int = 518,
 ) -> list[np.ndarray]:
     """Load JPEG keyframes and resize if needed."""
+    import cv2
+
     frames = []
     for path in image_paths:
         img = cv2.imread(path)
@@ -1240,6 +1247,8 @@ def main():
 
     if features is None:
         print("\nStep 5: Loading DINOv3 encoder...")
+        from video_retrieval.models import DINOv3Encoder
+
         encoder = DINOv3Encoder(
             model_name=DINOV3_MODEL_NAME,
             device=args.device,

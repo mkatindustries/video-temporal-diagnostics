@@ -26,6 +26,7 @@ RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/nuscenes/fusion_results.jso
     --max-clusters "${MAX_CLUSTERS:-50}" \
     --dist-cache "${DIST_CACHE:-$DEFAULT_DIST}" \
     --output "$RESULTS_OUTPUT" \
+    --evaluate-temporal-residual \
     --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"

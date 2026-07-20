@@ -29,10 +29,13 @@ import torch
 from eval_hdd_bof_dtw_rerank import summarize
 from eval_hdd_fusion import (
     ScoreCache,
+    build_dtw_distance_matrix,
     build_score_cache,
     cache_metadata_matches,
     label_ids,
     resolve_path,
+    save_score_cache,
+    score_rows_complete,
 )
 from eval_nuscenes_intersections import (
     ManeuverSegment,
@@ -126,6 +129,14 @@ def main() -> None:
         help="Reusable BoT/DTW score-matrix cache (default under <nuscenes-dir>/feature_cache).",
     )
     parser.add_argument("--rebuild-dist-cache", action="store_true")
+    parser.add_argument(
+        "--evaluate-temporal-residual",
+        action="store_true",
+        help=(
+            "Evaluate full-gallery temporal-residual DTW and add its matrix to the "
+            "existing score cache without recomputing encoder-sequence DTW."
+        ),
+    )
     parser.add_argument("--k-sweep", type=int, nargs="+", default=[5, 10, 25, 50, 100])
     parser.add_argument("--composition-k", type=int, nargs="+", default=[1, 10])
     parser.add_argument("--dtw-batch-size", type=int, default=256)
@@ -191,6 +202,15 @@ def main() -> None:
     dense_to_segment = [idx for idx in range(len(eval_segments)) if idx in features]
     if len(dense_to_segment) < 2:
         raise ValueError("feature cache contains fewer than two evaluation segments")
+    if args.evaluate_temporal_residual:
+        missing_residual = [
+            idx for idx in dense_to_segment if "temporal_residual" not in features[idx]
+        ]
+        if missing_residual:
+            raise ValueError(
+                "feature cache lacks temporal_residual for "
+                f"{len(missing_residual)} evaluation segment(s)"
+            )
     if len(dense_to_segment) != len(eval_segments):
         print(
             f"Note: {len(eval_segments) - len(dense_to_segment)} rebuilt segment(s) "
@@ -250,16 +270,41 @@ def main() -> None:
             args.dtw_batch_size,
             feature_cache_path,
         )
-        dist_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(score_cache, dist_cache_path)
+        save_score_cache(score_cache, dist_cache_path)
         print(f"Saved score cache: {dist_cache_path}")
 
+    if not score_rows_complete(score_cache["bot_similarity"], n_dense, query_indices):
+        raise ValueError("score cache has incomplete BoT rows")
+    if not score_rows_complete(score_cache["dtw_distance"], n_dense, query_indices):
+        raise ValueError("score cache has incomplete encoder-sequence DTW rows")
     bot_similarity = score_cache["bot_similarity"].numpy().astype(np.float64)
     dtw_distance = score_cache["dtw_distance"].numpy().astype(np.float64)
-    for query_idx in query_indices:
-        valid = np.arange(n_dense) != query_idx
-        if not np.all(np.isfinite(dtw_distance[query_idx, valid])):
-            raise ValueError(f"score cache has an incomplete DTW row for query {query_idx}")
+
+    residual_distance_tensor: torch.Tensor | None = None
+    if args.evaluate_temporal_residual:
+        cached_residual = score_cache.get("temporal_residual_dtw_distance")
+        if score_rows_complete(cached_residual, n_dense, query_indices):
+            residual_distance_tensor = cast(torch.Tensor, cached_residual)
+            print(f"Loaded temporal-residual DTW from score cache: {dist_cache_path}")
+        else:
+            residual_distance_tensor = build_dtw_distance_matrix(
+                features,
+                dense_to_segment,
+                query_indices,
+                device,
+                args.dtw_batch_size,
+                feature_key="temporal_residual",
+                description="Full-gallery temporal-residual DTW",
+            )
+            score_cache["temporal_residual_dtw_distance"] = residual_distance_tensor
+            save_score_cache(score_cache, dist_cache_path)
+            print(f"Added temporal-residual DTW to score cache: {dist_cache_path}")
+
+    residual_distance = (
+        residual_distance_tensor.numpy().astype(np.float64)
+        if residual_distance_tensor is not None
+        else None
+    )
 
     # 5. Full-gallery baselines, cascade sweep, and leakage-safe LOCO fusion.
     bot_ap, bot_mrr = evaluate_queries(
@@ -268,6 +313,17 @@ def main() -> None:
     dtw_ap, dtw_mrr = evaluate_queries(
         bot_similarity, dtw_distance, relevance, clusters, query_indices, alpha=0.0
     )
+    residual_ap: np.ndarray | None = None
+    residual_mrr: np.ndarray | None = None
+    if residual_distance is not None:
+        residual_ap, residual_mrr = evaluate_queries(
+            bot_similarity,
+            residual_distance,
+            relevance,
+            clusters,
+            query_indices,
+            alpha=0.0,
+        )
     cascade = bot_dtw_cascade(
         bot_similarity, dtw_distance, relevance, query_indices, args.k_sweep
     )
@@ -280,6 +336,10 @@ def main() -> None:
             -dtw_distance, clusters, labels, query_indices, composition_k
         ),
     }
+    if residual_distance is not None:
+        outcome_by_method["temporal_residual_dtw"] = ranked_outcome_composition(
+            -residual_distance, clusters, labels, query_indices, composition_k
+        )
     alpha_grid = np.linspace(0.0, 1.0, 21, dtype=np.float64)
     loco = leave_one_cluster_out_alpha(
         bot_similarity, dtw_distance, relevance, clusters, query_indices, alpha_grid
@@ -304,18 +364,22 @@ def main() -> None:
                 }
                 for k in composition_k
             }
-        paired = {
-            str(k): {
-                category: paired_cluster_bootstrap_mean_difference(
-                    outcome_by_method["encoder_seq_dtw"][k][category],
-                    outcome_by_method["bot"][k][category],
-                    query_clusters,
-                    args.n_bootstrap,
-                    args.seed,
-                )
-                for category in OUTCOME_CATEGORIES
+        paired_by_method = {
+            f"paired_{method}_minus_bot": {
+                str(k): {
+                    category: paired_cluster_bootstrap_mean_difference(
+                        by_k[k][category],
+                        outcome_by_method["bot"][k][category],
+                        query_clusters,
+                        args.n_bootstrap,
+                        args.seed,
+                    )
+                    for category in OUTCOME_CATEGORIES
+                }
+                for k in composition_k
             }
-            for k in composition_k
+            for method, by_k in outcome_by_method.items()
+            if method != "bot"
         }
         return {
             "categories": {
@@ -326,7 +390,7 @@ def main() -> None:
                 "wrong_cluster": "different intersection cluster",
             },
             "methods": methods,
-            "paired_encoder_seq_dtw_minus_bot": paired,
+            **paired_by_method,
         }
 
     k_sweep_out: dict[str, object] = {}
@@ -397,6 +461,30 @@ def main() -> None:
             },
         },
     }
+    if residual_ap is not None and residual_mrr is not None:
+        results["temporal_residual_dtw_full_gallery"] = {
+            "map": cluster_ci(residual_ap),
+            "mrr": cluster_ci(residual_mrr),
+        }
+        paired_map = cast(dict[str, object], results["paired_map_differences"])
+        paired_map["temporal_residual_dtw_minus_bot"] = (
+            paired_cluster_bootstrap_mean_difference(
+                residual_ap,
+                bot_ap,
+                query_clusters,
+                args.n_bootstrap,
+                args.seed,
+            )
+        )
+        paired_map["temporal_residual_dtw_minus_encoder_seq_dtw"] = (
+            paired_cluster_bootstrap_mean_difference(
+                residual_ap,
+                dtw_ap,
+                query_clusters,
+                args.n_bootstrap,
+                args.seed,
+            )
+        )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as output_file:

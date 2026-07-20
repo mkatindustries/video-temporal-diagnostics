@@ -4,6 +4,8 @@ Contains data loading, GPS clustering, video clip extraction, and feature
 extraction functions used across multiple experiment scripts.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 import zoneinfo
@@ -11,6 +13,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import av
 import numpy as np
@@ -19,7 +22,9 @@ import torch.nn.functional as F
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
-from video_retrieval.models import DINOv3Encoder
+
+if TYPE_CHECKING:
+    from video_retrieval.models import DINOv3Encoder
 
 logger = logging.getLogger(__name__)
 

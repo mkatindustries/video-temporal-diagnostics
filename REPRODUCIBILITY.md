@@ -142,12 +142,15 @@ candidates; held-out queries are then evaluated against the full retained evalua
 python experiments/eval_hdd_fusion.py \
     --hdd-dir /path/to/hdd \
     --feature-cache datasets/hdd/vjepa2_encoder_features.pt \
+    --evaluate-temporal-residual \
     --composition-k 1 10 \
     --output results/hdd/fusion_results.json
 ```
 
 **Output:** `results/hdd/fusion_results.json` and the reusable, untracked
-`datasets/hdd/fusion_score_cache.pt`. In addition to fusion metrics, the compact result splits
+`datasets/hdd/fusion_score_cache.pt`. When `--evaluate-temporal-residual` is set, an existing
+validated cache is augmented with the residual-DTW matrix without recomputing encoder-sequence
+DTW. In addition to fusion metrics, the compact result splits
 top-1/top-10 outcomes into relevant, same-intersection/wrong-maneuver, and wrong-intersection
 fractions. The validated 50-fold evaluation selects `alpha=0.95` in every fold and finds no
 detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
@@ -165,6 +168,7 @@ NUSCENES_DIR=/path/to/nuscenes NUSCENES_VERSION=v1.0-trainval \
 # or directly:
 python experiments/eval_nuscenes_fusion.py \
     --nuscenes-dir /path/to/nuscenes --version v1.0-trainval --max-clusters 50 \
+    --evaluate-temporal-residual \
     --composition-k 1 10 \
     --output results/nuscenes/fusion_results.json
 ```

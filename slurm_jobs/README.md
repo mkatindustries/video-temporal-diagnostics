@@ -25,6 +25,10 @@ HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
 NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes_fusion.sbatch
 ```
 
+The fusion jobs also evaluate full-gallery temporal-residual DTW. A validated legacy
+BoT/encoder-DTW score cache is augmented in place, so only the missing residual matrix is
+computed. Do not set `--rebuild-dist-cache` unless the existing encoder-DTW matrix is stale.
+
 After both jobs finish, generate the figure on a CPU node and rebuild the paper:
 
 ```bash

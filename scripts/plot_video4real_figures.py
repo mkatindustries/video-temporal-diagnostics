@@ -102,7 +102,11 @@ def error_composition_figure() -> None:
         ("same_cluster_wrong_label", "Right location, wrong maneuver", "#ffbf00"),
         ("wrong_cluster", "Wrong location", "#7f7f7f"),
     ]
-    methods = [("bot", "BoT"), ("encoder_seq_dtw", "Encoder-seq DTW")]
+    methods = [("bot", "BoT"), ("encoder_seq_dtw", "Encoder-seq\nDTW")]
+    if all(
+        "temporal_residual_dtw" in data[key]["methods"] for data in (hdd, nus)
+    ):
+        methods.append(("temporal_residual_dtw", "Temporal-residual\nDTW"))
     fig, axes = plt.subplots(1, 2, figsize=(8.0, 2.7), sharey=True)
     for ax, data, title in (
         (axes[0], hdd, "Honda HDD"),
