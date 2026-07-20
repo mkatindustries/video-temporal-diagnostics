@@ -136,35 +136,40 @@ Tests whether global BoT location discrimination and encoder-sequence DTW tempor
 discrimination compose at score level. Scores are z-normalized per query and combined as
 `alpha*z(BoT) + (1-alpha)*z(-DTW)`. Leave-one-intersection-out cross-validation selects
 `alpha` without using the held-out cluster as either tuning queries or tuning gallery
-candidates; held-out queries are then evaluated against the full gallery.
+candidates; held-out queries are then evaluated against the full retained evaluation gallery.
 
 ```bash
 python experiments/eval_hdd_fusion.py \
     --hdd-dir /path/to/hdd \
-    --feature-cache datasets/hdd/vjepa2_encoder_features.pt
+    --feature-cache datasets/hdd/vjepa2_encoder_features.pt \
+    --composition-k 1 10 \
+    --output results/hdd/fusion_results.json
 ```
 
-**Output:** `<hdd-dir>/fusion_results.json` and the reusable, untracked
-`datasets/hdd/fusion_score_cache.pt`. The compact result is tracked at
-`results/hdd/fusion_results.json`. The 50-fold evaluation selects `alpha=0.95` in every
-fold and finds no detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
+**Output:** `results/hdd/fusion_results.json` and the reusable, untracked
+`datasets/hdd/fusion_score_cache.pt`. In addition to fusion metrics, the compact result splits
+top-1/top-10 outcomes into relevant, same-intersection/wrong-maneuver, and wrong-intersection
+fractions. The validated 50-fold evaluation selects `alpha=0.95` in every fold and finds no
+detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
 
 ### 6d. Directed Full-Gallery Retrieval + Held-Out Fusion (nuScenes)
 
 Applies the §6b/§6c protocol to nuScenes to test whether HDD's conditional-vs-global reversal
-generalizes. Relevance = same intersection cluster and maneuver label; full-gallery BoT and
+generalizes. Relevance = same intersection cluster and maneuver label; evaluation-gallery BoT and
 encoder-sequence DTW; BoT→DTW cascade; leakage-safe leave-one-intersection-out linear fusion.
-Reuses the cached V-JEPA 2 features (no re-extraction); only full-gallery DTW runs on GPU.
+Reuses the cached V-JEPA 2 features (no re-extraction); only evaluation-gallery DTW runs on GPU.
 
 ```bash
 NUSCENES_DIR=/path/to/nuscenes NUSCENES_VERSION=v1.0-trainval \
   sbatch --account=<acct> --qos=<qos> slurm_jobs/rerun_nuscenes_fusion.sbatch
 # or directly:
 python experiments/eval_nuscenes_fusion.py \
-    --nuscenes-dir /path/to/nuscenes --version v1.0-trainval --max-clusters 50
+    --nuscenes-dir /path/to/nuscenes --version v1.0-trainval --max-clusters 50 \
+    --composition-k 1 10 \
+    --output results/nuscenes/fusion_results.json
 ```
 
-**Output:** `<nuscenes-dir>/fusion_results.json` and the reusable, untracked
+**Output:** `results/nuscenes/fusion_results.json` and the reusable, untracked
 `<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`. The compact result is
 tracked at `results/nuscenes/fusion_results.json` (job 9645008). The evaluation uses 264 segments
 from 50 clusters, with 222 eligible queries from 40 clusters. It replicates the reversal: global
@@ -629,6 +634,7 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 | `datasets/hdd/encoder_seq_results.json` | Table 2 (Encoder-Seq row) |
 | `results/hdd/bof_dtw_directed_rerank_results.json` | Corrected directed retrieval tables |
 | `results/hdd/fusion_results.json` | Held-out score-fusion result in Section 3.2 |
+| `figures/v4r_error_composition.png` | Video4Real top-1 outcome decomposition |
 | `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
 | `results/hdd/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `results/epic/temporal_order_results.json` | Corrected EPIC residual result; Tables 4-5 |
@@ -666,5 +672,12 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 ## Paper Compilation
 
 ```bash
-cd paper && pdflatex paper.tex && pdflatex paper.tex && pdflatex paper.tex
+# Video4Real / ECCV workshop paper
+make video4real
+
+# Clean rebuild
+make clean-video4real video4real
+
+# NeurIPS manuscript
+cd paper && latexmk -pdf neurips.tex
 ```

@@ -13,6 +13,7 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
 : "${HDD_DIR:?Set HDD_DIR to the Honda HDD dataset root}"
 FEATURE_CACHE="${FEATURE_CACHE:-$REPO_ROOT/datasets/hdd/vjepa2_encoder_features.pt}"
 DIST_CACHE="${DIST_CACHE:-$REPO_ROOT/datasets/hdd/fusion_score_cache.pt}"
+RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/hdd/fusion_results.json}"
 
 "$PYTHON" experiments/eval_hdd_fusion.py \
     --hdd-dir "$HDD_DIR" \
@@ -20,5 +21,7 @@ DIST_CACHE="${DIST_CACHE:-$REPO_ROOT/datasets/hdd/fusion_score_cache.pt}"
     --max-clusters "${MAX_CLUSTERS:-50}" \
     --feature-cache "$FEATURE_CACHE" \
     --dist-cache "$DIST_CACHE" \
+    --output "$RESULTS_OUTPUT" \
+    --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"

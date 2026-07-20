@@ -5,7 +5,7 @@ BoT cosine similarity retains global appearance/location information, while
 encoder-sequence DTW supplies temporal discrimination. This script combines
 their per-query z-scores with one weight selected by leave-one-intersection-out
 cross-validation. The held-out cluster is excluded from both tuning queries and
-tuning galleries, then its queries are evaluated against the full corpus.
+tuning galleries, then its queries are evaluated against the full retained evaluation gallery.
 """
 
 from __future__ import annotations
@@ -22,9 +22,11 @@ from eval_hdd_bof_dtw_rerank import load_evaluation_segments, summarize
 from tqdm import tqdm
 
 from video_retrieval.diagnostics.fusion import (
+    OUTCOME_CATEGORIES,
     evaluate_queries,
     leave_one_cluster_out_alpha,
     paired_cluster_bootstrap_mean_difference,
+    ranked_outcome_composition,
 )
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
 
@@ -150,8 +152,14 @@ def main() -> None:
     )
     parser.add_argument("--rebuild-dist-cache", action="store_true")
     parser.add_argument("--dtw-batch-size", type=int, default=256)
+    parser.add_argument("--composition-k", type=int, nargs="+", default=[1, 10])
     parser.add_argument("--n-bootstrap", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Compact JSON output (default: <hdd-dir>/fusion_results.json).",
+    )
     args = parser.parse_args()
 
     if args.dtw_batch_size <= 0:
@@ -161,6 +169,11 @@ def main() -> None:
     hdd_dir = resolve_path(project_root, args.hdd_dir)
     feature_cache_path = resolve_path(project_root, args.feature_cache)
     dist_cache_path = resolve_path(project_root, args.dist_cache)
+    output_path = (
+        resolve_path(project_root, args.output)
+        if args.output
+        else hdd_dir / "fusion_results.json"
+    )
     device = torch.device(args.device)
 
     eval_segments, _, segment_to_cluster = load_evaluation_segments(
@@ -266,6 +279,56 @@ def main() -> None:
         alpha=0.0,
     )
 
+    composition_k = sorted({int(k) for k in args.composition_k})
+    outcome_by_method = {
+        "bot": ranked_outcome_composition(
+            bot_similarity, clusters, labels, query_indices, composition_k
+        ),
+        "encoder_seq_dtw": ranked_outcome_composition(
+            -dtw_distance, clusters, labels, query_indices, composition_k
+        ),
+    }
+
+    def summarize_outcomes() -> dict[str, object]:
+        methods: dict[str, object] = {}
+        for method, by_k in outcome_by_method.items():
+            methods[method] = {
+                str(k): {
+                    category: summarize(
+                        by_k[k][category].tolist(),
+                        query_clusters.tolist(),
+                        args.n_bootstrap,
+                        args.seed,
+                    )
+                    for category in OUTCOME_CATEGORIES
+                }
+                for k in composition_k
+            }
+        paired = {
+            str(k): {
+                category: paired_cluster_bootstrap_mean_difference(
+                    outcome_by_method["encoder_seq_dtw"][k][category],
+                    outcome_by_method["bot"][k][category],
+                    query_clusters,
+                    args.n_bootstrap,
+                    args.seed,
+                )
+                for category in OUTCOME_CATEGORIES
+            }
+            for k in composition_k
+        }
+        return {
+            "categories": {
+                "relevant": "same intersection cluster and same maneuver label",
+                "same_cluster_wrong_label": (
+                    "same intersection cluster and different maneuver label"
+                ),
+                "wrong_cluster": "different intersection cluster",
+            },
+            "methods": methods,
+            "paired_encoder_seq_dtw_minus_bot": paired,
+        }
+
     folds = loco["folds"]
     selected_alphas = np.asarray([fold["alpha"] for fold in folds], dtype=np.float64)
     results: dict[str, object] = {
@@ -273,6 +336,10 @@ def main() -> None:
             "directional": True,
             "gallery": "all cached HDD evaluation segments except the query",
             "relevance": "same GPS cluster and same maneuver label",
+            "outcome_composition": (
+                "top-k fractions split into relevant, same-cluster wrong-label, "
+                "and wrong-cluster candidates"
+            ),
             "fusion": "alpha*z(BoT cosine) + (1-alpha)*z(-DTW distance), per query",
             "selection": (
                 "leave-one-intersection-out; held-out cluster excluded from tuning "
@@ -282,7 +349,7 @@ def main() -> None:
                 "retain a sole maximizing endpoint; otherwise choose the middle "
                 "maximizing grid value"
             ),
-            "evaluation": "held-out-cluster queries against the full gallery",
+            "evaluation": "held-out-cluster queries against the full evaluation gallery",
             "uncertainty": (
                 "intersection-cluster bootstrap over fixed out-of-fold query metrics; "
                 "does not refit alpha inside bootstrap resamples"
@@ -339,6 +406,7 @@ def main() -> None:
                 args.seed,
             ),
         },
+        "ranked_outcome_composition": summarize_outcomes(),
         "alpha_selected": {
             "folds": folds,
             "median": float(np.median(selected_alphas)),
@@ -352,7 +420,6 @@ def main() -> None:
         },
     }
 
-    output_path = hdd_dir / "fusion_results.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as output_file:
         json.dump(results, output_file, indent=2)

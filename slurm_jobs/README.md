@@ -16,6 +16,22 @@ NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes.sbatch
 EPIC_DIR=/datasets/EPIC_KITCHENS sbatch slurm_jobs/rerun_epic_residual.sbatch
 ```
 
+For the Video4Real error-composition result, rerun the two fusion jobs after the
+feature and distance caches exist. They write compact summaries directly to the
+tracked `results/` paths:
+
+```bash
+HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
+NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes_fusion.sbatch
+```
+
+After both jobs finish, generate the figure on a CPU node and rebuild the paper:
+
+```bash
+python scripts/plot_video4real_figures.py error-composition
+make video4real
+```
+
 The scripts intentionally omit site-specific account, partition, and QoS values. Add them
 with `sbatch --account=... --partition=... --qos=...` as required. Set `PYTHON_BIN` to an
 environment-specific Python executable, or set `CONDA_SH` and `CONDA_ENV` (default:

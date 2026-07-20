@@ -164,6 +164,14 @@ python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positiv
 
 LaTeX draft in `paper/paper.tex`. Title: *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines"*
 
+The Video4Real extended abstract is `paper/video4real.tex`. Build it from the repository root:
+
+```bash
+make video4real
+```
+
+For a clean rebuild, run `make clean-video4real video4real`.
+
 ## License
 
 This code is released under the [MIT License](LICENSE). Note that the datasets and model weights used in experiments carry their own licenses:

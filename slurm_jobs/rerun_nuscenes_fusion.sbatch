@@ -14,9 +14,10 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
 NUSCENES_VERSION="${NUSCENES_VERSION:-v1.0-trainval}"
 
 # Reuse the V-JEPA 2 feature cache built by eval_nuscenes_intersections; only the
-# full-gallery DTW matrix is (re)computed. DIST_CACHE lets smoke and full runs use
+# evaluation-gallery DTW matrix is (re)computed. DIST_CACHE lets smoke and full runs use
 # separate score caches.
 DEFAULT_DIST="$NUSCENES_DIR/feature_cache/nuscenes_fusion_score_cache_${NUSCENES_VERSION}.pt"
+RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/nuscenes/fusion_results.json}"
 
 "$PYTHON" experiments/eval_nuscenes_fusion.py \
     --nuscenes-dir "$NUSCENES_DIR" \
@@ -24,5 +25,7 @@ DEFAULT_DIST="$NUSCENES_DIR/feature_cache/nuscenes_fusion_score_cache_${NUSCENES
     --device cuda \
     --max-clusters "${MAX_CLUSTERS:-50}" \
     --dist-cache "${DIST_CACHE:-$DEFAULT_DIST}" \
+    --output "$RESULTS_OUTPUT" \
+    --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"

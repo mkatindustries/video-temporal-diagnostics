@@ -26,6 +26,13 @@ class LocoResult(TypedDict):
     query_clusters: np.ndarray
 
 
+OUTCOME_CATEGORIES = (
+    "relevant",
+    "same_cluster_wrong_label",
+    "wrong_cluster",
+)
+
+
 def zscore_over_gallery(scores: np.ndarray, valid_gallery: np.ndarray) -> np.ndarray:
     """Z-score one query's scores over its valid gallery candidates."""
     values = np.asarray(scores, dtype=np.float64)
@@ -343,6 +350,77 @@ def bot_dtw_cascade(
                    for metric, values in method.items()}
             for name, method in methods.items()}
         for k, methods in out.items()
+    }
+
+
+def ranked_outcome_composition(
+    scores: np.ndarray,
+    candidate_clusters: np.ndarray,
+    candidate_labels: np.ndarray,
+    query_indices: Sequence[int] | np.ndarray,
+    k_values: Sequence[int] | np.ndarray,
+) -> dict[int, dict[str, np.ndarray]]:
+    """Classify each top-k result by relevance, maneuver error, or location error.
+
+    Higher scores rank first. The three outcome categories are mutually exclusive:
+    ``relevant`` candidates share the query cluster and label;
+    ``same_cluster_wrong_label`` candidates share only the cluster; and
+    ``wrong_cluster`` candidates come from another cluster. Each returned array
+    contains one top-k fraction per query and is aligned to ``query_indices``.
+    """
+    values = np.asarray(scores, dtype=np.float64)
+    clusters = np.asarray(candidate_clusters)
+    labels = np.asarray(candidate_labels)
+    query_ids = np.asarray(query_indices, dtype=np.int64)
+    ks = sorted({int(k) for k in k_values})
+
+    if clusters.ndim != 1 or labels.shape != clusters.shape:
+        raise ValueError("candidate_clusters and candidate_labels must be equally sized 1D arrays")
+    n_segments = len(clusters)
+    if values.shape != (n_segments, n_segments):
+        raise ValueError("scores must be square over candidate_clusters")
+    if query_ids.ndim != 1 or len(query_ids) == 0:
+        raise ValueError("query_indices must be a non-empty 1D sequence")
+    if np.any((query_ids < 0) | (query_ids >= n_segments)):
+        raise ValueError("query_indices contains an out-of-range index")
+    if n_segments < 2:
+        raise ValueError("at least two candidates are required")
+    if not ks or ks[0] < 1:
+        raise ValueError("k_values must be positive")
+
+    max_k = n_segments - 1
+    output: dict[int, dict[str, list[float]]] = {
+        k: {category: [] for category in OUTCOME_CATEGORIES} for k in ks
+    }
+    all_indices = np.arange(n_segments)
+
+    for query_idx in query_ids:
+        valid = all_indices != query_idx
+        if not np.all(np.isfinite(values[query_idx, valid])):
+            raise ValueError(f"query {int(query_idx)} has a non-finite gallery score")
+        valid_indices = all_indices[valid]
+        order = valid_indices[
+            np.argsort(-values[query_idx, valid], kind="stable")
+        ]
+
+        for k in ks:
+            top = order[: min(k, max_k)]
+            same_cluster = clusters[top] == clusters[query_idx]
+            same_label = labels[top] == labels[query_idx]
+            masks = {
+                "relevant": same_cluster & same_label,
+                "same_cluster_wrong_label": same_cluster & ~same_label,
+                "wrong_cluster": ~same_cluster,
+            }
+            for category, mask in masks.items():
+                output[k][category].append(float(np.mean(mask)))
+
+    return {
+        k: {
+            category: np.asarray(fractions, dtype=np.float64)
+            for category, fractions in categories.items()
+        }
+        for k, categories in output.items()
     }
 
 

@@ -5,10 +5,10 @@ Applies the Honda HDD protocol (eval_hdd_bof_dtw_rerank.py + eval_hdd_fusion.py)
 to nuScenes to test whether HDD's conditional-versus-global reversal generalizes:
 
 - relevance = same intersection cluster and same maneuver label;
-- full-gallery BoT and full-gallery encoder-sequence DTW (query-macro mAP/MRR);
+- full-evaluation-gallery BoT and encoder-sequence DTW (query-macro mAP/MRR);
 - BoT -> DTW cascade sweep (truncated AP@k / recall@k / MRR);
 - leakage-safe leave-one-cluster-out score fusion, held-out clusters excluded
-  from tuning queries and galleries, evaluated against the full gallery.
+  from tuning queries and galleries, evaluated against the full evaluation gallery.
 
 Segments/clusters/labels are rebuilt with the exact parameters used to build the
 cached V-JEPA 2 features (version, max-clusters, min-segment-duration, DBSCAN
@@ -22,11 +22,13 @@ import argparse
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
 from eval_hdd_bof_dtw_rerank import summarize
 from eval_hdd_fusion import (
+    ScoreCache,
     build_score_cache,
     cache_metadata_matches,
     label_ids,
@@ -43,10 +45,12 @@ from eval_nuscenes_intersections import (
 from tqdm import tqdm
 
 from video_retrieval.diagnostics.fusion import (
+    OUTCOME_CATEGORIES,
     bot_dtw_cascade,
     evaluate_queries,
     leave_one_cluster_out_alpha,
     paired_cluster_bootstrap_mean_difference,
+    ranked_outcome_composition,
 )
 
 # DBSCAN parameters are fixed to match eval_nuscenes_intersections' feature build.
@@ -123,6 +127,7 @@ def main() -> None:
     )
     parser.add_argument("--rebuild-dist-cache", action="store_true")
     parser.add_argument("--k-sweep", type=int, nargs="+", default=[5, 10, 25, 50, 100])
+    parser.add_argument("--composition-k", type=int, nargs="+", default=[1, 10])
     parser.add_argument("--dtw-batch-size", type=int, default=256)
     parser.add_argument("--n-bootstrap", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
@@ -218,10 +223,16 @@ def main() -> None:
     score_cache = None
     if dist_cache_path.exists() and not args.rebuild_dist_cache:
         raw = torch.load(dist_cache_path, map_location="cpu", weights_only=True)
-        if isinstance(raw, dict) and cache_metadata_matches(
-            raw, dense_positions, clusters, labels, feature_cache_path
+        required_keys = set(ScoreCache.__required_keys__)
+        candidate = cast(ScoreCache, raw)
+        if (
+            isinstance(raw, dict)
+            and required_keys.issubset(raw)
+            and cache_metadata_matches(
+                candidate, dense_positions, clusters, labels, feature_cache_path
+            )
         ):
-            score_cache = raw
+            score_cache = candidate
             print(f"Loaded validated score cache: {dist_cache_path}")
         else:
             print(f"Ignoring stale/incompatible score cache: {dist_cache_path}")
@@ -260,6 +271,15 @@ def main() -> None:
     cascade = bot_dtw_cascade(
         bot_similarity, dtw_distance, relevance, query_indices, args.k_sweep
     )
+    composition_k = sorted({int(k) for k in args.composition_k})
+    outcome_by_method = {
+        "bot": ranked_outcome_composition(
+            bot_similarity, clusters, labels, query_indices, composition_k
+        ),
+        "encoder_seq_dtw": ranked_outcome_composition(
+            -dtw_distance, clusters, labels, query_indices, composition_k
+        ),
+    }
     alpha_grid = np.linspace(0.0, 1.0, 21, dtype=np.float64)
     loco = leave_one_cluster_out_alpha(
         bot_similarity, dtw_distance, relevance, clusters, query_indices, alpha_grid
@@ -273,6 +293,41 @@ def main() -> None:
 
     def cluster_ci(values: np.ndarray) -> dict:
         return summarize(values.tolist(), qc_list, args.n_bootstrap, args.seed)
+
+    def summarize_outcomes() -> dict[str, object]:
+        methods: dict[str, object] = {}
+        for method, by_k in outcome_by_method.items():
+            methods[method] = {
+                str(k): {
+                    category: cluster_ci(by_k[k][category])
+                    for category in OUTCOME_CATEGORIES
+                }
+                for k in composition_k
+            }
+        paired = {
+            str(k): {
+                category: paired_cluster_bootstrap_mean_difference(
+                    outcome_by_method["encoder_seq_dtw"][k][category],
+                    outcome_by_method["bot"][k][category],
+                    query_clusters,
+                    args.n_bootstrap,
+                    args.seed,
+                )
+                for category in OUTCOME_CATEGORIES
+            }
+            for k in composition_k
+        }
+        return {
+            "categories": {
+                "relevant": "same intersection cluster and same maneuver label",
+                "same_cluster_wrong_label": (
+                    "same intersection cluster and different maneuver label"
+                ),
+                "wrong_cluster": "different intersection cluster",
+            },
+            "methods": methods,
+            "paired_encoder_seq_dtw_minus_bot": paired,
+        }
 
     k_sweep_out: dict[str, object] = {}
     for k in sorted({int(k) for k in args.k_sweep}):
@@ -291,13 +346,17 @@ def main() -> None:
             "directional": True,
             "gallery": "all cached nuScenes evaluation segments except the query",
             "relevance": "same intersection cluster and same maneuver label",
+            "outcome_composition": (
+                "top-k fractions split into relevant, same-cluster wrong-label, "
+                "and wrong-cluster candidates"
+            ),
             "cascade": (
                 "BoT top-k then encoder-sequence-DTW rerank; AP@k truncated by total relevant"
             ),
             "fusion": "alpha*z(BoT cosine) + (1-alpha)*z(-DTW distance), per query",
             "selection": (
                 "leave-one-intersection-out; held-out cluster excluded from tuning "
-                "queries and tuning galleries; evaluated on the full gallery"
+                "queries and tuning galleries; evaluated on the full evaluation gallery"
             ),
             "uncertainty": (
                 "intersection-cluster bootstrap over fixed out-of-fold query metrics"
@@ -325,6 +384,7 @@ def main() -> None:
                 dtw_ap, bot_ap, query_clusters, args.n_bootstrap, args.seed
             ),
         },
+        "ranked_outcome_composition": summarize_outcomes(),
         "alpha_selected": {
             "folds": folds,
             "median": float(np.median(selected)),

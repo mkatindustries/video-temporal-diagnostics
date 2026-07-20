@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Generate Video4Real cascade and LOCO-alpha figures from tracked result JSONs.
+"""Generate Video4Real figures from tracked result JSONs.
 
 No GPU; reads results/{hdd,nuscenes}/*.json and writes figures/v4r_*.png.
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -82,6 +83,61 @@ def loco_figure() -> None:
     print(f"wrote {out}")
 
 
+def error_composition_figure() -> None:
+    """Plot whether top-1 failures confuse maneuvers or intersection locations."""
+    import numpy as np
+
+    hdd = load("results/hdd/fusion_results.json")
+    nus = load("results/nuscenes/fusion_results.json")
+    key = "ranked_outcome_composition"
+    if key not in hdd or key not in nus:
+        print(
+            "skipped figures/v4r_error_composition.png: rerun both fusion evaluators "
+            "to add ranked_outcome_composition"
+        )
+        return
+
+    categories = [
+        ("relevant", "Relevant", "#2ca02c"),
+        ("same_cluster_wrong_label", "Right location, wrong maneuver", "#ffbf00"),
+        ("wrong_cluster", "Wrong location", "#7f7f7f"),
+    ]
+    methods = [("bot", "BoT"), ("encoder_seq_dtw", "Encoder-seq DTW")]
+    fig, axes = plt.subplots(1, 2, figsize=(8.0, 2.7), sharey=True)
+    for ax, data, title in (
+        (axes[0], hdd, "Honda HDD"),
+        (axes[1], nus, "nuScenes"),
+    ):
+        composition = data[key]["methods"]
+        x = np.arange(len(methods))
+        bottom = np.zeros(len(methods))
+        for category, label, color in categories:
+            values = np.asarray(
+                [composition[method]["1"][category]["mean"] for method, _ in methods]
+            )
+            ax.bar(x, values, bottom=bottom, color=color, label=label, width=0.66)
+            bottom += values
+        ax.set_xticks(x)
+        ax.set_xticklabels([label for _, label in methods])
+        ax.set_ylim(0.0, 1.0)
+        ax.set_title(title)
+        ax.grid(axis="y", alpha=0.25)
+    axes[0].set_ylabel("Fraction of top-1 outcomes")
+    handles, labels = axes[1].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        fontsize=8,
+        loc="upper center",
+        ncol=3,
+        bbox_to_anchor=(0.5, 1.03),
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.83))
+    out = FIG / "v4r_error_composition.png"
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    print(f"wrote {out}")
+
+
 def vlm_figure() -> None:
     """MLLM interface failure: prompt dependence and pooled-vs-sequence readout s_rev.
 
@@ -131,7 +187,25 @@ def vlm_figure() -> None:
     print(f"wrote {out}")
 
 
+def main() -> None:
+    functions = {
+        "cascade": cascade_figure,
+        "loco": loco_figure,
+        "vlm": vlm_figure,
+        "error-composition": error_composition_figure,
+    }
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "figures",
+        nargs="*",
+        choices=functions,
+        help="Figures to generate (default: all).",
+    )
+    args = parser.parse_args()
+    selected = args.figures or list(functions)
+    for name in selected:
+        functions[name]()
+
+
 if __name__ == "__main__":
-    cascade_figure()
-    loco_figure()
-    vlm_figure()
+    main()
