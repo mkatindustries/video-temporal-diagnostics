@@ -1,6 +1,7 @@
 # Results Provenance
 
-Compact result summaries for the corrected temporal-diagnostics rerun (2026-07-18).
+Compact result summaries for the corrected temporal-diagnostics reruns (2026-07-18 through
+2026-07-20).
 Caches (`*.pt`), large per-pair score files (`pair_scores.json`,
 `encoder_seq_pair_scores.json`), and raw SLURM logs are intentionally **not** tracked.
 
@@ -21,8 +22,8 @@ Shared configuration for every artifact below:
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
-| `hdd/fusion_results.json` | `7539555` | `9654434` | HDD release_2019_07_08 |
-| `nuscenes/fusion_results.json` | `894edc3` | `9645008` | nuScenes v1.0-trainval |
+| `hdd/fusion_results.json` | `2c0da74` | `9671544` | HDD release_2019_07_08 |
+| `nuscenes/fusion_results.json` | `2c0da74` | `9671547` | nuScenes v1.0-trainval |
 
 Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
@@ -43,4 +44,12 @@ Notes:
   fusion selected α*=1.0 in all 40 folds, so the fused ranking is identical to BoT (fused−BoT
   difference exactly 0). This is the first nuScenes directed full-gallery evaluation, so the
   BoT/DTW mAPs here have no earlier counterpart to cross-check against.
+- Jobs 9671544 (HDD) and 9671547 (nuScenes), committed as `18eee91`, reproduced the fusion
+  metrics and added the Video4Real ranked-outcome decomposition. At top 1,
+  encoder-sequence DTW minus BoT increases
+  wrong-intersection retrieval by +0.1417 [0.1081, 0.1869] on HDD and +0.3063 [0.2290, 0.3874]
+  on nuScenes. Same-intersection/wrong-maneuver outcomes are at most 0.45% for all top-1 rows
+  (and at most 1.04% through top 10), localizing nearly all observed errors to location selection.
+  HDD recomputed the full evaluation-gallery DTW matrix because its score cache was absent;
+  nuScenes reused its cache.
 - Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.

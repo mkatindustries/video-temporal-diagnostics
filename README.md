@@ -36,6 +36,7 @@ Selected point estimates from the valid pair diagnostics:
 | LLM fixed-vector probes | Exploratory, no reliable evidence | best observed 0.560 across many configs |
 | V-JEPA 2 encoder-sequence DTW (HDD) | Controlled comparator contrast | AP 0.942 |
 | Directed BoT-to-DTW retrieval (HDD) | BoT beats encoder-sequence DTW globally | full-gallery mAP 0.256 vs. 0.177 |
+| Top-1 retrieval error composition | Wrong-intersection errors dominate | at least 98.9% of errors across HDD/nuScenes methods |
 | Balanced-chunk scramble (VCDB) | BoF / Chamfer / BoT remain flat | max std over 10 seeds 0.0101 |
 | V-JEPA 2 reversal (EPIC) | Temporal residual under DTW | s_rev 0.0033 [0.0031, 0.0034] |
 

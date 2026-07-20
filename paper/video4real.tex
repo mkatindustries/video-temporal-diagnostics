@@ -43,7 +43,9 @@ advantage transfers across intersections and observe the same reversal on two dr
 datasets. V-JEPA~2 encoder-sequence DTW clearly beats a bag-of-tokens (BoT) cosine baseline on
 conditional pooled-pair discrimination (Honda HDD $0.942$ vs.\ $0.825$ AP; nuScenes $0.867$ vs.\
 $0.791$) yet \emph{underperforms} it over the full evaluation gallery (HDD $0.177$ vs.\ $0.256$
-mAP; nuScenes $0.141$ vs.\ $0.315$). A BoT$\to$DTW cascade lowers AP at every evaluated $k$, and a
+mAP; nuScenes $0.141$ vs.\ $0.315$). Across all four top-1 rankings, at least $98.9\%$ of errors
+retrieve the wrong intersection rather than the wrong maneuver at the correct one. A
+BoT$\to$DTW cascade lowers AP at every evaluated $k$, and a
 leakage-safe held-out linear fusion shows no detected gain over BoT on HDD ($+0.001$,
 $95\%$ CI $[-0.003, 0.004]$; $\alpha^\star{=}0.95$) and collapses exactly onto BoT on nuScenes
 ($\alpha^\star{=}1.0$). A second, orthogonal failure concerns the interface: temporal evidence can
@@ -141,12 +143,16 @@ nuScenes $+0.075$, $[0.028, 0.128]$).
 $0.766$ on HDD and $0.315$ / $0.554$ on nuScenes, while encoder-sequence DTW reaches only
 $0.177$ / $0.640$ and $0.141$ / $0.259$. The paired global difference encoder-sequence DTW $-$ BoT
 is $-0.175$ $[-0.245, -0.117]$ on nuScenes and \hddGlobalDtwBot{} on HDD. The result is consistent
-with the DTW score providing insufficient location discrimination and promoting temporally similar
-segments from wrong intersections once out-of-cluster negatives are restored.
+with insufficient location discrimination; we test that explanation by decomposing top-ranked
+outcomes.
 
-\IfFileExists{../figures/v4r_error_composition.png}{%
 \textbf{Top-1 error decomposition.} \cref{fig:error_composition} separates failures at the
-correct intersection from retrievals of the wrong location.
+correct intersection from retrievals of the wrong location. Same-intersection/wrong-maneuver
+outcomes are at most $0.5\%$ for every top-1 ranking. Instead, DTW increases wrong-intersection
+retrieval over BoT by $+0.142$ $[0.108, 0.187]$ on HDD and $+0.306$ $[0.229, 0.387]$ on
+nuScenes (paired cluster bootstrap). Thus the conditional gain does not survive location search:
+the global error is overwhelmingly selecting the wrong intersection, not the wrong maneuver at the
+right one.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{v4r_error_composition.png}
@@ -156,7 +162,6 @@ correct intersection from retrievals of the wrong location.
   location discrimination.}
   \label{fig:error_composition}
 \end{figure}
-}{}
 
 \textbf{Neither cascade nor held-out fusion recovers the gap.} Reranking the BoT top-$k$ by DTW
 lowers AP at every evaluated $k$ on the same candidate set (recall unchanged; \cref{fig:cascade}).
@@ -288,7 +293,8 @@ particular prompt or readout~\cite{lei2022singleframe,tempcompass,temporaltransf
 \label{sec:conclusion}
 Conditional maneuver discrimination and cross-intersection retrieval measure different capabilities. A
 comparator can separate left from right turns at a known intersection yet provide too little
-location discrimination to rank the evaluation gallery well; neither a fixed reranking stage nor a
+location discrimination to rank the evaluation gallery well. The top-1 decomposition localizes
+the observed loss to wrong-intersection retrieval; neither a fixed reranking stage nor a
 cross-validated linear blend of the two scores repairs this here. In parallel, multimodal LLMs can hold recoverable
 temporal evidence that standard prompts and pooled readouts fail to surface. Recovering global
 temporal retrieval therefore requires a temporal representation that is itself
