@@ -153,13 +153,15 @@ validated cache is augmented with the residual-DTW matrix without recomputing en
 DTW. In addition to fusion metrics, the compact result splits
 top-1/top-10 outcomes into relevant, same-intersection/wrong-maneuver, and wrong-intersection
 fractions. The validated 50-fold evaluation selects `alpha=0.95` in every fold and finds no
-detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036].
+detected mAP improvement over BoT: +0.0010 [-0.0031, 0.0036]. Full-gallery temporal-residual
+DTW reaches mAP 0.164 [0.126, 0.194], below BoT by -0.091 [-0.116, -0.077] in the paired
+cluster bootstrap.
 
 ### 6d. Directed Full-Gallery Retrieval + Held-Out Fusion (nuScenes)
 
 Applies the §6b/§6c protocol to nuScenes to test whether HDD's conditional-vs-global reversal
 generalizes. Relevance = same intersection cluster and maneuver label; evaluation-gallery BoT and
-encoder-sequence DTW; BoT→DTW cascade; leakage-safe leave-one-intersection-out linear fusion.
+encoder-sequence/temporal-residual DTW; BoT→DTW cascade; leakage-safe leave-one-intersection-out linear fusion.
 Reuses the cached V-JEPA 2 features (no re-extraction); only evaluation-gallery DTW runs on GPU.
 
 ```bash
@@ -175,11 +177,13 @@ python experiments/eval_nuscenes_fusion.py \
 
 **Output:** `results/nuscenes/fusion_results.json` and the reusable, untracked
 `<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`. The compact result is
-tracked at `results/nuscenes/fusion_results.json` (job 9645008). The evaluation uses 264 segments
+tracked at `results/nuscenes/fusion_results.json` (latest job 9674479). The evaluation uses 264 segments
 from 50 clusters, with 222 eligible queries from 40 clusters. It replicates the reversal: global
 BoT mAP 0.315 [0.254, 0.395] vs encoder-sequence DTW 0.141 [0.106, 0.183] (paired DTW − BoT
 −0.1745 [−0.245, −0.117]); the cascade lowers AP at every evaluated k; and fusion selects
 `alpha=1.0` in all 40 folds, so the fused ranking is exactly identical to BoT (difference 0).
+Temporal-residual DTW is weaker still at mAP 0.122 [0.090, 0.161], with a paired difference
+from BoT of -0.193 [-0.270, -0.135].
 
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 

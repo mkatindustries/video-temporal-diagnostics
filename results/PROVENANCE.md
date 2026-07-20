@@ -22,8 +22,8 @@ Shared configuration for every artifact below:
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
-| `hdd/fusion_results.json` | `2c0da74` | `9671544` | HDD release_2019_07_08 |
-| `nuscenes/fusion_results.json` | `2c0da74` | `9671547` | nuScenes v1.0-trainval |
+| `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
+| `nuscenes/fusion_results.json` | `13250dd` | `9674479` | nuScenes v1.0-trainval |
 
 Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
@@ -52,4 +52,11 @@ Notes:
   (and at most 1.04% through top 10), localizing nearly all observed errors to location selection.
   HDD recomputed the full evaluation-gallery DTW matrix because its score cache was absent;
   nuScenes reused its cache.
+- Jobs 9674478 (HDD) and 9674479 (nuScenes), generated from `13250dd`, reused the validated
+  BoT/encoder-DTW caches and added full-gallery temporal-residual DTW. Previous metrics reproduced
+  unchanged. Residual DTW reaches mAP 0.1644 on HDD and 0.1217 on nuScenes, below BoT by
+  -0.0912 [-0.1162, -0.0767] and -0.1933 [-0.2695, -0.1346], respectively. Its top-1
+  wrong-intersection fraction is 0.4632 on HDD and 0.8649 on nuScenes; same-intersection,
+  wrong-maneuver errors remain at or below 0.06%. The updated result JSONs and regenerated
+  `figures/v4r_error_composition.png` were committed in `11a10d0`.
 - Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.

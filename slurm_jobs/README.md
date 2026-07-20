@@ -53,6 +53,8 @@ environment variables documented in `REPRODUCIBILITY.md`.
    as an embedding classification accuracy.
 5. nuScenes reports paired intersection-cluster contrasts rather than differences inferred
    from marginal intervals.
+6. Full-gallery temporal-residual DTW reaches mAP 0.164 on HDD and 0.122 on nuScenes, below
+   BoT by -0.091 [-0.116, -0.077] and -0.193 [-0.270, -0.135], respectively.
 
 See `results/PROVENANCE.md` for generating commits, SLURM job IDs, dataset versions, model
 revisions, and the recorded software environment.
