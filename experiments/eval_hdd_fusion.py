@@ -331,6 +331,13 @@ def main() -> None:
                 args.n_bootstrap,
                 args.seed,
             ),
+            "encoder_seq_dtw_minus_bot": paired_cluster_bootstrap_mean_difference(
+                dtw_ap,
+                bot_ap,
+                query_clusters,
+                args.n_bootstrap,
+                args.seed,
+            ),
         },
         "alpha_selected": {
             "folds": folds,
