@@ -32,7 +32,8 @@ experiments lack complete telemetry.
 | 9636031 | nuScenes intersections (rerun) | 00:02:17 | 8.2 | 10 cpu / 1 gpu / 96G |
 | 9636095 | HDD encoder-seq + directed rerank (rerun) | 00:31:29 | 5.2 | 12 cpu / 1 gpu / 96G |
 | 9634579 | EPIC temporal-order | 05:15:52 | 17.4 | 8 cpu / 1 gpu / 64G |
-| 9641251 | HDD held-out fusion | 00:19:28 | 1.7 | 12 cpu / 1 gpu / 96G |
+| 9641251 | HDD held-out fusion (initial) | 00:19:28 | 1.7 | 12 cpu / 1 gpu / 96G |
+| 9654434 | HDD held-out fusion + global DTW−BoT contrast | 00:20:24 | 7.6 | 12 cpu / 1 gpu / 96G |
 | 9645008 | nuScenes directed retrieval + fusion | 00:01:54 | 6.2 | 10 cpu / 1 gpu / 96G |
 
 All jobs completed with exit code 0. Reruns 9636031/9636095 supersede failed originals

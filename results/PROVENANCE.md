@@ -21,7 +21,7 @@ Shared configuration for every artifact below:
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
-| `hdd/fusion_results.json` | `b72592e` | `9641251` | HDD release_2019_07_08 |
+| `hdd/fusion_results.json` | `7539555` | `9654434` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `894edc3` | `9645008` | nuScenes v1.0-trainval |
 
 Notes:
@@ -32,7 +32,9 @@ Notes:
 - `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
   DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines match
   `hdd/bof_dtw_directed_rerank_results.json` at reported precision (0.2556 / 0.1765 mAP). Honest null:
-  fused mAP 0.2566, fused−BoT +0.0010 (95% CI [−0.0031, 0.0036]); α*=0.95 in all 50 folds.
+  fused mAP 0.2566, fused−BoT +0.0010 (95% CI [−0.0031, 0.0036]); α*=0.95 in all 50 folds. Regenerated
+  at commit `7539555` (job 9654434) to add the global paired contrast encoder-seq DTW − BoT
+  = −0.0790 (95% CI [−0.1059, −0.0617]); all other values reproduced identically.
 - `nuscenes/fusion_results.json` applies the same directed-retrieval + held-out fusion protocol
   to nuScenes (commit `894edc3`, job `9645008`): 264 segments from 50 clusters; 222 eligible
   queries from 40 clusters. It replicates HDD's conditional-vs-global reversal — full-gallery
