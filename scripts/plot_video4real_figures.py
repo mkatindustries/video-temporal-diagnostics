@@ -36,9 +36,11 @@ def cascade_figure() -> None:
         ax.plot(ks, bot, "o-", color="#1f77b4", label="BoT AP@k")
         ax.plot(ks, dtw, "s--", color="#d62728", label="BoT$\\to$DTW rerank AP@k")
         ax.plot(ks, rec, "^:", color="#7f7f7f", label="recall@k (shared)")
-        ax.set_xscale("log")
-        ax.set_xticks(ks)
-        ax.set_xticklabels([str(k) for k in ks])
+        # Keep the numeric axis linear, but omit the second early label where the
+        # tightly spaced low-k ticks would collide at the paper's rendered width.
+        displayed_ticks = [ks[0], *ks[2:]]
+        ax.set_xticks(displayed_ticks)
+        ax.set_xticklabels([str(k) for k in displayed_ticks])
         ax.set_xlabel("k (candidates reranked)")
         ax.set_title(title)
         ax.grid(True, alpha=0.3)
@@ -66,13 +68,15 @@ def loco_figure() -> None:
         mean = [sum(col) / len(col) for col in zip(*curves)]
         ax.plot(alphas, mean, color="#1f77b4", linewidth=2.0, label="mean over folds")
         ax.axvline(star, color="#d62728", linestyle="--", linewidth=1.2,
-                   label=f"selected $\\alpha^\\star$={star:g}")
+                   label="selected $\\alpha^\\star$")
         ax.set_xlabel("$\\alpha$ (BoT weight)")
         ax.set_title(f"{title} ({len(folds)} folds)")
         ax.grid(True, alpha=0.3)
     axes[0].set_ylabel("training mAP")
-    axes[1].legend(fontsize=8, loc="lower left")
-    fig.tight_layout()
+    handles, labels = axes[1].get_legend_handles_labels()
+    fig.legend(handles, labels, fontsize=8, loc="upper center", ncol=2,
+               bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(rect=(0, 0, 1, 0.88))
     out = FIG / "v4r_loco_alpha.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"wrote {out}")
@@ -105,7 +109,8 @@ def vlm_figure() -> None:
     axes[0].set_ylabel("EPIC fwd/rev balanced acc.")
     axes[0].set_ylim(0, 1.0)
     axes[0].set_title("Prompt dependence")
-    axes[0].legend(fontsize=7, loc="upper left")
+    axes[0].legend(fontsize=7, loc="lower center", bbox_to_anchor=(0.5, 1.14),
+                   ncol=2, columnspacing=0.8, handlelength=1.6)
 
     # Panel B: pooled (cosine) vs per-frame sequence (DTW) reversal score s_rev.
     pooled = [1.000, 1.000, 0.998]
@@ -117,9 +122,10 @@ def vlm_figure() -> None:
     axes[1].set_ylabel("$s_\\mathrm{rev}$ (comparator-specific)")
     axes[1].set_ylim(0, 1.05)
     axes[1].set_title("Readout dependence")
-    axes[1].legend(fontsize=7, loc="center right")
+    axes[1].legend(fontsize=7, loc="lower center", bbox_to_anchor=(0.5, 1.14),
+                   ncol=2, columnspacing=0.8, handlelength=1.6)
 
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0, 1, 0.84))
     out = FIG / "v4r_vlm.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"wrote {out}")

@@ -17,6 +17,8 @@ Usage:
     python experiments/eval_vcdb_scramble_multiseed.py --skip-vjepa2
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -24,7 +26,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import cv2
 import matplotlib.pyplot as plt
@@ -39,8 +41,10 @@ from video_retrieval.fingerprints import (
     TrajectoryFingerprint,
 )
 from video_retrieval.fingerprints.dtw import dtw_distance_batch
-from video_retrieval.models import DINOv3Encoder
 from video_retrieval.utils.video import load_video
+
+if TYPE_CHECKING:
+    from video_retrieval.models import DINOv3Encoder
 
 logger = logging.getLogger(__name__)
 
@@ -621,6 +625,7 @@ def plot_scramble_gradient_errorbars(
         fig_dir: Output directory for figure.
     """
     levels = sorted(int(k) for k in multiseed_results.keys())
+    positions = np.arange(len(levels))
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 5))
 
@@ -637,11 +642,17 @@ def plot_scramble_gradient_errorbars(
 
         means = np.array(means)
         stds = np.array(stds)
-        x = np.array(levels)
-
-        ax.plot(x, means, "o-", color=color, label=label, linewidth=2, markersize=6)
+        ax.plot(
+            positions,
+            means,
+            "o-",
+            color=color,
+            label=label,
+            linewidth=2,
+            markersize=6,
+        )
         ax.fill_between(
-            x,
+            positions,
             means - stds,
             means + stds,
             color=color,
@@ -657,7 +668,7 @@ def plot_scramble_gradient_errorbars(
         fontweight="bold",
     )
     ax.set_ylim(0, 1.05)
-    ax.set_xticks(levels)
+    ax.set_xticks(positions, labels=levels)
     ax.legend(fontsize=9, loc="best")
     ax.grid(True, alpha=0.3)
 
@@ -815,6 +826,8 @@ def main():
 
     if features is None:
         print("  Loading DINOv3 encoder...")
+        from video_retrieval.models import DINOv3Encoder
+
         encoder = DINOv3Encoder(device=args.device, model_name=DINOV3_MODEL_NAME)
 
         print("  Extracting DINOv3 features...")
