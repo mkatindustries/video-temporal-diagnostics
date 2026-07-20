@@ -5,9 +5,10 @@
     "directional": true,
     "gallery": "all cached nuScenes evaluation segments except the query",
     "relevance": "same intersection cluster and same maneuver label",
+    "outcome_composition": "top-k fractions split into relevant, same-cluster wrong-label, and wrong-cluster candidates",
     "cascade": "BoT top-k then encoder-sequence-DTW rerank; AP@k truncated by total relevant",
     "fusion": "alpha*z(BoT cosine) + (1-alpha)*z(-DTW distance), per query",
-    "selection": "leave-one-intersection-out; held-out cluster excluded from tuning queries and tuning galleries; evaluated on the full gallery",
+    "selection": "leave-one-intersection-out; held-out cluster excluded from tuning queries and tuning galleries; evaluated on the full evaluation gallery",
     "uncertainty": "intersection-cluster bootstrap over fixed out-of-fold query metrics"
   },
   "n_segments": 264,
@@ -359,6 +360,183 @@
       ],
       "bootstrap_probability_a_gt_b": 0.0,
       "n_clusters": 40
+    }
+  },
+  "ranked_outcome_composition": {
+    "categories": {
+      "relevant": "same intersection cluster and same maneuver label",
+      "same_cluster_wrong_label": "same intersection cluster and different maneuver label",
+      "wrong_cluster": "different intersection cluster"
+    },
+    "methods": {
+      "bot": {
+        "1": {
+          "relevant": {
+            "mean": 0.46846846846846846,
+            "cluster_ci": [
+              0.391523259468804,
+              0.5426303444855447
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0045045045045045045,
+            "cluster_ci": [
+              0.0,
+              0.016135642517186636
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.527027027027027,
+            "cluster_ci": [
+              0.45161290322580644,
+              0.6036910884035709
+            ]
+          }
+        },
+        "10": {
+          "relevant": {
+            "mean": 0.1400900900900901,
+            "cluster_ci": [
+              0.10888766114180481,
+              0.1684765483423942
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.010360360360360362,
+            "cluster_ci": [
+              0.005479184503424658,
+              0.016585365853658537
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.8495495495495496,
+            "cluster_ci": [
+              0.8217787493035017,
+              0.8807116099785555
+            ]
+          }
+        }
+      },
+      "encoder_seq_dtw": {
+        "1": {
+          "relevant": {
+            "mean": 0.16666666666666666,
+            "cluster_ci": [
+              0.10836772733324458,
+              0.2261331246395914
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0,
+            "cluster_ci": [
+              0.0,
+              0.0
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.8333333333333334,
+            "cluster_ci": [
+              0.7738668753604087,
+              0.8916322726667554
+            ]
+          }
+        },
+        "10": {
+          "relevant": {
+            "mean": 0.06936936936936937,
+            "cluster_ci": [
+              0.050768115942028985,
+              0.08764067326200815
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0,
+            "cluster_ci": [
+              0.0,
+              0.0
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.9306306306306308,
+            "cluster_ci": [
+              0.9123593267379919,
+              0.949231884057971
+            ]
+          }
+        }
+      }
+    },
+    "paired_encoder_seq_dtw_minus_bot": {
+      "1": {
+        "relevant": {
+          "mean_a": 0.16666666666666666,
+          "mean_b": 0.46846846846846846,
+          "difference_a_minus_b": -0.30180180180180183,
+          "ci": [
+            -0.38300425531914895,
+            -0.21951219512195122
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.0,
+          "mean_b": 0.0045045045045045045,
+          "difference_a_minus_b": -0.0045045045045045045,
+          "ci": [
+            -0.016135642517186674,
+            0.0
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "wrong_cluster": {
+          "mean_a": 0.8333333333333334,
+          "mean_b": 0.527027027027027,
+          "difference_a_minus_b": 0.3063063063063063,
+          "ci": [
+            0.22904436132941958,
+            0.3873996723996723
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 40
+        }
+      },
+      "10": {
+        "relevant": {
+          "mean_a": 0.06936936936936937,
+          "mean_b": 0.1400900900900901,
+          "difference_a_minus_b": -0.07072072072072072,
+          "ci": [
+            -0.09277243503160625,
+            -0.04736647653616801
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.0,
+          "mean_b": 0.010360360360360362,
+          "difference_a_minus_b": -0.010360360360360362,
+          "ci": [
+            -0.016585365853658537,
+            -0.005479184503424659
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "wrong_cluster": {
+          "mean_a": 0.9306306306306308,
+          "mean_b": 0.8495495495495496,
+          "difference_a_minus_b": 0.08108108108108109,
+          "ci": [
+            0.05750547779238522,
+            0.10351567407349246
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 40
+        }
+      }
     }
   },
   "alpha_selected": {

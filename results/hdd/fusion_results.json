@@ -3,10 +3,11 @@
     "directional": true,
     "gallery": "all cached HDD evaluation segments except the query",
     "relevance": "same GPS cluster and same maneuver label",
+    "outcome_composition": "top-k fractions split into relevant, same-cluster wrong-label, and wrong-cluster candidates",
     "fusion": "alpha*z(BoT cosine) + (1-alpha)*z(-DTW distance), per query",
     "selection": "leave-one-intersection-out; held-out cluster excluded from tuning queries and tuning galleries",
     "selection_tie_break": "retain a sole maximizing endpoint; otherwise choose the middle maximizing grid value",
-    "evaluation": "held-out-cluster queries against the full gallery",
+    "evaluation": "held-out-cluster queries against the full evaluation gallery",
     "uncertainty": "intersection-cluster bootstrap over fixed out-of-fold query metrics; does not refit alpha inside bootstrap resamples"
   },
   "n_segments": 1687,
@@ -116,6 +117,183 @@
       ],
       "bootstrap_probability_a_gt_b": 0.0,
       "n_clusters": 50
+    }
+  },
+  "ranked_outcome_composition": {
+    "categories": {
+      "relevant": "same intersection cluster and same maneuver label",
+      "same_cluster_wrong_label": "same intersection cluster and different maneuver label",
+      "wrong_cluster": "different intersection cluster"
+    },
+    "methods": {
+      "bot": {
+        "1": {
+          "relevant": {
+            "mean": 0.7059175134488942,
+            "cluster_ci": [
+              0.5946409489789687,
+              0.7843033990221191
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.002988643156007173,
+            "cluster_ci": [
+              0.0,
+              0.007380483198323105
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.29109384339509864,
+            "cluster_ci": [
+              0.21427554191018716,
+              0.4002197607787634
+            ]
+          }
+        },
+        "10": {
+          "relevant": {
+            "mean": 0.3944411237298267,
+            "cluster_ci": [
+              0.24928633510141646,
+              0.507495738723338
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0069336521219366416,
+            "cluster_ci": [
+              0.0027892901156506855,
+              0.011799054666322334
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.5986252241482367,
+            "cluster_ci": [
+              0.48710015503741694,
+              0.7421817190787068
+            ]
+          }
+        }
+      },
+      "encoder_seq_dtw": {
+        "1": {
+          "relevant": {
+            "mean": 0.5648535564853556,
+            "cluster_ci": [
+              0.4251874077464017,
+              0.6651451165270292
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.002390914524805738,
+            "cluster_ci": [
+              0.0,
+              0.005468590786580757
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.4327555289898386,
+            "cluster_ci": [
+              0.33126070946605823,
+              0.5723990178798681
+            ]
+          }
+        },
+        "10": {
+          "relevant": {
+            "mean": 0.29725044829647335,
+            "cluster_ci": [
+              0.17829550137362637,
+              0.3791629863648465
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0009563658099222953,
+            "cluster_ci": [
+              0.00014745761068411152,
+              0.0016444775339602925
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.7017931858936044,
+            "cluster_ci": [
+              0.6196469108799262,
+              0.8209065934065934
+            ]
+          }
+        }
+      }
+    },
+    "paired_encoder_seq_dtw_minus_bot": {
+      "1": {
+        "relevant": {
+          "mean_a": 0.5648535564853556,
+          "mean_b": 0.7059175134488942,
+          "difference_a_minus_b": -0.14106395696353854,
+          "ci": [
+            -0.18485737743060057,
+            -0.10823114073326298
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 50
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.002390914524805738,
+          "mean_b": 0.002988643156007173,
+          "difference_a_minus_b": -0.0005977286312014345,
+          "ci": [
+            -0.005649917291971328,
+            0.0031432462675968407
+          ],
+          "bootstrap_probability_a_gt_b": 0.343,
+          "n_clusters": 50
+        },
+        "wrong_cluster": {
+          "mean_a": 0.4327555289898386,
+          "mean_b": 0.29109384339509864,
+          "difference_a_minus_b": 0.14166168559474,
+          "ci": [
+            0.10812798881687342,
+            0.1869422386084326
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 50
+        }
+      },
+      "10": {
+        "relevant": {
+          "mean_a": 0.29725044829647335,
+          "mean_b": 0.3944411237298267,
+          "difference_a_minus_b": -0.09719067543335327,
+          "ci": [
+            -0.1375784966938765,
+            -0.057841931043589485
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 50
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.0009563658099222953,
+          "mean_b": 0.0069336521219366416,
+          "difference_a_minus_b": -0.005977286312014346,
+          "ci": [
+            -0.010714874882166426,
+            -0.0019361481856640668
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 50
+        },
+        "wrong_cluster": {
+          "mean_a": 0.7017931858936044,
+          "mean_b": 0.5986252241482367,
+          "difference_a_minus_b": 0.1031679617453676,
+          "ci": [
+            0.06488940244305053,
+            0.14146275318591986
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 50
+        }
+      }
     }
   },
   "alpha_selected": {
