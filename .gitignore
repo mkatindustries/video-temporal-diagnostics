@@ -30,6 +30,7 @@ paper/*.log
 paper/*.out
 paper/*.bbl
 paper/*.blg
+paper/*.brf
 paper/*.synctex.gz
 paper/*.fdb_latexmk
 paper/*.fls
