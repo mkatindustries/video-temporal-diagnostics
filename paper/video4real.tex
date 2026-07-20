@@ -67,6 +67,18 @@ clip or comparing opposite turns at one intersection can change little. This is 
 independent-frame features but only empirical for contextual video tokens. A natural remedy compares per-frame
 feature \emph{sequences} with an order-aware comparator such as dynamic time
 warping (DTW)~\cite{sakoe1978dtw}, which is markedly stronger on conditional discrimination.
+Yet its full-gallery failures are overwhelmingly wrong-location retrievals
+(\cref{fig:error_composition}).
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\linewidth]{v4r_error_composition.png}
+  \caption{Top-1 outcome composition over the full evaluation gallery. Each retrieved item is
+  relevant (same intersection and maneuver), a maneuver error at the correct intersection, or an
+  error from a different intersection. This separates conditional maneuver discrimination from
+  location discrimination.}
+  \label{fig:error_composition}
+\end{figure}
 
 We test whether that conditional strength matters for practice, and report two connected failures.
 \textbf{(i) Retrieval.} On directed retrieval over the full evaluation galleries of Honda HDD~\cite{honda_hdd} and
@@ -157,15 +169,6 @@ nuScenes; residual DTW increases it by $+0.172$ $[0.137, 0.214]$ and $+0.338$ $[
 (paired cluster bootstrap). Thus the conditional gain does not survive location search:
 the global error is overwhelmingly selecting the wrong intersection, not the wrong maneuver at the
 right one.
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{v4r_error_composition.png}
-  \caption{Top-1 outcome composition over the full evaluation gallery. Each retrieved item is
-  relevant (same intersection and maneuver), a maneuver error at the correct intersection, or an
-  error from a different intersection. This separates conditional maneuver discrimination from
-  location discrimination.}
-  \label{fig:error_composition}
-\end{figure}
 
 \textbf{Neither encoder-sequence cascade nor held-out fusion recovers the gap.} Reranking the BoT top-$k$ by encoder-sequence DTW
 lowers AP at every evaluated $k$ on the same candidate set (recall unchanged; \cref{fig:cascade}).
