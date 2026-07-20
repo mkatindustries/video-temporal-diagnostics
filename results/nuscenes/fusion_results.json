@@ -360,6 +360,28 @@
       ],
       "bootstrap_probability_a_gt_b": 0.0,
       "n_clusters": 40
+    },
+    "temporal_residual_dtw_minus_bot": {
+      "mean_a": 0.12172177629528587,
+      "mean_b": 0.3150482008654186,
+      "difference_a_minus_b": -0.1933264245701328,
+      "ci": [
+        -0.2695181690351442,
+        -0.1346047184538647
+      ],
+      "bootstrap_probability_a_gt_b": 0.0,
+      "n_clusters": 40
+    },
+    "temporal_residual_dtw_minus_encoder_seq_dtw": {
+      "mean_a": 0.12172177629528587,
+      "mean_b": 0.14057065668432583,
+      "difference_a_minus_b": -0.018848880389039993,
+      "ci": [
+        -0.03193716527477535,
+        -0.008584949035199959
+      ],
+      "bootstrap_probability_a_gt_b": 0.0,
+      "n_clusters": 40
     }
   },
   "ranked_outcome_composition": {
@@ -464,6 +486,54 @@
             ]
           }
         }
+      },
+      "temporal_residual_dtw": {
+        "1": {
+          "relevant": {
+            "mean": 0.13513513513513514,
+            "cluster_ci": [
+              0.07834031980456387,
+              0.19909600203717848
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0,
+            "cluster_ci": [
+              0.0,
+              0.0
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.8648648648648649,
+            "cluster_ci": [
+              0.8009039979628215,
+              0.9216596801954361
+            ]
+          }
+        },
+        "10": {
+          "relevant": {
+            "mean": 0.060810810810810814,
+            "cluster_ci": [
+              0.04347564169722368,
+              0.0779852350917431
+            ]
+          },
+          "same_cluster_wrong_label": {
+            "mean": 0.0,
+            "cluster_ci": [
+              0.0,
+              0.0
+            ]
+          },
+          "wrong_cluster": {
+            "mean": 0.9391891891891894,
+            "cluster_ci": [
+              0.9220147649082571,
+              0.9565243583027765
+            ]
+          }
+        }
       }
     },
     "paired_encoder_seq_dtw_minus_bot": {
@@ -532,6 +602,78 @@
           "ci": [
             0.05750547779238522,
             0.10351567407349246
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 40
+        }
+      }
+    },
+    "paired_temporal_residual_dtw_minus_bot": {
+      "1": {
+        "relevant": {
+          "mean_a": 0.13513513513513514,
+          "mean_b": 0.46846846846846846,
+          "difference_a_minus_b": -0.3333333333333333,
+          "ci": [
+            -0.41512307250263386,
+            -0.2459569412442397
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.0,
+          "mean_b": 0.0045045045045045045,
+          "difference_a_minus_b": -0.0045045045045045045,
+          "ci": [
+            -0.016135642517186674,
+            0.0
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "wrong_cluster": {
+          "mean_a": 0.8648648648648649,
+          "mean_b": 0.527027027027027,
+          "difference_a_minus_b": 0.33783783783783783,
+          "ci": [
+            0.25557685377962847,
+            0.41860751517928746
+          ],
+          "bootstrap_probability_a_gt_b": 1.0,
+          "n_clusters": 40
+        }
+      },
+      "10": {
+        "relevant": {
+          "mean_a": 0.060810810810810814,
+          "mean_b": 0.1400900900900901,
+          "difference_a_minus_b": -0.07927927927927929,
+          "ci": [
+            -0.10235905271199389,
+            -0.05662860144057625
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "same_cluster_wrong_label": {
+          "mean_a": 0.0,
+          "mean_b": 0.010360360360360362,
+          "difference_a_minus_b": -0.010360360360360362,
+          "ci": [
+            -0.016585365853658537,
+            -0.005479184503424659
+          ],
+          "bootstrap_probability_a_gt_b": 0.0,
+          "n_clusters": 40
+        },
+        "wrong_cluster": {
+          "mean_a": 0.9391891891891894,
+          "mean_b": 0.8495495495495496,
+          "difference_a_minus_b": 0.08963963963963964,
+          "ci": [
+            0.06709999999999999,
+            0.11239421416234886
           ],
           "bootstrap_probability_a_gt_b": 1.0,
           "n_clusters": 40
@@ -1747,6 +1889,22 @@
     "max": 1.0,
     "counts": {
       "1.00": 40
+    }
+  },
+  "temporal_residual_dtw_full_gallery": {
+    "map": {
+      "mean": 0.12172177629528587,
+      "cluster_ci": [
+        0.08955983742613384,
+        0.16103456131005456
+      ]
+    },
+    "mrr": {
+      "mean": 0.2305122326042974,
+      "cluster_ci": [
+        0.17720517503759045,
+        0.2833043056990093
+      ]
     }
   }
 }
