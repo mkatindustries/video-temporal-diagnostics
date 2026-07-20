@@ -145,7 +145,7 @@ def error_composition_figure() -> None:
 def vlm_figure() -> None:
     """MLLM interface failure: prompt dependence and pooled-vs-sequence readout s_rev.
 
-    Numbers are transcribed from the tracked main paper (paper/paper.tex): EPIC
+    Numbers are transcribed from the tracked NeurIPS paper (paper/neurips.tex): EPIC
     forward/reverse balanced accuracy (direct vs. integrity prompt) and Table
     tab:summary_vlm EPIC s_rev for pooled (cosine) vs. per-frame-sequence (DTW) readouts.
     """

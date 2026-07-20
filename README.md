@@ -163,15 +163,19 @@ python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positiv
 
 ## Paper
 
-LaTeX draft in `paper/paper.tex`. Title: *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines"*
+The two active manuscripts are:
 
-The Video4Real extended abstract is `paper/video4real.tex`. Build it from the repository root:
+- `paper/neurips.tex`: *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines"*
+- `paper/video4real.tex`: Video4Real extended abstract
+
+Build both from the repository root:
 
 ```bash
-make video4real
+make papers
 ```
 
-For a clean rebuild, run `make clean-video4real video4real`.
+Individual targets are `make neurips` and `make video4real`. For a clean rebuild,
+run `make clean-papers papers`.
 
 ## License
 

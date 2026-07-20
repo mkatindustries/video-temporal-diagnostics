@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Build NeurIPS 2026 E&D supplementary zip from the current repo working tree.
-# E&D 2026 is DOUBLE-BLIND for evaluation-methodology submissions: identifying
-# info (LICENSE copyright, Citation block in diagnostics README, README/REPRO
-# attribution) is excluded. Excludes the paper subdir (submitted separately),
-# datasets, and uncommitted paper-editing helpers. Emits /tmp/neurips_supp.zip.
+# E&D 2026 is DOUBLE-BLIND for evaluation-methodology submissions. The paper
+# directory (submitted separately), standalone license, datasets, and local
+# paper-editing helpers are excluded. Emits /tmp/neurips_supp.zip.
+# Set ANONYMITY_PATTERN to an extended regex matching private names, emails,
+# usernames, and repository identifiers before running the bundle audit.
 set -euo pipefail
+
+: "${ANONYMITY_PATTERN:?Set ANONYMITY_PATTERN for the double-blind identity scan}"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 STAGE="/tmp/supp_build"
@@ -49,7 +52,18 @@ ls -lh "$OUT"
 echo "--- file count ---"
 unzip -l "$OUT" | tail -1
 echo "--- identity scan (double-blind: should be EMPTY) ---"
-unzip -p "$OUT" 2>/dev/null | strings | grep -iE "mkat|talattof|arjang|@meta\.com|mkatindustries" | head -5 || echo "OK: no identifying info found in bundle"
+matches="$(
+    unzip -p "$OUT" 2>/dev/null \
+        | strings \
+        | grep -iE -m 5 -- "$ANONYMITY_PATTERN" \
+        || true
+)"
+if [[ -n "$matches" ]]; then
+    printf '%s\n' "$matches"
+    echo "ERROR: identifying information found in bundle"
+    exit 1
+fi
+echo "OK: no configured identifying patterns found in bundle"
 echo "--- key additions present? ---"
 unzip -l "$OUT" | grep -E "tara|pl_stitch|gemini|diagnostics|viclip" | head
 echo "--- LICENSE absent? (should be excluded under double-blind) ---"

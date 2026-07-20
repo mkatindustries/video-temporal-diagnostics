@@ -41,7 +41,7 @@ All jobs completed with exit code 0. Reruns 9636031/9636095 supersede failed ori
 
 ## Table and Figure Reference Map
 
-Numbering follows the compiled paper (`paper.pdf`).
+Numbering follows the compiled NeurIPS paper (`paper/neurips.pdf`).
 
 Main body tables: Table 1 (VCDB Reversal Attack), Table 2 (HDD Maneuver), Table 3 (BoT→DTW Rerank Sweep on HDD), Table 4 (VLM Generative), Table 5 (VLM Embedding s_rev).
 
@@ -680,12 +680,13 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 ## Paper Compilation
 
 ```bash
-# Video4Real / ECCV workshop paper
+# Build both active manuscripts
+make papers
+
+# Clean rebuild of both
+make clean-papers papers
+
+# Individual builds
+make neurips
 make video4real
-
-# Clean rebuild
-make clean-video4real video4real
-
-# NeurIPS manuscript
-cd paper && latexmk -pdf neurips.tex
 ```
