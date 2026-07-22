@@ -7,11 +7,11 @@
 % begin on PDF page 7, within the seven-page limit excluding references.
 %
 % Build from the repository root with `make video4real`.
-% Replace ID=0000 with the assigned submission ID. `review' option anonymizes
+% Submission ID 12. The `review' option anonymizes
 % authors/institute/running heads automatically (double-blind).
 \documentclass[runningheads]{llncs}
 
-\usepackage[review,year=2026,ID=0000]{eccv} % double-blind review version
+\usepackage[review,year=2026,ID=12]{eccv} % double-blind review version
 \usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -28,7 +28,7 @@
 % Anonymized automatically by the eccv `review' option; the placeholders below are
 % required by llncs but overridden in the review build.
 \author{Anonymous ECCV 2026 Submission}
-\institute{Paper ID 0000}
+\institute{Paper ID 12}
 
 \begin{document}
 \maketitle
@@ -98,8 +98,9 @@ multimodal model'' does not resolve the problem either. Our contributions are:
   evidence, and that a temporally adapted MLLM with single-vector cosine remains weak on driving
   conditional discrimination.
 \end{itemize}
-The claims are deliberately scoped to these datasets, the representations and comparators tested,
-and a linear fusion protocol; they are not a statement about video models in general.
+Anonymous code and evaluation artifacts are available online.\footnote{\url{https://anonymous.4open.science/r/video-temporal-diagnostics-F450}}
+Our claims are scoped to these datasets, representations, comparators, and the linear fusion
+protocol, not video models in general.
 
 \section{Diagnostics and Protocols}
 \label{sec:protocols}
