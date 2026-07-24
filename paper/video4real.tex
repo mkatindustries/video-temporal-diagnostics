@@ -278,7 +278,11 @@ experiment we do not run here.
 \label{sec:related}
 Global video descriptors and pooled matching underpin scalable near-duplicate and event
 retrieval~\cite{faiss}, while sequence-alignment comparators such as DTW, Drop-DTW, and temporal
-max-similarity capture fine-grained order~\cite{sakoe1978dtw,dropdtw,kordopatis2019visil}. Our location-vs-order tension
+max-similarity capture fine-grained order~\cite{sakoe1978dtw,dropdtw,kordopatis2019visil}. Modern
+retrieval is not limited to single-vector pooling: multi-vector, late-interaction, and
+instruction-tuned multimodal embedding models~\cite{qwen3vlembed} retain finer structure. Our
+analysis therefore targets the pooled global-descriptor regime specifically, with the comparator
+axis (DTW, Chamfer) instantiating the sequence-matching alternative. Our location-vs-order tension
 is closely related to \emph{visual place recognition} (VPR), where global aggregation such as
 NetVLAD~\cite{netvlad} enables scalable place matching, and \emph{sequence}-based localization such
 as SeqSLAM~\cite{seqslam} and learned sequence descriptors~\cite{seqnet} exploit temporal order
