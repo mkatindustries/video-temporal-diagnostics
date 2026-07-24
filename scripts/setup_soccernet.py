@@ -307,16 +307,30 @@ def main() -> None:
             raise SystemExit("--set-window-policy requires --pre and --post")
         if not manifest_path.exists():
             raise SystemExit(f"manifest {manifest_path} not found; build it first")
+        if args.approve and not args.canary_ref:
+            raise SystemExit("--approve requires --canary-ref (the scored canary audit artifact)")
+        canary_sha = None
+        if args.canary_ref:
+            if not Path(args.canary_ref).exists():
+                raise SystemExit(f"--canary-ref {args.canary_ref} not found")
+            canary_sha = sha256_file(Path(args.canary_ref))
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
-        from soccernet_plan import make_window_policy
+        from soccernet_plan import make_window_policy, require_scored_canary
+        if args.approve:  # bind a SCORED decision artifact, not the raw index
+            require_scored_canary(Path(args.canary_ref), args.pre, args.post)
         manifest = json.loads(manifest_path.read_text())
+        # Bind the SOURCE manifest identity (pre-lock content hash) into the policy.
+        manifest_sha = sha256_file(manifest_path)
         wp = make_window_policy(args.pre, args.post, args.n_frames, approved=args.approve,
-                                canary_ref=args.canary_ref, commit=git_commit())
+                                canary_ref=args.canary_ref, commit=git_commit(),
+                                canary_sha256=canary_sha, manifest_sha256=manifest_sha)
         manifest["metadata"]["window_policy"] = wp
         manifest_path.write_text(json.dumps(manifest, indent=1))
         state = "APPROVED/LOCKED" if args.approve else "PROPOSED (not approved)"
         print(f"window policy {state}: {wp}")
-        print(f"  manifest sha256 now: {sha256_file(manifest_path)}")
+        print(f"  source manifest sha256 (bound): {manifest_sha}")
+        print(f"  canary artifact sha256 (bound): {canary_sha}")
+        print(f"  manifest sha256 after write:    {sha256_file(manifest_path)}")
         sys.exit(0)
 
     if args.verify_only:

@@ -6,12 +6,15 @@ Query = a replay clip. Gallery = the distinct live events of the SAME match
 (exact ``(link.half, link.position)`` join). Each query has exactly ONE positive
 event, so AP == reciprocal rank; we therefore report R@1 / R@5 / MRR (not mAP).
 
-This module is the method-agnostic protocol core: it consumes the manifest built
-by ``scripts/setup_soccernet.py`` and, per method, a score map
-``scores[query_id][event_id] -> float`` (higher = more similar, over the query's
-own-match gallery). Method scoring (BoT cosine, encoder-seq DTW, SDM aggregator,
-SONAR2-PE) is produced by the extraction/eval driver and passed in here, so the
-metric logic is unit-testable without any features.
+The metric core is method-agnostic: it consumes the manifest built by
+``scripts/setup_soccernet.py`` and a score map ``scores[query_id][event_id] ->
+float`` (higher = more similar, over the query's own-match gallery), so it is
+unit-testable without features. The CLI computes the four frozen-feature
+comparators from the extractor cache — ``bot`` (mean_emb cosine),
+``encoder_seq_dtw``, ``temporal_residual_dtw`` (``dtw_distance_batch``), and the
+order-agnostic ``encoder_seq_unordered`` control (Chamfer) — per the comparator
+spec frozen in the plan. It reports same-half primary and cross-half query sets
+separately, and loads caches fail-closed (refuses canary/incomplete/mismatched).
 
 Reporting (locked with reviewer 2026-07-23):
   * Primary: match-macro R@1, R@5, MRR + paired match-clustered 95% CIs.
@@ -24,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,10 +96,16 @@ def query_rank(scores_q: dict[str, float], candidates: list[str], positive: str)
     return better + equal + 1
 
 
-def per_query_metrics(scores: dict[str, dict[str, float]], gallery: Gallery) -> dict[str, dict]:
-    """Rank/RR/hit@k for every query with a valid same-match gallery (>=2 events)."""
+def per_query_metrics(scores: dict[str, dict[str, float]], gallery: Gallery,
+                      query_ids: set[str] | None = None) -> dict[str, dict]:
+    """Rank/RR/hit@k for every query with a valid same-match gallery (>=2 events).
+
+    ``query_ids`` optionally restricts to a subset (e.g. same-half vs cross-half).
+    """
     out: dict[str, dict] = {}
     for qid, pos in gallery.pos_event_of_query.items():
+        if query_ids is not None and qid not in query_ids:
+            continue
         game = gallery.game_of_query[qid]
         cands = gallery.events_of_game.get(game, [])
         if len(cands) < 2 or qid not in scores or pos not in scores[qid]:
@@ -144,6 +154,8 @@ def cluster_bootstrap_mean(per_match: dict[str, float], seed: int = BOOTSTRAP_SE
                            n_resamples: int = BOOTSTRAP_RESAMPLES) -> dict:
     """Match-clustered CI of a per-match mean (resampling unit = match)."""
     games = list(per_match)
+    if not games:
+        return {"mean": float("nan"), "cluster_ci": [float("nan"), float("nan")]}
     vals = np.array([per_match[g] for g in games], dtype=np.float64)
     point = float(vals.mean())
     rng = np.random.RandomState(seed)
@@ -199,9 +211,10 @@ def smearing_composition(scores: dict[str, dict[str, float]], pq: dict[str, dict
             "adj_ms": adj_ms}
 
 
-def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery) -> dict:
-    """Full metric bundle for one method's score map."""
-    pq = per_query_metrics(scores, gallery)
+def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery,
+                    query_ids: set[str] | None = None) -> dict:
+    """Full metric bundle for one method's score map (optionally a query subset)."""
+    pq = per_query_metrics(scores, gallery, query_ids)
     agg = aggregate(pq, gallery)
     per_match_rr = agg.pop("_per_match_rr")
     boots = {k: cluster_bootstrap_mean(
@@ -214,59 +227,114 @@ def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery) -> di
 
 
 # --------------------------------------------------------------------------- #
-# CLI: load manifest + feature cache, score each method, write results JSON.
-# Feature caches are produced by the (gated) extraction job; this errors clearly
-# if they are absent so the protocol core stays runnable/testable on its own.
+# Frozen-feature comparator scoring from the extractor cache.
 # --------------------------------------------------------------------------- #
-def _cosine_scores(query_vecs, event_vecs, gallery: Gallery) -> dict[str, dict[str, float]]:
+def _chamfer(a, b) -> float:
+    """Order-agnostic symmetric-max cosine similarity between two (T,D) sequences.
+
+    The control that isolates whether DTW's monotonic alignment helps beyond
+    having per-position features."""
+    import torch.nn.functional as F
+
+    sim = F.normalize(a, dim=-1) @ F.normalize(b, dim=-1).T  # (Ta, Tb) cosine
+    return float(0.5 * (sim.max(dim=1).values.mean() + sim.max(dim=0).values.mean()))
+
+
+def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
+                     query_ids: set[str] | None = None) -> dict[str, dict[str, float]]:
+    """``scores[qid][eid]`` over each query's same-match gallery for one comparator.
+
+    ``features``: ``{clip_id: {mean_emb, encoder_seq, temporal_residual}}`` (torch).
+    ``cfg``: a plan ``comparators`` entry (feature, kind[, dtw params]). Higher = more
+    similar; DTW distances are negated. Matches the driving-dataset DTW config.
+    """
+    import torch.nn.functional as F
+
+    from video_retrieval.fingerprints.dtw import dtw_distance_batch
+
+    feat, kind = cfg["feature"], cfg["kind"]
+    pairs = [(qid, eid)
+             for qid, game in gallery.game_of_query.items()
+             if (query_ids is None or qid in query_ids) and qid in features
+             for eid in gallery.events_of_game.get(game, []) if eid in features]
     scores: dict[str, dict[str, float]] = {}
-    for qid, game in gallery.game_of_query.items():
-        if qid not in query_vecs:
-            continue
-        qv = query_vecs[qid]
-        scores[qid] = {e: float(np.dot(qv, event_vecs[e]))
-                       for e in gallery.events_of_game.get(game, []) if e in event_vecs}
+    if kind == "cosine":
+        for qid, eid in pairs:
+            s = float(F.normalize(features[qid][feat], dim=-1)
+                      @ F.normalize(features[eid][feat], dim=-1))
+            scores.setdefault(qid, {})[eid] = s
+    elif kind == "chamfer":
+        for qid, eid in pairs:
+            scores.setdefault(qid, {})[eid] = _chamfer(features[qid][feat], features[eid][feat])
+    elif kind == "dtw":
+        dists = dtw_distance_batch([features[q][feat] for q, _ in pairs],
+                                   [features[e][feat] for _, e in pairs], normalize=True)
+        for (qid, eid), d in zip(pairs, dists.tolist()):
+            scores.setdefault(qid, {})[eid] = -float(d)  # higher = more similar
+    else:
+        raise ValueError(f"unknown comparator kind {kind!r}")
     return scores
 
 
 def main() -> None:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--manifest", type=Path, required=True)
-    p.add_argument("--feature-cache", type=Path, required=True,
-                   help="per-clip embeddings {'queries':{qid:vec},'events':{eid:vec}} per method "
-                        "(built by the extraction job)")
+    p.add_argument("--soccernet-dir", type=Path, required=True)
+    p.add_argument("--manifest", type=Path, default=None)
+    p.add_argument("--arm", default="vjepa2_encoder_seq")
     p.add_argument("--split", default="test")
-    p.add_argument("--cohort", default="primary", choices=["primary", "all"])
+    p.add_argument("--feature-cache", type=Path, required=True)
     p.add_argument("--output", type=Path, default=Path("results/soccernet/replay_results.json"))
     args = p.parse_args()
 
-    manifest = json.loads(args.manifest.read_text())
-    gallery = build_gallery(manifest, args.split, args.cohort)
-    if not args.feature_cache.exists():
-        raise SystemExit(
-            f"feature cache {args.feature_cache} not found; run the (gated) SoccerNet "
-            "extraction job first. The protocol core in this module is importable/testable "
-            "without features (see tests/test_soccernet_protocol.py).")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from soccernet_plan import build_extraction_plan, load_feature_cache  # noqa: E402
 
-    import torch
-    cache = torch.load(args.feature_cache, map_location="cpu", weights_only=False)
+    manifest_path = args.manifest or (
+        args.soccernet_dir / "replay_event_manifest_v1_seed42.json")
+    plan = build_extraction_plan(manifest_path, args.arm, args.split)
+    manifest = json.loads(Path(manifest_path).read_text())
+    gallery = build_gallery(manifest, args.split, "primary")
+
+    if not args.feature_cache.exists():
+        raise SystemExit(f"feature cache {args.feature_cache} not found; run extraction first")
+    cache = load_feature_cache(args.feature_cache, plan)
+    features = cache["features"]
+
+    same_half = {q for q in gallery.pos_event_of_query if not gallery.query_cross_half[q]}
+    cross_half = {q for q in gallery.pos_event_of_query if gallery.query_cross_half[q]}
+
+    methods, same_rr = {}, {}
+    for name, cfg in plan["comparators"].items():
+        scores = score_comparator(features, gallery, cfg)
+        sh = evaluate_method(scores, gallery, same_half)
+        ch = evaluate_method(scores, gallery, cross_half)
+        same_rr[name] = sh["_per_match_rr"]
+        methods[name] = {
+            "same_half_primary": {k: v for k, v in sh.items() if not k.startswith("_")},
+            "cross_half": {k: v for k, v in ch.items() if not k.startswith("_")}}
+
+    paired = {}  # paired match-level RR contrasts on the same-half primary set
+    for a, b in [("encoder_seq_dtw", "bot"),
+                 ("encoder_seq_dtw", "encoder_seq_unordered"),  # does order (DTW) help?
+                 ("temporal_residual_dtw", "bot")]:
+        if same_rr.get(a) and same_rr.get(b):
+            paired[f"{a}_minus_{b}"] = paired_cluster_bootstrap_mean_difference(
+                same_rr[a], same_rr[b])
+
     results = {"protocol": {
         "dataset": "soccernet_v2_replay_grounding", "task": "within-match event retrieval",
-        "split": args.split, "cohort": args.cohort,
+        "split": args.split, "arm": args.arm, "plan_sha256": plan["plan_sha256"],
         "gallery": "distinct live events of the same match (same-match negatives)",
         "positive": "exact (link.half, link.position) event; single positive per query -> AP==RR",
         "metrics": ("match-macro R@1/R@5/MRR + paired match-clustered CIs; "
                     "secondary event/action/query-micro; smearing composition"),
+        "reporting": "same_half_primary and cross_half reported separately",
         "resampling_unit": "match",
-    }, "methods": {}}
-    for method, blob in cache.items():
-        scores = _cosine_scores(blob["queries"], blob["events"], gallery)
-        results["methods"][method] = {k: v for k, v in evaluate_method(scores, gallery).items()
-                                      if not k.startswith("_")}
+    }, "methods": methods, "paired_same_half_rr": paired}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2))
-    print(f"wrote {args.output}")
+    print(f"wrote {args.output}  (arm={args.arm} plan={plan['plan_sha256'][:12]})")
 
 
 if __name__ == "__main__":

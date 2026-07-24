@@ -20,6 +20,7 @@ from soccernet_plan import (  # noqa: E402
     make_window_policy,
     model_fingerprint,
     require_locked_window_policy,
+    require_scored_canary,
 )
 
 LOCKED = make_window_policy(-2, 2, 8, approved=True, canary_ref=None, commit="test")
@@ -100,3 +101,28 @@ def test_sonar2pe_plan_binds_model_and_window(tmp_path):
     assert plan["model"]["windowing"] == {"window_s": 2, "stride_s": 1, "frames_per_window": 8}
     assert plan["window_policy"]["approved"] is True
     assert plan["manifest_sha256"]  # manifest is content-addressed into the plan
+
+
+def test_plan_binds_comparator_spec(tmp_path):
+    plan = build_extraction_plan(_write(tmp_path, LOCKED), "vjepa2_encoder_seq", fingerprint=False)
+    comps = plan["comparators"]
+    assert set(comps) == {
+        "bot", "encoder_seq_dtw", "temporal_residual_dtw", "encoder_seq_unordered"}
+    assert comps["encoder_seq_dtw"] == {
+        "feature": "encoder_seq", "kind": "dtw", "cost": "l2",
+        "normalize": "per_feature_minmax_over_time", "path_norm": "T1+T2",
+        "warping": "unconstrained"}
+    assert comps["encoder_seq_unordered"]["kind"] == "chamfer"  # order-agnostic control
+
+
+def test_require_scored_canary(tmp_path):
+    unscored = tmp_path / "u.json"
+    unscored.write_text(json.dumps({"decision": {"selected_window_s": None, "rationale": None}}))
+    with pytest.raises(SystemExit):  # raw/unscored index cannot back an approval
+        require_scored_canary(unscored, -2, 2)
+    scored = tmp_path / "s.json"
+    scored.write_text(json.dumps(
+        {"decision": {"selected_window_s": [-2, 2], "rationale": "full coverage, no bleed"}}))
+    assert require_scored_canary(scored, -2, 2)["rationale"] == "full coverage, no bleed"
+    with pytest.raises(SystemExit):  # frozen window must match the scored decision
+        require_scored_canary(scored, -1, 1)

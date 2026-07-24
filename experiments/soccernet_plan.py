@@ -52,6 +52,26 @@ MODEL_SPECS = {
     },
 }
 
+# Frozen comparator configuration, bound into the plan so ``plan_sha256`` covers
+# the full experiment spec (extraction + comparison), not just the features.
+# DTW config matches the driving-dataset evaluators for cross-domain comparability.
+# V-JEPA 2 emits fixed-length sequences (encoder 32 / residual 16 steps), so there
+# are no padding masks, no length normalization, and no coverage penalty.
+COMPARATORS_SCHEMA = "soccernet_comparators_v1"
+COMPARATORS = {
+    "bot": {"feature": "mean_emb", "kind": "cosine"},
+    "encoder_seq_dtw": {"feature": "encoder_seq", "kind": "dtw", "cost": "l2",
+                        "normalize": "per_feature_minmax_over_time",
+                        "path_norm": "T1+T2", "warping": "unconstrained"},
+    "temporal_residual_dtw": {"feature": "temporal_residual", "kind": "dtw", "cost": "l2",
+                              "normalize": "per_feature_minmax_over_time",
+                              "path_norm": "T1+T2", "warping": "unconstrained"},
+    # Order-agnostic control: symmetric-max (Chamfer) over the SAME per-position
+    # encoder_seq vectors. Isolates whether DTW's monotonic alignment (order)
+    # helps beyond having per-position features.
+    "encoder_seq_unordered": {"feature": "encoder_seq", "kind": "chamfer"},
+}
+
 
 def sha256_file(path: Path, chunk: int = 1 << 20) -> str:
     h = hashlib.sha256()
@@ -67,14 +87,37 @@ def canonical(obj: object) -> str:
 
 
 def make_window_policy(pre_s: float, post_s: float, n_frames: int, *, approved: bool,
-                       canary_ref: str | None, commit: str) -> dict:
+                       canary_ref: str | None, commit: str,
+                       canary_sha256: str | None = None,
+                       manifest_sha256: str | None = None) -> dict:
+    """Frozen window policy. An approved lock binds the exact scored canary artifact
+    (``canary_sha256``) and the source manifest it was frozen against
+    (``manifest_sha256``), so approval is auditable and tied to that evidence."""
     if post_s <= pre_s:
         raise ValueError(f"window post_s ({post_s}) must exceed pre_s ({pre_s})")
     return {
         "schema": WINDOW_POLICY_SCHEMA,
         "pre_s": float(pre_s), "post_s": float(post_s), "n_frames": int(n_frames),
-        "approved": bool(approved), "canary_ref": canary_ref, "frozen_at_commit": commit,
+        "approved": bool(approved), "canary_ref": canary_ref,
+        "canary_sha256": canary_sha256, "manifest_sha256": manifest_sha256,
+        "frozen_at_commit": commit,
     }
+
+
+def require_scored_canary(canary_ref: Path, pre_s: float, post_s: float) -> dict:
+    """Return the SCORED canary decision or raise. Enforces that an approved lock binds
+    a *scored decision* artifact — the reviewer filled ``decision.selected_window_s``
+    after coverage/contamination scoring — not the raw unscored index, and that the
+    frozen window matches the recorded decision."""
+    data = json.loads(Path(canary_ref).read_text())
+    sel = data.get("decision", {}).get("selected_window_s")
+    if sel is None:
+        raise SystemExit(
+            f"{canary_ref}: unscored canary (decision.selected_window_s is null). Fill in the "
+            "coverage/contamination scores and the selected window before approving a lock.")
+    if [float(sel[0]), float(sel[1])] != [float(pre_s), float(post_s)]:
+        raise SystemExit(f"frozen window [{pre_s}, {post_s}] != canary decision {sel}; must match")
+    return data["decision"]
 
 
 def require_locked_window_policy(manifest: dict) -> dict:
@@ -154,6 +197,7 @@ def build_extraction_plan(manifest_path: Path, arm: str, split: str = "test",
         "manifest_path": str(manifest_path),
         "manifest_sha256": sha256_file(Path(manifest_path)),
         "window_policy": wp, "model": spec,
+        "comparators_schema": COMPARATORS_SCHEMA, "comparators": COMPARATORS,
         "counts": {"clips": len(clips),
                    "queries": sum(c["kind"] == "query" for c in clips),
                    "events": sum(c["kind"] == "event" for c in clips)},
@@ -168,3 +212,67 @@ def write_plan(plan: dict, out_dir: Path) -> Path:
     out = out_dir / f"plan_{plan['arm']}_{plan['split']}_{plan['plan_sha256'][:12]}.json"
     out.write_text(json.dumps(plan, indent=1))
     return out
+
+
+# --------------------------------------------------------------------------- #
+# Canonical feature-cache contract — the SINGLE source of truth shared by the
+# extractor (writer) and the evaluator (reader), so the two cannot drift.
+# --------------------------------------------------------------------------- #
+FEATURE_CACHE_SCHEMA = "soccernet_feature_cache_v1"
+
+
+def _success_marker(cache_path: Path) -> Path:
+    return cache_path.parent / (cache_path.name + "._SUCCESS")
+
+
+def write_feature_cache(cache_path: Path, plan: dict, features: dict, *,
+                        canary: bool, limit: int = 0) -> dict:
+    """Write an extractor cache bound to ``plan``. A run is ``complete`` only if it
+    is NOT a canary and every plan row is present; only then is a sibling
+    ``_SUCCESS`` marker written. ``--limit`` (canary) outputs are tagged and never
+    marked complete, so they can never be published as full results."""
+    import torch
+
+    expected = plan["row_order"]
+    complete = (not canary) and len(expected) > 0 and all(c in features for c in expected)
+    blob = {
+        "schema": FEATURE_CACHE_SCHEMA, "plan_sha256": plan["plan_sha256"],
+        "arm": plan["arm"], "split": plan["split"],
+        "model_sha256": plan["model"]["sha256"],
+        "preprocessing": plan["model"]["preprocessing"],
+        "comparators_schema": plan.get("comparators_schema"),
+        "canary": bool(canary), "limit": int(limit), "complete": complete,
+        "n_features": len(features), "n_expected": len(expected), "features": features,
+    }
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(blob, cache_path)
+    marker = _success_marker(cache_path)
+    if complete:
+        marker.write_text(json.dumps(
+            {"plan_sha256": plan["plan_sha256"], "n_features": len(features)}))
+    elif marker.exists():
+        marker.unlink()  # never leave a stale success marker beside a partial cache
+    return blob
+
+
+def load_feature_cache(cache_path: Path, plan: dict) -> dict:
+    """Load an extractor cache FAIL-CLOSED against ``plan``: refuse a cache that is a
+    canary, not marked complete, missing its ``_SUCCESS`` marker, bound to a
+    different plan, or missing any required row. The single canonical reader."""
+    import torch
+
+    cache = torch.load(cache_path, map_location="cpu", weights_only=False)
+    if cache.get("schema") != FEATURE_CACHE_SCHEMA:
+        raise SystemExit(f"{cache_path}: not a {FEATURE_CACHE_SCHEMA} cache; fail-closed")
+    if cache.get("canary"):
+        raise SystemExit(f"{cache_path}: CANARY cache (--limit); refusing to publish as full")
+    if not cache.get("complete") or not _success_marker(cache_path).exists():
+        raise SystemExit(f"{cache_path}: not complete / no _SUCCESS marker; fail-closed")
+    if cache.get("plan_sha256") != plan["plan_sha256"]:
+        raise SystemExit(f"{cache_path}: plan_sha256 {cache.get('plan_sha256')} != current "
+                         f"plan {plan['plan_sha256']}; fail-closed")
+    missing = [c for c in plan["row_order"] if c not in cache["features"]]
+    if missing:
+        raise SystemExit(f"{cache_path}: missing {len(missing)}/{len(plan['row_order'])} rows "
+                         f"(first {missing[0]}); fail-closed")
+    return cache

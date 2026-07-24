@@ -23,6 +23,7 @@ Thumbs.db
 trajectories.png
 *.ckpt
 *.pth
+results/soccernet/canary/*.png  # large canary montages; regenerable, hashes recorded in canary_index.json
 
 # LaTeX build artifacts
 paper/*.aux

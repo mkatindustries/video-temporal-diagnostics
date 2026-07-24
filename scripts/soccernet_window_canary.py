@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 from collections import defaultdict
@@ -37,10 +38,25 @@ DEFAULT_SN_DIR = Path(
 CANDIDATE_WINDOWS = [(-1.0, 1.0), (-2.0, 2.0), (-3.0, 3.0), (-2.0, 4.0)]
 N_FRAMES = 8  # frames rendered per window (matches the SONAR2-PE 8-frame window)
 THUMB_W = 160
+# Predeclared scoring rubric — recorded in the audit artifact so the frozen window
+# is justified by an auditable, class-agnostic decision (train-only).
+RUBRIC = {
+    "dimensions": {
+        "coverage": "0=absent 1=partial 2=full: window contains the linked live action?",
+        "contamination": "0=none 1=minor 2=heavy: window bleeds into replays/other events?",
+    },
+    "selection_rule": ("freeze the SMALLEST candidate window with median coverage>=2 and median "
+                       "contamination<=1 across the train sample; single class-agnostic window"),
+    "scored_on": "train split only; do NOT inspect valid/test or use retrieval metrics",
+}
 ACTION_BUCKETS = {
     "Goal": "goal", "Foul": "foul", "Shots on target": "shot", "Shots off target": "shot",
     "Ball out of play": "ballout", "Offside": "offside",
 }
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def bucket(action: str) -> str:
@@ -170,20 +186,29 @@ def main() -> None:
             rows.append(frames)
             labels.append(f"[{pre:+.0f},{post:+.0f}]")
         stem = f"{n:03d}_{e['action_bucket']}_{e['aired_live'].replace('-', '')}"
-        ok = montage(rows, labels, args.out_dir / f"{stem}.png")
+        out_png = args.out_dir / f"{stem}.png"
+        ok = montage(rows, labels, out_png)
         records.append({
             "event_id": e["event_id"], "league": e["league"],
             "action_label": e["action_label"], "action_bucket": e["action_bucket"],
             "aired_live": e["aired_live"], "anchor_s": anchor,
             "montage": f"{stem}.png" if ok else None,
+            "montage_sha256": _sha256(out_png) if ok else None,
+            # reviewer fills these per candidate window (train-only, visual):
+            "scores": {lab: {"coverage": None, "contamination": None} for lab in labels},
         })
         if not ok:
             print(f"  WARN no frames decoded for {e['event_id']} ({video.name})")
     (args.out_dir / "canary_index.json").write_text(json.dumps({
+        "schema": "soccernet_window_canary_v1",
         "candidate_windows_s": CANDIDATE_WINDOWS, "n_frames": N_FRAMES,
-        "split": "train", "seed": args.seed, "samples": records,
+        "split": "train", "seed": args.seed, "n_samples": len(records),
+        "rubric": RUBRIC,
+        # filled at freeze time, then bound into the lock via --canary-ref:
+        "decision": {"selected_window_s": None, "rationale": None},
+        "samples": records,
     }, indent=2))
-    print(f"wrote {len(records)} montages + index to {args.out_dir}")
+    print(f"wrote {len(records)} montages + audit index to {args.out_dir}")
     print("REVIEW: score per-window event coverage visually; freeze the smallest "
           "class-agnostic window meeting threshold into manifest.window_policy. "
           "Do NOT inspect valid/test or use retrieval metrics for this choice.")
