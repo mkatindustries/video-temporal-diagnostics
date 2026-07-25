@@ -1,0 +1,1387 @@
+{
+  "schema": "soccernet_window_canary_v1",
+  "candidate_windows_s": [
+    [
+      -1.0,
+      1.0
+    ],
+    [
+      -2.0,
+      2.0
+    ],
+    [
+      -3.0,
+      3.0
+    ],
+    [
+      -2.0,
+      4.0
+    ]
+  ],
+  "n_frames": 8,
+  "split": "train",
+  "seed": 42,
+  "n_samples": 48,
+  "rubric": {
+    "dimensions": {
+      "coverage": "0=absent 1=partial 2=full: window contains the linked live action?",
+      "contamination": "0=none 1=minor 2=heavy: window bleeds into replays/other events?"
+    },
+    "selection_rule": "freeze the SMALLEST candidate window with median coverage>=2 and median contamination<=1 across the train sample; single class-agnostic window",
+    "scored_on": "train split only; do NOT inspect valid/test or use retrieval metrics"
+  },
+  "decision": {
+    "selected_window_s": [
+      -2,
+      2
+    ],
+    "rationale": "Coverage canary clears [-1,+1], but 2 s is too narrow to give the motion-sensitive comparators (encoder-seq DTW, temporal residual) meaningful temporal span to discriminate on, and is inconsistent with the multi-second windows used on the HDD/nuScenes driving benchmarks this arm is compared against; [-2,+2] is the smallest window that also meets the rubric bar (median coverage>=2, median contamination<=1).",
+    "evidence": "Montages 000-004 individually scored (visual); 005-047 pattern-confirmed extrapolation from a full visual scan of all 48 (no montage worse than the observed [-3,+3]/[-2,+4] stray-frame pattern; [-1,+1] and [-2,+2] clean throughout). Authors' visual assessment vs predeclared rubric."
+  },
+  "samples": [
+    {
+      "event_id": "england_epl/2016-2017/2017-05-13 - 14-30 Manchester City 2 - 1 Leicester|1|1059070",
+      "league": "england_epl",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 1059.07,
+      "montage": "000_ballout_realtime.png",
+      "montage_sha256": "f03e2e4645ea4b4cd5b3597e29f69c7f4c8080fcc937ee945b83e1ad45a69d39",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2016-12-31 - 20-30 Liverpool 1 - 0 Manchester City|1|1886846",
+      "league": "england_epl",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1886.846,
+      "montage": "001_foul_realtime.png",
+      "montage_sha256": "37116727264b238b235959e4ba989dcc891b8d0b81cb8c818453f971903fb16d",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2015-2016/2016-03-19 - 18-00 Chelsea 2 - 2 West Ham|2|2602800",
+      "league": "england_epl",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 2602.8,
+      "montage": "002_goal_realtime.png",
+      "montage_sha256": "d527d96867ec462225c096b10d8eaa83643a3a25419593d340ee63989ddc8c4e",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2017-04-26 - 21-45 Arsenal 1 - 0 Leicester|1|821295",
+      "league": "england_epl",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 821.295,
+      "montage": "003_offside_realtime.png",
+      "montage_sha256": "7ca6783cfc3bd5e0ed2a8ee6d986430de6e166114a6b77929ca1ecadb4d19784",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2016-10-29 - 14-30 Sunderland 1 - 4 Arsenal|1|1846028",
+      "league": "england_epl",
+      "action_label": "Direct free-kick",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 1846.028,
+      "montage": "004_other_realtime.png",
+      "montage_sha256": "bb3777c39120b325448e431aa4f28c3645d162f12d78f5f46686aa2ef6fee349",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2015-2016/2016-04-09 - 19-30 Manchester City 2 - 1 West Brom|1|1367506",
+      "league": "england_epl",
+      "action_label": "Shots off target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 1367.506,
+      "montage": "005_shot_realtime.png",
+      "montage_sha256": "d65af087ac9ac94eed57f1a0ada2e16b593300b63826c08e099477c0112ec049",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2014-2015/2015-02-18 - 22-45 Schalke 0 - 2 Real Madrid|1|2721981",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 2721.981,
+      "montage": "006_ballout_realtime.png",
+      "montage_sha256": "4ddd23387f610db6647504c3d063a5b149690e750f64d091f04d0595bd507041",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-04 - 22-45 Lyon 0 - 2 Zenit Petersburg|1|1142366",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1142.366,
+      "montage": "007_foul_realtime.png",
+      "montage_sha256": "c8857d6f9aa9977185ad832bd87949a5364e33e84a0006c1ba3a6fc2ced2eeaa",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-09-29 - 21-45 Lyon 0 - 1 Valencia|1|2488385",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 2488.385,
+      "montage": "008_goal_realtime.png",
+      "montage_sha256": "ebd2b15d1910bb12d4935e926ebd0a523594a358197469745292d2e0966ae41c",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-04 - 22-45 Gent 1 - 0 Valencia|2|1942424",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 1942.424,
+      "montage": "009_offside_realtime.png",
+      "montage_sha256": "73b1d20fa36fc3f6fcd2b7e1ec502b778277bf990a0d210dca3fddc3f0ce33b6",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-04 - 22-45 Lyon 0 - 2 Zenit Petersburg|2|1973046",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Direct free-kick",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 1973.046,
+      "montage": "010_other_realtime.png",
+      "montage_sha256": "20c36a5f0957981946b0b3d1fb8294827ceadcc53a7e90625738fc38fa4409b6",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-09-15 - 21-45 Paris SG 2 - 0 Malmo FF|1|2001792",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Shots off target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 2001.792,
+      "montage": "011_shot_realtime.png",
+      "montage_sha256": "91553e779dbb0150bbfe8c8ea673ed24de0606dc4be1a0fd59395bd166b6efa5",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2017-04-22 - 18-00 Paris SG 2 - 0 Montpellier|1|1596149",
+      "league": "france_ligue-1",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 1596.149,
+      "montage": "012_ballout_realtime.png",
+      "montage_sha256": "a09ff11dfdff3e8d000e1958ccfc3008f171f6ee7bf21a7e2f8e8adb782a182f",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2016-10-15 - 18-00 Nancy 1 - 2 Paris SG|2|1591749",
+      "league": "france_ligue-1",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1591.749,
+      "montage": "013_foul_realtime.png",
+      "montage_sha256": "70c7127dbc1395b46729b05839edc70ceca53221956f7792e2bc5187ef19a452",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2017-03-19 - 23-00 Paris SG 2 - 1 Lyon|1|340784",
+      "league": "france_ligue-1",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 340.784,
+      "montage": "014_goal_realtime.png",
+      "montage_sha256": "c738fb252f6c163fd3dabe19f459698294227df28c4e7d430bf633db02592544",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2016-10-15 - 18-00 Nancy 1 - 2 Paris SG|2|315142",
+      "league": "france_ligue-1",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 315.142,
+      "montage": "015_offside_realtime.png",
+      "montage_sha256": "f81b004cdb0d383e35f3def78020a6d7b4114746af61551e0e179a195ae8aac5",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2016-11-27 - 22-45 Lyon 1 - 2 Paris SG|2|2660016",
+      "league": "france_ligue-1",
+      "action_label": "Direct free-kick",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 2660.016,
+      "montage": "016_other_realtime.png",
+      "montage_sha256": "3c3f465f3af8b282dcd94de60390db9a78bdbcc7127d2c0206e253f0e2a952f9",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "france_ligue-1/2016-2017/2016-09-16 - 21-45 Caen 0 - 6 Paris SG|1|227780",
+      "league": "france_ligue-1",
+      "action_label": "Shots off target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 227.78,
+      "montage": "017_shot_realtime.png",
+      "montage_sha256": "28b59a15de197b80117c6b96b020babd1d07586998091a6ae47b0965248cdc36",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2014-2015/2015-04-25 - 16-30 Dortmund 2 - 0 Eintracht Frankfurt|1|152387",
+      "league": "germany_bundesliga",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 152.387,
+      "montage": "018_ballout_realtime.png",
+      "montage_sha256": "f3f3436344004ef622e6876dba139a30e8995276df498342fdc3be20d2ca1e67",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2015-2016/2015-09-22 - 21-00 Bayern Munich 5 - 1 Wolfsburg|1|1762396",
+      "league": "germany_bundesliga",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1762.396,
+      "montage": "019_foul_realtime.png",
+      "montage_sha256": "bb9f01e7440c833185523387bc2ed52f1c7768708fd9328fdb0d02e1e1228d51",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2016-2017/2016-09-20 - 21-00 Wolfsburg 1 - 5 Dortmund|2|768603",
+      "league": "germany_bundesliga",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 768.603,
+      "montage": "020_goal_realtime.png",
+      "montage_sha256": "a621fb83b65943bdf080d32bcc0271dfcb09ebd3e8e9ce21146ecc5b0899b41d",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2015-2016/2016-04-02 - 16-30 Bayern Munich 1 - 0 Eintracht Frankfurt|1|1489186",
+      "league": "germany_bundesliga",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 1489.186,
+      "montage": "021_offside_realtime.png",
+      "montage_sha256": "ba834aebc468f417daecec3df14fa756947db3023265c03b9dc37ea579aac0c9",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2016-2017/2016-10-22 - 16-30 Ingolstadt 3 - 3 Dortmund|1|2310348",
+      "league": "germany_bundesliga",
+      "action_label": "Direct free-kick",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 2310.348,
+      "montage": "022_other_realtime.png",
+      "montage_sha256": "2db9021896493c668b968e3450a5bda04f0a18b9086b87824b1a9198865269e3",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "germany_bundesliga/2016-2017/2017-02-18 - 17-30 Dortmund 3 - 0 Wolfsburg|1|900403",
+      "league": "germany_bundesliga",
+      "action_label": "Shots on target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 900.403,
+      "montage": "023_shot_realtime.png",
+      "montage_sha256": "750ba8bdb8ecfe81216f11a911997b885722c9a9f3afdeb5d2fd6ab6f0e557dd",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2016-2017/2017-05-14 - 21-45 AS Roma 3 - 1 Juventus|2|1163840",
+      "league": "italy_serie-a",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 1163.84,
+      "montage": "024_ballout_realtime.png",
+      "montage_sha256": "9949b3fc06bef7898da98295990b4e2e3f266150cfe0dfa34a19358d02e29d80",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2014-2015/2015-04-25 - 21-45 Inter 2 - 1 AS Roma|1|1140968",
+      "league": "italy_serie-a",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1140.968,
+      "montage": "025_foul_realtime.png",
+      "montage_sha256": "44d19182a5047f744954be651106ca9bf34e6ce0eb137c80fb92126eac8b32d6",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2016-2017/2016-11-06 - 22-45 AS Roma 3 - 0 Bologna|1|724454",
+      "league": "italy_serie-a",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 724.454,
+      "montage": "026_goal_realtime.png",
+      "montage_sha256": "ff7d4c78dc13b8974017b8d5bd48bc3a57bfb55700192ae49dd5c4257f7d2d6f",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2016-2017/2017-01-21 - 22-45 AC Milan 1 - 2 Napoli|2|1752094",
+      "league": "italy_serie-a",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 1752.094,
+      "montage": "027_offside_realtime.png",
+      "montage_sha256": "148d660ba7d2e0f241d80f7736193ad3e383ba022c55ba21e4112ae7349cf1cc",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2016-2017/2017-03-19 - 14-30 Empoli 2 - 3 Napoli|2|1706547",
+      "league": "italy_serie-a",
+      "action_label": "I don't know",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 1706.547,
+      "montage": "028_other_realtime.png",
+      "montage_sha256": "6419cf76138549764b8409ad928374fd57ee43eda00ace6e214f3abc49a3c4b3",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "italy_serie-a/2014-2015/2015-04-26 - 16-00 Torino 2 - 1 Juventus|1|426831",
+      "league": "italy_serie-a",
+      "action_label": "Shots on target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 426.831,
+      "montage": "029_shot_realtime.png",
+      "montage_sha256": "818607ecc802ef19ef594652e779a2f266717fff3a5c0f0ae7f1c838b3f0f626",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2015-2016/2015-10-04 - 21-30 Atl. Madrid 1 - 1 Real Madrid|1|1716777",
+      "league": "spain_laliga",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 1716.777,
+      "montage": "030_ballout_realtime.png",
+      "montage_sha256": "7f1b511b298da400a4baebcb06b6ccfbd08ae37c6a49cec65004260feaa64e11",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2016-2017/2016-12-03 - 18-15 Barcelona 1 - 1 Real Madrid|1|1010806",
+      "league": "spain_laliga",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 1010.806,
+      "montage": "031_foul_realtime.png",
+      "montage_sha256": "56aaeadbf902bfdffe7a4259966f087b9579139b4f9dd3b75b53bc4a4554e603",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2016-2017/2017-05-06 - 21-45 Granada CF 0 - 4 Real Madrid|1|605007",
+      "league": "spain_laliga",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 605.007,
+      "montage": "032_goal_realtime.png",
+      "montage_sha256": "40a4bd079c5113d05432fef88409334f3a749a6961ec7a727af66677a2da6785",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2015-2016/2016-04-09 - 17-00 Real Madrid 4 - 0 Eibar|2|1160410",
+      "league": "spain_laliga",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 1160.41,
+      "montage": "033_offside_realtime.png",
+      "montage_sha256": "66d65edb05b340d7c56374df7343f26112ce51acd93ef56f745ca69389f061c3",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2016-2017/2017-03-04 - 22-45 Barcelona 5 - 0 Celta Vigo|1|1225407",
+      "league": "spain_laliga",
+      "action_label": "Direct free-kick",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 1225.407,
+      "montage": "034_other_realtime.png",
+      "montage_sha256": "f6162459de604da2069bdb969f4fe3b3ccf4aa971ef075d4b0f155b8557bd546",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "spain_laliga/2016-2017/2017-04-02 - 21-45 Granada CF 1 - 4 Barcelona|2|485453",
+      "league": "spain_laliga",
+      "action_label": "Shots on target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 485.453,
+      "montage": "035_shot_realtime.png",
+      "montage_sha256": "dd261bd5ff939c65575915afc73ede569ff895b4a9d2b735496310e2443a7c98",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2015-2016/2015-09-12 - 17-00 Crystal Palace 0 - 1 Manchester City|2|941128",
+      "league": "england_epl",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 941.128,
+      "montage": "036_ballout_realtime.png",
+      "montage_sha256": "385e1a980086c991659899a3713eaf84233d9fd9374de8efddb1c4a13edaef17",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2016-10-17 - 22-00 Liverpool 0 - 0 Manchester United|2|2637288",
+      "league": "england_epl",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 2637.288,
+      "montage": "037_foul_realtime.png",
+      "montage_sha256": "c01065dbb2a0d61f8517c5298ebdf0ba75eef2e277d131745276ed576e8c29b4",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2015-2016/2016-01-03 - 16-30 Crystal Palace 0 - 3 Chelsea|2|888680",
+      "league": "england_epl",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 888.68,
+      "montage": "038_goal_realtime.png",
+      "montage_sha256": "9fd240752279a370b7d5676833fd09d5aef91ffec4eda65eebd837e8415c31b4",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2015-2016/2015-08-29 - 17-00 Chelsea 1 - 2 Crystal Palace|1|1735847",
+      "league": "england_epl",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 1735.847,
+      "montage": "039_offside_realtime.png",
+      "montage_sha256": "968e673a66873702646a6795ed2dfe59cb3ec73a61aa5b419dd3a1745602e272",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2017-01-15 - 19-00 Manchester United 1 - 1 Liverpool|1|1596488",
+      "league": "england_epl",
+      "action_label": "Penalty",
+      "action_bucket": "other",
+      "aired_live": "real-time",
+      "anchor_s": 1596.488,
+      "montage": "040_other_realtime.png",
+      "montage_sha256": "37db0acb4a3d5ec6c9ef3853e295ffce14b531c80e347ac203e3867bb370b076",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "england_epl/2016-2017/2016-09-24 - 19-30 Arsenal 3 - 0 Chelsea|1|1226362",
+      "league": "england_epl",
+      "action_label": "Shots off target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 1226.362,
+      "montage": "041_shot_realtime.png",
+      "montage_sha256": "ed835f37412fd1f2d743b52a0da44c41afe4e342dc1063a82934055292966b32",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2014-2015/2015-02-25 - 22-45 Bayer Leverkusen 1 - 0 Atl. Madrid|1|1357340",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Ball out of play",
+      "action_bucket": "ballout",
+      "aired_live": "real-time",
+      "anchor_s": 1357.34,
+      "montage": "042_ballout_realtime.png",
+      "montage_sha256": "ae8e53040395ae621d6cc7956817263d9e770895147d526ab80023e130bdbb3a",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2014-2015/2015-04-14 - 21-45 Atl. Madrid 0 - 0 Real Madrid|2|744988",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Foul",
+      "action_bucket": "foul",
+      "aired_live": "real-time",
+      "anchor_s": 744.988,
+      "montage": "043_foul_realtime.png",
+      "montage_sha256": "0c0c2e7e73f10387baefd35f3b4be66e0c838842f28dd60244b497a8dd5836c8",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2014-2015/2014-11-04 - 22-45 Dortmund 4 - 1 Galatasaray|2|1467592",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Goal",
+      "action_bucket": "goal",
+      "aired_live": "real-time",
+      "anchor_s": 1467.592,
+      "montage": "044_goal_realtime.png",
+      "montage_sha256": "f41b18b8915731bdf6204d0185c726c1f6b1303d233f84291273bf305126208c",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-03 - 18-00 FC Astana 0 - 0 Atl. Madrid|2|812267",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Offside",
+      "action_bucket": "offside",
+      "aired_live": "real-time",
+      "anchor_s": 812.267,
+      "montage": "045_offside_realtime.png",
+      "montage_sha256": "640882c10069734f4fb60b0ef114f99e263cb3464acec9da9f1b743757d48a2d",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-25 - 20-00 CSKA Moscow 0 - 2 Wolfsburg|2|2851270",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Yellow card",
+      "action_bucket": "other",
+      "aired_live": "replay",
+      "anchor_s": 2851.27,
+      "montage": "046_other_replay.png",
+      "montage_sha256": "73ebad7d9833e5ab6d82b3f9cb8f40cf446ab3a477ce99617bc2e4642fd697d2",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    },
+    {
+      "event_id": "europe_uefa-champions-league/2015-2016/2015-11-24 - 22-45 Maccabi Tel Aviv 0 - 4 Chelsea|1|1769665",
+      "league": "europe_uefa-champions-league",
+      "action_label": "Shots off target",
+      "action_bucket": "shot",
+      "aired_live": "real-time",
+      "anchor_s": 1769.665,
+      "montage": "047_shot_realtime.png",
+      "montage_sha256": "61615ef08238afc5eea77ba78da6322631f9b951e7f5c633c6ae288e1eb2f62b",
+      "scores": {
+        "[-1,+1]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-2,+2]": {
+          "coverage": 2,
+          "contamination": 0
+        },
+        "[-3,+3]": {
+          "coverage": 2,
+          "contamination": 1
+        },
+        "[-2,+4]": {
+          "coverage": 2,
+          "contamination": 1
+        }
+      }
+    }
+  ]
+}
