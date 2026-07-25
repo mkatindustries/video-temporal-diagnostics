@@ -19,6 +19,7 @@ from soccernet_plan import (  # noqa: E402
     build_extraction_plan,
     make_window_policy,
     model_fingerprint,
+    recompute_selected_window,
     require_locked_window_policy,
     require_scored_canary,
 )
@@ -126,3 +127,45 @@ def test_require_scored_canary(tmp_path):
     assert require_scored_canary(scored, -2, 2)["rationale"] == "full coverage, no bleed"
     with pytest.raises(SystemExit):  # frozen window must match the scored decision
         require_scored_canary(scored, -1, 1)
+
+
+def _canary(cov_con: dict, selected, rationale=None, n=3) -> dict:
+    """Synthetic scored canary: cov_con maps window-label -> (coverage, contamination),
+    applied identically to n samples."""
+    windows = [[-1, 1], [-2, 2], [-3, 3], [-2, 4]]
+    labels = ["[-1,+1]", "[-2,+2]", "[-3,+3]", "[-2,+4]"]
+    samples = [{"scores": {lab: {"coverage": cov_con[lab][0], "contamination": cov_con[lab][1]}
+                           for lab in labels}} for _ in range(n)]
+    return {"candidate_windows_s": windows, "samples": samples,
+            "decision": {"selected_window_s": selected, "rationale": rationale}}
+
+
+def test_recompute_selected_window():
+    allok = {"[-1,+1]": (2, 1), "[-2,+2]": (2, 1), "[-3,+3]": (2, 1), "[-2,+4]": (2, 1)}
+    assert recompute_selected_window(_canary(allok, [-1, 1])) == (-1.0, 1.0)  # smallest eligible
+    # [-1,+1] under-covers -> [-2,+2] wins
+    m = {"[-1,+1]": (1, 0), "[-2,+2]": (2, 1), "[-3,+3]": (2, 1), "[-2,+4]": (2, 1)}
+    assert recompute_selected_window(_canary(m, [-2, 2])) == (-2.0, 2.0)
+    # only the two width-6 windows eligible -> tie broken by candidate order ([-3,+3])
+    t = {"[-1,+1]": (1, 2), "[-2,+2]": (1, 2), "[-3,+3]": (2, 1), "[-2,+4]": (2, 1)}
+    assert recompute_selected_window(_canary(t, [-3, 3])) == (-3.0, 3.0)
+    none = {lab: (0, 2) for lab in ["[-1,+1]", "[-2,+2]", "[-3,+3]", "[-2,+4]"]}
+    assert recompute_selected_window(_canary(none, None)) is None
+
+
+def test_require_scored_canary_recompute_gate(tmp_path):
+    eligible = {"[-1,+1]": (2, 1), "[-2,+2]": (2, 1), "[-3,+3]": (2, 1), "[-2,+4]": (2, 1)}
+    agree = {"[-1,+1]": (1, 0), "[-2,+2]": (2, 1), "[-3,+3]": (2, 1), "[-2,+4]": (2, 1)}
+    # decision agrees with the rubric recompute -> proceeds, no rationale needed
+    p = tmp_path / "ok.json"
+    p.write_text(json.dumps(_canary(agree, [-2, 2])))
+    assert require_scored_canary(p, -2, 2)["selected_window_s"] == [-2, 2]
+    # decision disagrees with recompute (rubric picks smallest [-1,+1]), no rationale -> hard fail
+    pb = tmp_path / "bad.json"
+    pb.write_text(json.dumps(_canary(eligible, [-2, 2])))
+    with pytest.raises(SystemExit):
+        require_scored_canary(pb, -2, 2)
+    # same disagreement, but a non-empty rationale authorizes the override
+    po = tmp_path / "ovr.json"
+    po.write_text(json.dumps(_canary(eligible, [-2, 2], rationale="borderline; chose margin")))
+    assert require_scored_canary(po, -2, 2)["selected_window_s"] == [-2, 2]

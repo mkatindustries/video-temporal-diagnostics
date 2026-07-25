@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import statistics
 from pathlib import Path
 
 WINDOW_POLICY_SCHEMA = "soccernet_window_policy_v1"
@@ -104,11 +105,39 @@ def make_window_policy(pre_s: float, post_s: float, n_frames: int, *, approved: 
     }
 
 
+def recompute_selected_window(canary_data: dict) -> tuple[float, float] | None:
+    """Recompute the frozen window directly from the per-sample scores, using the
+    predeclared rubric in ``scripts/soccernet_window_canary.py``: the SMALLEST candidate
+    window whose *median coverage* >= 2 and *median contamination* <= 1 across the train
+    sample; equal-width ties broken by candidate order. Returns ``(pre_s, post_s)`` or
+    ``None`` if no window qualifies. Self-contained — reads only the canary artifact."""
+    windows = canary_data.get("candidate_windows_s", [])
+    samples = canary_data.get("samples", [])
+    eligible: list[tuple[float, int, float, float]] = []
+    for idx, win in enumerate(windows):
+        pre, post = float(win[0]), float(win[1])
+        label = f"[{pre:+.0f},{post:+.0f}]"
+        cov = [s["scores"][label]["coverage"] for s in samples
+               if s.get("scores", {}).get(label, {}).get("coverage") is not None]
+        con = [s["scores"][label]["contamination"] for s in samples
+               if s.get("scores", {}).get(label, {}).get("contamination") is not None]
+        if not cov or not con:
+            continue  # this window was not scored across the sample
+        if statistics.median(cov) >= 2 and statistics.median(con) <= 1:
+            eligible.append((post - pre, idx, pre, post))
+    if not eligible:
+        return None
+    eligible.sort(key=lambda e: (e[0], e[1]))  # smallest width, then candidate order
+    return (eligible[0][2], eligible[0][3])
+
+
 def require_scored_canary(canary_ref: Path, pre_s: float, post_s: float) -> dict:
-    """Return the SCORED canary decision or raise. Enforces that an approved lock binds
-    a *scored decision* artifact — the reviewer filled ``decision.selected_window_s``
-    after coverage/contamination scoring — not the raw unscored index, and that the
-    frozen window matches the recorded decision."""
+    """Return the SCORED canary decision or raise. Enforces that an approved lock binds a
+    *scored decision* artifact (not a raw index), that the frozen window matches the
+    recorded decision, AND that the decision matches the rubric recomputed from the actual
+    per-window scores — so a typo / copy-paste / hand-edited ``selected_window_s`` cannot
+    pass silently. A deliberate override is allowed only with a non-empty
+    ``decision.rationale`` (logged loudly)."""
     data = json.loads(Path(canary_ref).read_text())
     sel = data.get("decision", {}).get("selected_window_s")
     if sel is None:
@@ -117,6 +146,16 @@ def require_scored_canary(canary_ref: Path, pre_s: float, post_s: float) -> dict
             "coverage/contamination scores and the selected window before approving a lock.")
     if [float(sel[0]), float(sel[1])] != [float(pre_s), float(post_s)]:
         raise SystemExit(f"frozen window [{pre_s}, {post_s}] != canary decision {sel}; must match")
+    recomputed = recompute_selected_window(data)
+    if recomputed != (float(sel[0]), float(sel[1])):
+        rationale = data.get("decision", {}).get("rationale")
+        if not (isinstance(rationale, str) and rationale.strip()):
+            raise SystemExit(
+                f"{canary_ref}: decision.selected_window_s {sel} != rubric recompute "
+                f"{list(recomputed) if recomputed else None} from the scores. Fix the scores/"
+                "decision, or set a non-empty decision.rationale to justify a deliberate override.")
+        print(f"[canary override] decision {sel} != rubric recompute "
+              f"{list(recomputed) if recomputed else None}; proceeding on rationale: {rationale}")
     return data["decision"]
 
 
