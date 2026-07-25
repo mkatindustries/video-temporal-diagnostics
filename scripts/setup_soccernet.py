@@ -294,6 +294,8 @@ def main() -> None:
                    help="mark the window policy approved (locked)")
     p.add_argument("--canary-ref", type=str, default=None,
                    help="canary_index.json path justifying the frozen window")
+    p.add_argument("--force", action="store_true",
+                   help="allow overwriting an already-approved window policy (re-freeze)")
     args = p.parse_args()
 
     if not args.soccernet_dir.exists():
@@ -319,6 +321,11 @@ def main() -> None:
         if args.approve:  # bind a SCORED decision artifact, not the raw index
             require_scored_canary(Path(args.canary_ref), args.pre, args.post)
         manifest = json.loads(manifest_path.read_text())
+        existing = manifest.get("metadata", {}).get("window_policy")
+        if existing and existing.get("approved") and not args.force:
+            raise SystemExit(
+                f"window policy already frozen at "
+                f"[{existing.get('pre_s')},{existing.get('post_s')}]; re-freezing needs --force")
         # Bind the SOURCE manifest identity (pre-lock content hash) into the policy.
         manifest_sha = sha256_file(manifest_path)
         wp = make_window_policy(args.pre, args.post, args.n_frames, approved=args.approve,

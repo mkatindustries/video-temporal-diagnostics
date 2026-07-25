@@ -129,6 +129,41 @@ def test_require_scored_canary(tmp_path):
         require_scored_canary(scored, -1, 1)
 
 
+def test_event_span_boundary_clamp(tmp_path):
+    dur_ms = 2_700_000
+    manifest = {
+        "metadata": {"window_policy": LOCKED},
+        "matches": [{"game": "A", "halves": {"1": {"duration_s": dur_ms / 1000}}}],
+        "events": [
+            {"event_id": "A|1|500", "split": "test", "game": "A", "half": "1",
+             "anchor_ms": 500, "action_label": "Goal"},  # near start
+            {"event_id": f"A|1|{dur_ms - 500}", "split": "test", "game": "A", "half": "1",
+             "anchor_ms": dur_ms - 500, "action_label": "Foul"},  # near end
+            {"event_id": "A|1|100000", "split": "test", "game": "A", "half": "1",
+             "anchor_ms": 100000, "action_label": "Goal"},  # interior
+        ],
+        "queries": [],
+    }
+    p = tmp_path / "m.json"
+    p.write_text(json.dumps(manifest))
+    spans = {c["clip_id"]: c["span_ms"]
+             for c in build_extraction_plan(p, "vjepa2_encoder_seq", fingerprint=False)["clips"]}
+    w = 4000  # [-2,+2] width in ms
+    assert spans["A|1|500"] == [0, w]                             # start: shifted, width kept
+    assert spans[f"A|1|{dur_ms - 500}"] == [dur_ms - w, dur_ms]   # end: shifted + clamped
+    assert spans["A|1|100000"] == [98000, 102000]                 # interior: centered
+    assert all(s[1] - s[0] == w for s in spans.values())          # frozen width everywhere
+
+
+def test_model_fingerprint_resolves_or_skips():
+    from soccernet_plan import _resolve_model_dir
+    try:
+        d = _resolve_model_dir(dict(MODEL_SPECS["vjepa2_encoder_seq"]))
+    except FileNotFoundError:
+        pytest.skip("V-JEPA2 weights not resolvable in this environment")
+    assert any(d.glob("*.safetensors"))  # M1: resolvable -> fingerprint won't crash / go UNRESOLVED
+
+
 def _canary(cov_con: dict, selected, rationale=None, n=3) -> dict:
     """Synthetic scored canary: cov_con maps window-label -> (coverage, contamination),
     applied identically to n samples."""

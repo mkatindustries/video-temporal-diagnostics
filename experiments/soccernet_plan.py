@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import statistics
 from pathlib import Path
 
@@ -113,6 +114,9 @@ def recompute_selected_window(canary_data: dict) -> tuple[float, float] | None:
     ``None`` if no window qualifies. Self-contained — reads only the canary artifact."""
     windows = canary_data.get("candidate_windows_s", [])
     samples = canary_data.get("samples", [])
+    labels = [f"[{float(w[0]):+.0f},{float(w[1]):+.0f}]" for w in windows]
+    if len(set(labels)) != len(labels):
+        raise SystemExit("candidate window labels collide after rounding; score lookup ambiguous")
     eligible: list[tuple[float, int, float, float]] = []
     for idx, win in enumerate(windows):
         pre, post = float(win[0]), float(win[1])
@@ -188,17 +192,42 @@ def require_locked_window_policy(manifest: dict, repo_root: Path | None = None) 
     return wp
 
 
+def _resolve_model_dir(spec: dict) -> Path:
+    """Resolve the dir holding the model's *.safetensors, mirroring how the extractor
+    loads it: explicit spec['path'], then $VTD_MODEL_DIR/<name-tail>, then the HF hub
+    cache snapshot for spec['name']. Raises if none is found (so a full plan cannot be
+    built without a real, hashable checkpoint)."""
+    if spec.get("path") and Path(spec["path"]).exists():
+        return Path(spec["path"])
+    name = spec.get("name", "")
+    tail = name.split("/")[-1]
+    md = os.environ.get("VTD_MODEL_DIR")
+    if md and (Path(md) / tail).exists():
+        return Path(md) / tail
+    bases = []
+    if os.environ.get("HF_HOME"):
+        bases.append(Path(os.environ["HF_HOME"]) / "hub")
+    bases.append(Path.home() / ".cache" / "huggingface" / "hub")
+    for base in bases:
+        snaps = base / f"models--{name.replace('/', '--')}" / "snapshots"
+        if snaps.exists():
+            for snap in sorted(snaps.glob("*")):
+                if any(snap.glob("*.safetensors")):
+                    return snap
+    raise FileNotFoundError(
+        f"cannot resolve weights for {name!r}: set spec['path'] or $VTD_MODEL_DIR, or "
+        "ensure the HuggingFace hub cache holds it")
+
+
 def model_fingerprint(spec: dict) -> str:
-    """Full sha256 for the model: recorded hash if present, else hash the weights."""
+    """Full sha256 for the model: recorded hash if present, else resolve + hash the
+    *.safetensors (name-prefixed so ordering/renames are covered)."""
     if spec.get("recorded_sha256"):
         return spec["recorded_sha256"]
-    path = spec.get("path")
-    if not path:
-        raise ValueError(f"model spec {spec.get('name')!r} has neither recorded_sha256 nor path")
-    p = Path(path)
-    weights = sorted(p.glob("*.safetensors")) if p.is_dir() else [p]
+    d = _resolve_model_dir(spec)
+    weights = sorted(d.glob("*.safetensors")) if d.is_dir() else [d]
     if not weights:
-        raise FileNotFoundError(f"no *.safetensors under {p} to fingerprint")
+        raise FileNotFoundError(f"no *.safetensors under {d} to fingerprint")
     h = hashlib.sha256()
     for w in weights:
         h.update(w.name.encode())
@@ -223,6 +252,17 @@ def build_extraction_plan(manifest_path: Path, arm: str, split: str = "test",
     def video_rel(game: str, half: str) -> str:
         return f"{game}/{half}_224p.mkv"
 
+    # Per-half durations (ms), to clamp/validate event windows at the boundaries.
+    half_dur_ms: dict[tuple[str, str], int] = {}
+    for mt in manifest.get("matches", []):
+        for h, info in (mt.get("halves") or {}).items():
+            if info.get("duration_s") is not None:
+                half_dur_ms[(mt["game"], h)] = int(info["duration_s"] * 1000)
+
+    pre_ms = int(round(wp["pre_s"] * 1000))
+    post_ms = int(round(wp["post_s"] * 1000))
+    width = post_ms - pre_ms  # frozen window width, preserved when clamping at a boundary
+
     clips: list[dict] = []
     for q in manifest["queries"]:
         if q["split"] != split or q["cohort"] != "primary":
@@ -236,12 +276,16 @@ def build_extraction_plan(manifest_path: Path, arm: str, split: str = "test",
         if e["split"] != split:
             continue
         anchor = int(e["anchor_ms"])
-        t0 = anchor + int(round(wp["pre_s"] * 1000))
-        t1 = anchor + int(round(wp["post_s"] * 1000))
+        t0, t1 = anchor + pre_ms, anchor + post_ms
+        if t0 < 0:  # shift (not shorten) to preserve the frozen width at the start boundary
+            t0, t1 = 0, width
+        dur = half_dur_ms.get((e["game"], e["half"]))
+        if dur is not None and t1 > dur:  # shift to preserve width at the end boundary
+            t1, t0 = dur, max(0, dur - width)
         clips.append({
             "clip_id": e["event_id"], "kind": "event", "game": e["game"],
             "half": e["half"], "video": video_rel(e["game"], e["half"]),
-            "span_ms": [max(0, t0), t1],
+            "span_ms": [t0, t1],
         })
     # Deterministic row order: (kind, clip_id) — manifest lists are already sorted,
     # but sort explicitly so the plan is order-stable regardless of manifest order.
@@ -331,4 +375,20 @@ def load_feature_cache(cache_path: Path, plan: dict) -> dict:
     if missing:
         raise SystemExit(f"{cache_path}: missing {len(missing)}/{len(plan['row_order'])} rows "
                          f"(first {missing[0]}); fail-closed")
+    # Content validation: every required feature present, a FINITE tensor of sane rank.
+    # (Non-finite values would otherwise invert into a best rank — a silent metric inflation.)
+    for cid in plan["row_order"]:
+        fd = cache["features"][cid]
+        for k in ("mean_emb", "encoder_seq", "temporal_residual"):
+            t = fd.get(k)
+            if not torch.is_tensor(t):
+                raise SystemExit(
+                    f"{cache_path}: clip {cid} feature {k!r} missing/invalid; fail-closed")
+            if not bool(torch.isfinite(t).all()):
+                raise SystemExit(
+                    f"{cache_path}: clip {cid} feature {k!r} non-finite; fail-closed")
+        ndims = (fd["mean_emb"].ndim, fd["encoder_seq"].ndim, fd["temporal_residual"].ndim)
+        if ndims != (1, 2, 2):
+            raise SystemExit(
+                f"{cache_path}: clip {cid} feature rank {ndims} != (1,2,2); fail-closed")
     return cache

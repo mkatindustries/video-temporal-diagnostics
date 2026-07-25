@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -110,7 +111,11 @@ def per_query_metrics(scores: dict[str, dict[str, float]], gallery: Gallery,
         cands = gallery.events_of_game.get(game, [])
         if len(cands) < 2 or qid not in scores or pos not in scores[qid]:
             continue
-        r = query_rank(scores[qid], cands, pos)
+        sc = scores[qid]
+        if not all(math.isfinite(sc[e]) for e in cands):
+            r = len(cands)  # non-finite scores earn no credit -> worst rank (never rank 1)
+        else:
+            r = query_rank(sc, cands, pos)
         out[qid] = {
             "game": game, "rank": r, "rr": 1.0 / r,
             **{f"r@{k}": float(r <= k) for k in RANKS},
@@ -197,7 +202,11 @@ def smearing_composition(scores: dict[str, dict[str, float]], pq: dict[str, dict
         n_wrong += 1
         pos = gallery.pos_event_of_query[qid]
         cands = gallery.events_of_game[gallery.game_of_query[qid]]
-        top1 = max(cands, key=lambda e: scores[qid][e])
+        # Exclude the positive: under the pessimistic tie policy in query_rank, a query is
+        # only "wrong" when a NON-positive outranks (or ties) it, so the wrong top-1 is the
+        # best non-positive candidate. (A plain max could return the tied positive -> a
+        # fabricated smearing category.)
+        top1 = max((e for e in cands if e != pos), key=lambda e: scores[qid][e])
         ph, pa = gallery.event_anchor[pos]
         th, ta = gallery.event_anchor[top1]
         if ph == th and abs(ta - pa) <= adj_ms:

@@ -89,6 +89,18 @@ def test_smearing_categories():
     assert sm["counts"] == {"temporal_neighbour": 1, "same_action": 1, "other": 1}
 
 
+def test_smearing_tie_excludes_positive():
+    # Tie between the positive (Goal@1000) and a far, different-action distractor (Foul@60000):
+    # query_rank counts it WRONG (pessimistic ties), and the wrong top-1 must be the distractor
+    # -> "other", NOT the positive misattributed as "temporal_neighbour".
+    g = build_gallery(_manifest(), "test")
+    scores = {"qA1": {"A|1|1000": 0.5, "A|1|60000": 0.5, "A|1|5000": 0.1, "A|1|9000": 0.1}}
+    pq = per_query_metrics(scores, g, query_ids={"qA1"})
+    assert pq["qA1"]["rank"] == 2  # tie counts against the positive
+    sm = smearing_composition(scores, pq, g)
+    assert sm["counts"] == {"temporal_neighbour": 0, "same_action": 0, "other": 1}
+
+
 def test_bootstrap_ci_contains_point():
     g = build_gallery(_manifest(), "test")
     res = evaluate_method(SCORES, g)

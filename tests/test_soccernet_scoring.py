@@ -84,6 +84,11 @@ def test_score_comparator_query_subset():
                             query_ids=set()) == {}  # empty subset -> no scores
 
 
+def _feat() -> dict:
+    return {"mean_emb": torch.randn(4), "encoder_seq": torch.randn(3, 4),
+            "temporal_residual": torch.randn(2, 4)}
+
+
 def _fake_plan(sha: str = "plan-abc", rows=("c1", "c2")) -> dict:
     return {"plan_sha256": sha, "arm": "vjepa2_encoder_seq", "split": "test",
             "row_order": list(rows), "comparators_schema": "x",
@@ -93,12 +98,12 @@ def _fake_plan(sha: str = "plan-abc", rows=("c1", "c2")) -> dict:
 def test_feature_cache_roundtrip_and_fail_closed(tmp_path):
     plan = _fake_plan()
     ok = tmp_path / "ok.pt"
-    blob = write_feature_cache(ok, plan, {"c1": {}, "c2": {}}, canary=False)
+    blob = write_feature_cache(ok, plan, {"c1": _feat(), "c2": _feat()}, canary=False)
     assert blob["complete"] is True and (tmp_path / "ok.pt._SUCCESS").exists()
     assert load_feature_cache(ok, plan)["complete"] is True  # round-trips
     # canary -> tagged, no _SUCCESS, refused
     can = tmp_path / "can.pt"
-    b2 = write_feature_cache(can, plan, {"c1": {}}, canary=True, limit=1)
+    b2 = write_feature_cache(can, plan, {"c1": _feat()}, canary=True, limit=1)
     assert b2["complete"] is False and not (tmp_path / "can.pt._SUCCESS").exists()
     with pytest.raises(SystemExit):
         load_feature_cache(can, plan)
@@ -106,6 +111,13 @@ def test_feature_cache_roundtrip_and_fail_closed(tmp_path):
         load_feature_cache(ok, _fake_plan(sha="different"))
     with pytest.raises(SystemExit):  # complete + marker but a required row missing
         load_feature_cache(ok, _fake_plan(rows=("c1", "c2", "c3")))
+    # M2: a "complete" cache with non-finite features is still refused
+    nan = tmp_path / "nan.pt"
+    bad = _feat()
+    bad["encoder_seq"][0, 0] = float("nan")
+    write_feature_cache(nan, plan, {"c1": _feat(), "c2": bad}, canary=False)
+    with pytest.raises(SystemExit):
+        load_feature_cache(nan, plan)
 
 
 def _e2e_manifest() -> dict:

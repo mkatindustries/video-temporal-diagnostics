@@ -67,6 +67,12 @@ def extract_clip(model, processor, frames, device, context_mask, target_mask, n_
     p = pred.predictor_output.last_hidden_state[0].reshape(n_target, VJEPA2_SPATIAL, -1)
     g = pred.predictor_output.target_hidden_state[0].reshape(n_target, VJEPA2_SPATIAL, -1)
     residual = (p - g).mean(dim=1)  # (n_target, D)
+    # encoder_seq/residual are TEMPORAL-major (time outer, spatial inner): V-JEPA 2's token
+    # order is [T, S], the same layout common.build_temporal_masks relies on. Assert the
+    # temporal length so a wrong reshape (e.g. space-major) is caught, not silently averaged.
+    assert encoder_seq.shape[0] == VJEPA2_T_PATCHES and residual.shape[0] == n_target, (
+        f"unexpected temporal length: encoder_seq={tuple(encoder_seq.shape)} "
+        f"residual={tuple(residual.shape)}")
     return {"mean_emb": mean_emb.cpu(), "encoder_seq": encoder_seq.cpu(),
             "temporal_residual": residual.cpu()}
 
@@ -111,8 +117,11 @@ def main() -> None:
             if len(frames) < VJEPA2_NUM_FRAMES:
                 failed += 1
                 continue
-            features[c["clip_id"]] = extract_clip(
-                model, processor, frames, device, context_mask, target_mask, n_tgt)
+            feat = extract_clip(model, processor, frames, device, context_mask, target_mask, n_tgt)
+            if not all(bool(torch.isfinite(v).all()) for v in feat.values()):
+                failed += 1  # non-finite features would invert into a best rank; drop the clip
+                continue
+            features[c["clip_id"]] = feat
         except Exception:
             failed += 1
             continue
