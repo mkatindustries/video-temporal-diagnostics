@@ -159,15 +159,32 @@ def require_scored_canary(canary_ref: Path, pre_s: float, post_s: float) -> dict
     return data["decision"]
 
 
-def require_locked_window_policy(manifest: dict) -> dict:
+def require_locked_window_policy(manifest: dict, repo_root: Path | None = None) -> dict:
     """Return the approved window policy or raise SystemExit. The single gate that
-    extraction / eval / SLURM must pass before touching real data."""
+    extraction / eval / SLURM must pass before touching real data.
+
+    Beyond checking ``approved``, this RE-GROUNDS the lock against live content: the
+    bound canary artifact must still exist and hash to ``canary_sha256``, and its scored
+    decision must still recompute-validate against the frozen window (so a post-freeze
+    edit to the evidence or the decision cannot slip through). ``repo_root`` resolves the
+    (repo-relative) ``canary_ref``; defaults to this file's repo root."""
     wp = manifest.get("metadata", {}).get("window_policy")
     if not wp or not wp.get("approved"):
         raise SystemExit(
             "SoccerNet window policy is not locked/approved. Run the train-only canary "
             "(scripts/soccernet_window_canary.py), then freeze it with "
             "`setup_soccernet.py --set-window-policy --pre P --post Q --n-frames N --approve`.")
+    canary_ref, bound = wp.get("canary_ref"), wp.get("canary_sha256")
+    if canary_ref and bound:
+        root = repo_root or Path(__file__).resolve().parent.parent
+        p = Path(canary_ref) if Path(canary_ref).is_absolute() else root / canary_ref
+        if not p.exists():
+            raise SystemExit(f"locked canary artifact {p} is missing; cannot re-ground the lock")
+        live = sha256_file(p)
+        if live != bound:
+            raise SystemExit(f"canary artifact {p} changed since freeze (sha {live[:12]} != bound "
+                             f"{bound[:12]}); the window lock no longer grounds its evidence")
+        require_scored_canary(p, wp["pre_s"], wp["post_s"])  # re-validate scores -> window
     return wp
 
 
