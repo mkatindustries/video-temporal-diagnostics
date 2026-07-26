@@ -116,7 +116,7 @@ def main() -> None:
         # all-event and never smoke-test the variable-width replay-query short_clip path).
         ev = [c for c in plan["clips"] if c["kind"] == "event"]
         qr = [c for c in plan["clips"] if c["kind"] == "query"]
-        n_q = min(len(qr), args.limit // 2)
+        n_q = min(len(qr), max(1, args.limit // 2)) if qr else 0  # >=1 query even at --limit 1
         clips = qr[:n_q] + ev[: args.limit - n_q]
     else:
         clips = plan["clips"]

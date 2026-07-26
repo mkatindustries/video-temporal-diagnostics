@@ -302,8 +302,9 @@ def _dtw_shuffled_scores(features: dict[str, dict], gallery: Gallery, feat: str,
         qseqs, eseqs = [], []
         for qid, eid in pairs:
             seq = features[eid][feat]
-            seed = int.from_bytes(
-                hashlib.sha256(f"{base_seed}|{qid}|{eid}|{k}".encode()).digest()[:8], "little")
+            # repr of a tuple quotes/escapes each field -> injective even though ids contain '|'
+            seed = int.from_bytes(hashlib.sha256(
+                repr((base_seed, qid, eid, k)).encode()).digest()[:8], "little")
             gen = torch.Generator().manual_seed(seed % (2**63 - 1))
             perm = torch.randperm(seq.shape[0], generator=gen)
             qseqs.append(features[qid][feat])
@@ -361,14 +362,19 @@ def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
     return scores
 
 
-def _perm_ci(values: list[float]) -> dict:
-    """Mean / std / 95% percentile CI of match-macro RR across shuffled-DTW permutations — the
-    Monte-Carlo uncertainty of the shuffle draw, reported alongside each comparator's standard
-    match-clustered bootstrap CI."""
+def _perm_spread(values: list[float]) -> dict:
+    """SINGLE-permutation-draw spread of match-macro RR across the K shuffled-DTW permutations —
+    a diagnostic of how much one random shuffle wobbles. This is NOT the CI of the K-averaged
+    shuffled baseline used in the headline contrast; that baseline's CI is the standard
+    match-clustered bootstrap under methods[...]['same_half_primary']['match_macro_ci']['rr'].
+    With K=10 the extremes are effectively min-max, so a range (not a calibrated 95% CI) is
+    reported."""
     arr = np.asarray(values, dtype=float)
-    return {"K": len(values), "match_macro_rr_mean": float(arr.mean()),
-            "std": float(arr.std(ddof=1)) if arr.size > 1 else 0.0,
-            "ci95": [float(np.percentile(arr, 2.5)), float(np.percentile(arr, 97.5))]}
+    return {"K": len(values),
+            "per_perm_match_macro_rr_mean": float(arr.mean()),
+            "per_perm_std": float(arr.std(ddof=1)) if arr.size > 1 else 0.0,
+            "per_perm_range": [float(arr.min()), float(arr.max())],
+            "note": "single-permutation-draw spread; NOT the K-averaged baseline CI"}
 
 
 def main() -> None:
@@ -410,7 +416,7 @@ def main() -> None:
             # permutation CI: match-macro RR of each single permutation over the same-half set
             perm_rr = [evaluate_method(pp, gallery, same_half, bootstrap=False)[
                 "aggregate"]["match_macro"]["rr"] for pp in per_perm]
-            perm_uncertainty[name] = _perm_ci(perm_rr)
+            perm_uncertainty[name] = _perm_spread(perm_rr)
         else:
             scores = score_comparator(features, gallery, cfg)
         sh = evaluate_method(scores, gallery, same_half)
@@ -444,7 +450,7 @@ def main() -> None:
             "by_reason": dict(sorted(Counter(dropped.values()).items())),
         },
     }, "methods": methods, "paired_same_half_rr": paired,
-        "shuffled_dtw_permutation_ci": perm_uncertainty}
+        "shuffled_dtw_permutation_spread": perm_uncertainty}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2))
     print(f"wrote {args.output}  (arm={args.arm} plan={plan['plan_sha256'][:12]})")
