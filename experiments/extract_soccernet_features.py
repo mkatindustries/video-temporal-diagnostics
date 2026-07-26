@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
+import traceback
 from pathlib import Path
 
 import torch
@@ -132,6 +134,7 @@ def main() -> None:
 
     features: dict[str, dict] = {}
     dropped: dict[str, str] = {}
+    first_error_shown = False
     for c in tqdm(clips, desc="SoccerNet V-JEPA2"):
         cid = c["clip_id"]
         video = args.soccernet_dir / c["video"]
@@ -149,8 +152,16 @@ def main() -> None:
                 dropped[cid] = "degenerate_static"  # min-max collapse -> false perfect match
                 continue
             features[cid] = feat
-        except Exception:
-            dropped[cid] = "extract_error"
+        except Exception as exc:
+            # Record the exception CLASS (so by_reason distinguishes PermissionError /
+            # FileNotFoundError / decode errors) and surface the FIRST full traceback — a bare
+            # "extract_error" once hid a dataset-wide permissions failure for a whole canary.
+            dropped[cid] = f"extract_error:{type(exc).__name__}"
+            if not first_error_shown:
+                print(f"\nfirst extract_error on {cid} (video={video}): "
+                      f"{type(exc).__name__}: {exc}", file=sys.stderr)
+                traceback.print_exc()
+                first_error_shown = True
             continue
     print(f"extracted {len(features)}/{len(clips)} kept, {len(dropped)} dropped")
 
