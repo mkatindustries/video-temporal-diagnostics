@@ -68,10 +68,13 @@ COMPARATORS = {
     "temporal_residual_dtw": {"feature": "temporal_residual", "kind": "dtw", "cost": "l2",
                               "normalize": "per_feature_minmax_over_time",
                               "path_norm": "T1+T2", "warping": "unconstrained"},
-    # Order-agnostic control: symmetric-max (Chamfer) over the SAME per-position
-    # encoder_seq vectors. Isolates whether DTW's monotonic alignment (order)
-    # helps beyond having per-position features.
-    "encoder_seq_unordered": {"feature": "encoder_seq", "kind": "chamfer"},
+    # Order-agnostic control: min-cost ONE-TO-ONE assignment over the SAME normalized
+    # Euclidean cost matrix DTW builds. Differs from encoder_seq_dtw ONLY by dropping the
+    # monotonic-alignment constraint (assignment is bijective, like DTW's warp path), so the
+    # encoder_seq_dtw - encoder_seq_assignment contrast isolates ordering, not a norm/metric swap.
+    "encoder_seq_assignment": {"feature": "encoder_seq", "kind": "assignment", "cost": "l2",
+                               "normalize": "per_feature_minmax_over_time",
+                               "matching": "min_cost_one_to_one"},
 }
 
 
@@ -280,7 +283,11 @@ def build_extraction_plan(manifest_path: Path, arm: str, split: str = "test",
         if t0 < 0:  # shift (not shorten) to preserve the frozen width at the start boundary
             t0, t1 = 0, width
         dur = half_dur_ms.get((e["game"], e["half"]))
-        if dur is not None and t1 > dur:  # shift to preserve width at the end boundary
+        if dur is None:  # NewM3: cannot validate the end boundary without a known half length
+            raise SystemExit(
+                f"event {e['event_id']}: half {e['game']}|{e['half']} has no duration_s; "
+                "cannot clamp the end-boundary window (fail-closed)")
+        if t1 > dur:  # shift to preserve width at the end boundary
             t1, t0 = dur, max(0, dur - width)
         clips.append({
             "clip_id": e["event_id"], "kind": "event", "game": e["game"],
@@ -325,16 +332,31 @@ def _success_marker(cache_path: Path) -> Path:
     return cache_path.parent / (cache_path.name + "._SUCCESS")
 
 
-def write_feature_cache(cache_path: Path, plan: dict, features: dict, *,
-                        canary: bool, limit: int = 0) -> dict:
-    """Write an extractor cache bound to ``plan``. A run is ``complete`` only if it
-    is NOT a canary and every plan row is present; only then is a sibling
-    ``_SUCCESS`` marker written. ``--limit`` (canary) outputs are tagged and never
-    marked complete, so they can never be published as full results."""
+MAX_DROP_RATE = 0.02  # NewM1: full run fails closed if more than this fraction of rows drop
+
+
+def write_feature_cache(cache_path: Path, plan: dict, features: dict,
+                        dropped: dict | None = None, *, canary: bool, limit: int = 0,
+                        max_drop_rate: float = MAX_DROP_RATE) -> dict:
+    """Write an extractor cache bound to ``plan``. Every plan row must be *accounted for* —
+    either extracted (in ``features``) or explicitly recorded in ``dropped`` ({clip_id: reason},
+    e.g. short/non-finite/degenerate-static clips, NewM1). A run is ``complete`` only if it is
+    NOT a canary, every row is accounted for, and the drop-rate is within ``max_drop_rate``;
+    only then is a sibling ``_SUCCESS`` marker written. A full run whose drop-rate EXCEEDS the
+    guard fails closed (hard error), never a silently-degraded cache. ``--limit`` (canary)
+    outputs are tagged, never complete, and cannot be published as full results."""
     import torch
 
+    dropped = dict(dropped or {})
     expected = plan["row_order"]
-    complete = (not canary) and len(expected) > 0 and all(c in features for c in expected)
+    accounted = set(features) | set(dropped)
+    drop_rate = (len(dropped) / len(expected)) if expected else 0.0
+    fully_accounted = len(expected) > 0 and set(expected) <= accounted
+    if (not canary) and fully_accounted and drop_rate > max_drop_rate:
+        raise SystemExit(
+            f"{cache_path}: drop-rate {drop_rate:.3f} > {max_drop_rate} "
+            f"({len(dropped)}/{len(expected)} rows dropped); fail-closed (bad extraction)")
+    complete = (not canary) and fully_accounted and drop_rate <= max_drop_rate
     blob = {
         "schema": FEATURE_CACHE_SCHEMA, "plan_sha256": plan["plan_sha256"],
         "arm": plan["arm"], "split": plan["split"],
@@ -342,14 +364,17 @@ def write_feature_cache(cache_path: Path, plan: dict, features: dict, *,
         "preprocessing": plan["model"]["preprocessing"],
         "comparators_schema": plan.get("comparators_schema"),
         "canary": bool(canary), "limit": int(limit), "complete": complete,
-        "n_features": len(features), "n_expected": len(expected), "features": features,
+        "dropped": dropped, "max_drop_rate": float(max_drop_rate),
+        "n_features": len(features), "n_dropped": len(dropped),
+        "n_expected": len(expected), "features": features,
     }
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(blob, cache_path)
     marker = _success_marker(cache_path)
     if complete:
         marker.write_text(json.dumps(
-            {"plan_sha256": plan["plan_sha256"], "n_features": len(features)}))
+            {"plan_sha256": plan["plan_sha256"], "n_features": len(features),
+             "n_dropped": len(dropped)}))
     elif marker.exists():
         marker.unlink()  # never leave a stale success marker beside a partial cache
     return blob
@@ -371,14 +396,22 @@ def load_feature_cache(cache_path: Path, plan: dict) -> dict:
     if cache.get("plan_sha256") != plan["plan_sha256"]:
         raise SystemExit(f"{cache_path}: plan_sha256 {cache.get('plan_sha256')} != current "
                          f"plan {plan['plan_sha256']}; fail-closed")
-    missing = [c for c in plan["row_order"] if c not in cache["features"]]
-    if missing:
-        raise SystemExit(f"{cache_path}: missing {len(missing)}/{len(plan['row_order'])} rows "
-                         f"(first {missing[0]}); fail-closed")
-    # Content validation: every required feature present, a FINITE tensor of sane rank.
+    # Every plan row must be accounted for: extracted OR explicitly recorded as dropped (NewM1).
+    dropped = cache.get("dropped", {})
+    accounted = set(cache["features"]) | set(dropped)
+    unaccounted = [c for c in plan["row_order"] if c not in accounted]
+    if unaccounted:
+        raise SystemExit(
+            f"{cache_path}: {len(unaccounted)}/{len(plan['row_order'])} rows neither extracted "
+            f"nor recorded-dropped (first {unaccounted[0]}); fail-closed")
+    drop_rate = (len(dropped) / len(plan["row_order"])) if plan["row_order"] else 0.0
+    if drop_rate > cache.get("max_drop_rate", MAX_DROP_RATE):
+        raise SystemExit(
+            f"{cache_path}: drop-rate {drop_rate:.3f} exceeds guard "
+            f"{cache.get('max_drop_rate', MAX_DROP_RATE)}; fail-closed")
+    # Content validation over PRESENT features only: a FINITE tensor of sane rank.
     # (Non-finite values would otherwise invert into a best rank — a silent metric inflation.)
-    for cid in plan["row_order"]:
-        fd = cache["features"][cid]
+    for cid, fd in cache["features"].items():
         for k in ("mean_emb", "encoder_seq", "temporal_residual"):
             t = fd.get(k)
             if not torch.is_tensor(t):

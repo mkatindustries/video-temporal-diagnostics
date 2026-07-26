@@ -36,6 +36,21 @@ from common import (
 from soccernet_plan import build_extraction_plan, write_feature_cache, write_plan
 from tqdm import tqdm
 
+DEGENERATE_MIN_RANGE = 1e-4  # aggregate temporal dynamic-range floor
+
+
+def _is_degenerate(feat: dict) -> bool:
+    """Aggregate static-content check: if the mean per-dim temporal range is ~0, a sequence is
+    (near-)constant over time, on which DTW/assignment min-max normalize to a degenerate zero
+    vector and score a false perfect match (adversarial-review NewM1). Aggregate, not per-dim,
+    so a stray flat dim in 1024-d does not over-drop. Checked on BOTH temporal sequences that
+    feed DTW comparators (encoder_seq AND temporal_residual) — flat on either -> drop."""
+    for seq in (feat["encoder_seq"], feat["temporal_residual"]):
+        rng = seq.max(dim=0).values - seq.min(dim=0).values  # (D,) per-dim temporal range
+        if float(rng.mean()) < DEGENERATE_MIN_RANGE:
+            return True
+    return False
+
 
 def load_vjepa2(device: torch.device):
     """Load V-JEPA 2, honoring VTD_MODEL_DIR for the offline compute-node cache."""
@@ -108,29 +123,33 @@ def main() -> None:
     context_mask, target_mask = build_temporal_masks(n_ctx, device)
 
     features: dict[str, dict] = {}
-    failed = 0
+    dropped: dict[str, str] = {}
     for c in tqdm(clips, desc="SoccerNet V-JEPA2"):
+        cid = c["clip_id"]
         video = args.soccernet_dir / c["video"]
         t0, t1 = c["span_ms"][0] / 1000.0, c["span_ms"][1] / 1000.0
         try:
             frames, _ = load_clip_vjepa2(str(video), t0, t1)
             if len(frames) < VJEPA2_NUM_FRAMES:
-                failed += 1
+                dropped[cid] = "short_clip"
                 continue
             feat = extract_clip(model, processor, frames, device, context_mask, target_mask, n_tgt)
             if not all(bool(torch.isfinite(v).all()) for v in feat.values()):
-                failed += 1  # non-finite features would invert into a best rank; drop the clip
+                dropped[cid] = "non_finite"  # would invert into a best rank
                 continue
-            features[c["clip_id"]] = feat
+            if _is_degenerate(feat):
+                dropped[cid] = "degenerate_static"  # min-max collapse -> false perfect match
+                continue
+            features[cid] = feat
         except Exception:
-            failed += 1
+            dropped[cid] = "extract_error"
             continue
-    print(f"extracted {len(features)}/{len(clips)} ({failed} failed/short)")
+    print(f"extracted {len(features)}/{len(clips)} kept, {len(dropped)} dropped")
 
-    blob = write_feature_cache(args.out_cache, plan, features,
+    blob = write_feature_cache(args.out_cache, plan, features, dropped,
                                canary=bool(args.limit), limit=args.limit)
     print(f"wrote {args.out_cache} (complete={blob['complete']} canary={blob['canary']} "
-          f"{blob['n_features']}/{blob['n_expected']} rows)")
+          f"{blob['n_features']}/{blob['n_expected']} kept, {blob['n_dropped']} dropped)")
 
 
 if __name__ == "__main__":

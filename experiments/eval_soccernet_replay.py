@@ -12,7 +12,7 @@ float`` (higher = more similar, over the query's own-match gallery), so it is
 unit-testable without features. The CLI computes the four frozen-feature
 comparators from the extractor cache — ``bot`` (mean_emb cosine),
 ``encoder_seq_dtw``, ``temporal_residual_dtw`` (``dtw_distance_batch``), and the
-order-agnostic ``encoder_seq_unordered`` control (Chamfer) — per the comparator
+order-agnostic ``encoder_seq_assignment`` control (min-cost assignment) — per the comparator
 spec frozen in the plan. It reports same-half primary and cross-half query sets
 separately, and loads caches fail-closed (refuses canary/incomplete/mismatched).
 
@@ -29,7 +29,7 @@ import argparse
 import json
 import math
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -83,6 +83,22 @@ def build_gallery(manifest: dict, split: str, cohort: str = "primary") -> Galler
         cross_of_q[qid] = bool(q["cross_half"])
     return Gallery(game_of_q, pos_of_q, dict(events_of_game), event_anchor,
                    event_action, cohort_of_q, cross_of_q)
+
+
+def restrict_gallery(g: Gallery, present: set[str]) -> Gallery:
+    """Restrict the gallery to clips actually present in the feature cache (NewM1 drops
+    static/short/non-finite clips). A query survives only if it AND its positive event are
+    present; gallery candidates are filtered to present events. So evaluation runs over the
+    exact extracted set, and a dropped positive can never be silently unrankable."""
+    keep_q = [q for q, pos in g.pos_event_of_query.items() if q in present and pos in present]
+    return Gallery(
+        {q: g.game_of_query[q] for q in keep_q},
+        {q: g.pos_event_of_query[q] for q in keep_q},
+        {game: [e for e in evs if e in present] for game, evs in g.events_of_game.items()},
+        g.event_anchor, g.event_action,
+        {q: g.query_cohort[q] for q in keep_q},
+        {q: g.query_cross_half[q] for q in keep_q},
+    )
 
 
 def query_rank(scores_q: dict[str, float], candidates: list[str], positive: str) -> int:
@@ -238,15 +254,21 @@ def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery,
 # --------------------------------------------------------------------------- #
 # Frozen-feature comparator scoring from the extractor cache.
 # --------------------------------------------------------------------------- #
-def _chamfer(a, b) -> float:
-    """Order-agnostic symmetric-max cosine similarity between two (T,D) sequences.
+def _assignment_distance(a, b) -> float:
+    """Order-agnostic min-cost ONE-TO-ONE assignment over the SAME normalized Euclidean
+    cost matrix DTW builds (``_normalize_sequence`` per-feature min-max + ``cdist``),
+    normalized by ``T1+T2`` to mirror DTW. Removes ONLY the monotonicity constraint —
+    assignment is bijective, like DTW's near-bijective warp path — so
+    ``encoder_seq_dtw - encoder_seq_assignment`` isolates ordering (not a
+    normalization/metric swap, unlike a Chamfer/cosine control)."""
+    import torch
+    from scipy.optimize import linear_sum_assignment
 
-    The control that isolates whether DTW's monotonic alignment helps beyond
-    having per-position features."""
-    import torch.nn.functional as F
+    from video_retrieval.fingerprints.dtw import _normalize_sequence
 
-    sim = F.normalize(a, dim=-1) @ F.normalize(b, dim=-1).T  # (Ta, Tb) cosine
-    return float(0.5 * (sim.max(dim=1).values.mean() + sim.max(dim=0).values.mean()))
+    cost = torch.cdist(_normalize_sequence(a), _normalize_sequence(b))
+    ri, ci = linear_sum_assignment(cost.numpy())
+    return float(cost[ri, ci].sum()) / (a.shape[0] + b.shape[0])
 
 
 def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
@@ -272,9 +294,10 @@ def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
             s = float(F.normalize(features[qid][feat], dim=-1)
                       @ F.normalize(features[eid][feat], dim=-1))
             scores.setdefault(qid, {})[eid] = s
-    elif kind == "chamfer":
+    elif kind == "assignment":
         for qid, eid in pairs:
-            scores.setdefault(qid, {})[eid] = _chamfer(features[qid][feat], features[eid][feat])
+            d = _assignment_distance(features[qid][feat], features[eid][feat])
+            scores.setdefault(qid, {})[eid] = -d  # higher = more similar
     elif kind == "dtw":
         dists = dtw_distance_batch([features[q][feat] for q, _ in pairs],
                                    [features[e][feat] for _, e in pairs], normalize=True)
@@ -309,6 +332,8 @@ def main() -> None:
         raise SystemExit(f"feature cache {args.feature_cache} not found; run extraction first")
     cache = load_feature_cache(args.feature_cache, plan)
     features = cache["features"]
+    dropped = cache.get("dropped", {})
+    gallery = restrict_gallery(gallery, set(features))  # evaluate over the exact extracted set
 
     same_half = {q for q in gallery.pos_event_of_query if not gallery.query_cross_half[q]}
     cross_half = {q for q in gallery.pos_event_of_query if gallery.query_cross_half[q]}
@@ -325,7 +350,7 @@ def main() -> None:
 
     paired = {}  # paired match-level RR contrasts on the same-half primary set
     for a, b in [("encoder_seq_dtw", "bot"),
-                 ("encoder_seq_dtw", "encoder_seq_unordered"),  # does order (DTW) help?
+                 ("encoder_seq_dtw", "encoder_seq_assignment"),  # isolates ordering
                  ("temporal_residual_dtw", "bot")]:
         if same_rr.get(a) and same_rr.get(b):
             paired[f"{a}_minus_{b}"] = paired_cluster_bootstrap_mean_difference(
@@ -340,6 +365,11 @@ def main() -> None:
                     "secondary event/action/query-micro; smearing composition"),
         "reporting": "same_half_primary and cross_half reported separately",
         "resampling_unit": "match",
+        "dropped_clips": {
+            "count": len(dropped),
+            "rate": round(len(dropped) / max(1, len(plan["row_order"])), 4),
+            "by_reason": dict(sorted(Counter(dropped.values()).items())),
+        },
     }, "methods": methods, "paired_same_half_rr": paired}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2))

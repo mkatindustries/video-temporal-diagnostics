@@ -74,6 +74,7 @@ ignore-missing-imports = [
     "pytest",
     "qwen_vl_utils",
     "scipy",
+    "scipy.optimize",
     "scipy.stats",
     "sklearn",
     "sklearn.cluster",

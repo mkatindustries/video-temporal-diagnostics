@@ -19,6 +19,7 @@ from eval_soccernet_replay import (  # noqa: E402
     evaluate_method,
     paired_cluster_bootstrap_mean_difference,
     per_query_metrics,
+    restrict_gallery,
     smearing_composition,
 )
 
@@ -128,6 +129,20 @@ def test_paired_difference_sign():
     # diff 0 (not >0) -> P(A>B) < 1 even though A never loses. Just assert A wins.
     assert d["bootstrap_probability_a_gt_b"] > 0.5
     assert d["n_matches"] == 2
+
+
+def test_restrict_gallery_keeps_only_present():
+    # NewM1: dropped clips (static/short/non-finite) are excluded from queries + galleries.
+    g = build_gallery(_manifest(), "test")
+    all_ids = set(g.game_of_query) | {e for evs in g.events_of_game.values() for e in evs}
+    assert set(restrict_gallery(g, all_ids).game_of_query) == set(g.game_of_query)  # no-op
+    # a dropped distractor candidate is filtered from its game's gallery, queries survive
+    r = restrict_gallery(g, all_ids - {"A|1|60000"})
+    assert "A|1|60000" not in r.events_of_game["A"]
+    assert set(r.game_of_query) == set(g.game_of_query)
+    # a query whose POSITIVE event was dropped is itself removed (never silently unrankable)
+    r2 = restrict_gallery(g, all_ids - {"A|1|1000"})  # qA1's positive
+    assert "qA1" not in r2.game_of_query
 
 
 def test_gallery_needs_two_candidates():

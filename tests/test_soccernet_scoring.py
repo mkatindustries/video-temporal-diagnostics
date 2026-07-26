@@ -16,7 +16,7 @@ EXPERIMENTS = Path(__file__).resolve().parents[1] / "experiments"
 sys.path.insert(0, str(EXPERIMENTS))
 
 from eval_soccernet_replay import (  # noqa: E402
-    _chamfer,
+    _assignment_distance,
     build_gallery,
     evaluate_method,
     score_comparator,
@@ -45,17 +45,20 @@ def _mini_manifest() -> dict:
     }
 
 
-def test_chamfer_order_invariant_and_symmetric():
+def test_assignment_distance_order_invariant_and_symmetric():
     torch.manual_seed(0)
     a = torch.randn(5, 8)
     b = a[torch.randperm(5)]  # same row-set, shuffled order
-    assert _chamfer(a, a) == pytest.approx(1.0, abs=1e-5)
-    # order-agnostic: a row-permutation is indistinguishable (this is the control's point)
-    assert _chamfer(a, b) == pytest.approx(1.0, abs=1e-5)
-    assert _chamfer(a, b) == pytest.approx(_chamfer(b, a), abs=1e-5)  # symmetric
+    # self-distance is zero (the min-cost matching is the identity)
+    assert _assignment_distance(a, a) == pytest.approx(0.0, abs=1e-5)
+    # order-agnostic: a row-permutation is still a perfect matching -> zero cost (control's point).
+    # Normalization is per-feature min-max OVER TIME, invariant to row order, so this holds under
+    # the SAME normalization DTW uses — the difference vs DTW is ONLY the ordering constraint.
+    assert _assignment_distance(a, b) == pytest.approx(0.0, abs=1e-5)
+    assert _assignment_distance(a, b) == pytest.approx(_assignment_distance(b, a), abs=1e-5)
 
 
-def test_score_comparator_cosine_dtw_chamfer():
+def test_score_comparator_cosine_dtw_assignment():
     g = build_gallery(_mini_manifest(), "test")
     eye = torch.eye(3)
     feats = {
@@ -73,8 +76,10 @@ def test_score_comparator_cosine_dtw_chamfer():
     assert dtw["qA"]["A|1|1"] == pytest.approx(0.0, abs=1e-6)
     assert dtw["qA"]["A|1|1"] > dtw["qA"]["A|1|2"]
 
-    cham = score_comparator(feats, g, {"feature": "encoder_seq", "kind": "chamfer"})
-    assert cham["qA"]["A|1|1"] > cham["qA"]["A|1|2"]
+    asg = score_comparator(feats, g, {"feature": "encoder_seq", "kind": "assignment"})
+    # identical sequence -> assignment cost 0 -> score 0; different -> negative
+    assert asg["qA"]["A|1|1"] == pytest.approx(0.0, abs=1e-6)
+    assert asg["qA"]["A|1|1"] > asg["qA"]["A|1|2"]
 
 
 def test_score_comparator_query_subset():
@@ -109,7 +114,7 @@ def test_feature_cache_roundtrip_and_fail_closed(tmp_path):
         load_feature_cache(can, plan)
     with pytest.raises(SystemExit):  # plan mismatch
         load_feature_cache(ok, _fake_plan(sha="different"))
-    with pytest.raises(SystemExit):  # complete + marker but a required row missing
+    with pytest.raises(SystemExit):  # complete + marker but a required row unaccounted
         load_feature_cache(ok, _fake_plan(rows=("c1", "c2", "c3")))
     # M2: a "complete" cache with non-finite features is still refused
     nan = tmp_path / "nan.pt"
@@ -120,10 +125,27 @@ def test_feature_cache_roundtrip_and_fail_closed(tmp_path):
         load_feature_cache(nan, plan)
 
 
+def test_feature_cache_dropped_accounting_and_drop_rate(tmp_path):
+    # NewM1: a recorded drop within the guard -> row accounted -> complete -> round-trips,
+    # and the eval sees the drop set (so it can restrict the gallery to present clips).
+    plan3 = _fake_plan(rows=("c1", "c2", "c3"))
+    drp = tmp_path / "drop.pt"
+    bd = write_feature_cache(drp, plan3, {"c1": _feat(), "c2": _feat()},
+                             {"c3": "degenerate_static"}, canary=False, max_drop_rate=0.5)
+    assert bd["complete"] is True and bd["n_dropped"] == 1
+    loaded = load_feature_cache(drp, plan3)
+    assert loaded["dropped"] == {"c3": "degenerate_static"}
+    # exceeding the drop-rate guard fails closed at write (not a silently-degraded cache)
+    with pytest.raises(SystemExit):
+        write_feature_cache(tmp_path / "toomany.pt", plan3, {"c1": _feat()},
+                            {"c2": "short_clip", "c3": "short_clip"}, canary=False)
+
+
 def _e2e_manifest() -> dict:
     wp = make_window_policy(-2, 2, 8, approved=True, canary_ref=None, commit="test")
     return {
         "metadata": {"window_policy": wp},
+        "matches": [{"game": "A", "halves": {"1": {"duration_s": 2700}}}],
         "events": [
             {"event_id": "A|1|1000", "split": "test", "game": "A", "half": "1",
              "anchor_ms": 1000, "action_label": "Goal"},

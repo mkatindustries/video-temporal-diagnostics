@@ -30,6 +30,7 @@ LOCKED = make_window_policy(-2, 2, 8, approved=True, canary_ref=None, commit="te
 def _manifest(window_policy) -> dict:
     return {
         "metadata": {"window_policy": window_policy},
+        "matches": [{"game": "A", "halves": {"1": {"duration_s": 2700}}}],
         "events": [
             {"event_id": "A|1|5000", "split": "test", "game": "A", "half": "1",
              "anchor_ms": 5000, "action_label": "Goal"},
@@ -108,12 +109,15 @@ def test_plan_binds_comparator_spec(tmp_path):
     plan = build_extraction_plan(_write(tmp_path, LOCKED), "vjepa2_encoder_seq", fingerprint=False)
     comps = plan["comparators"]
     assert set(comps) == {
-        "bot", "encoder_seq_dtw", "temporal_residual_dtw", "encoder_seq_unordered"}
+        "bot", "encoder_seq_dtw", "temporal_residual_dtw", "encoder_seq_assignment"}
     assert comps["encoder_seq_dtw"] == {
         "feature": "encoder_seq", "kind": "dtw", "cost": "l2",
         "normalize": "per_feature_minmax_over_time", "path_norm": "T1+T2",
         "warping": "unconstrained"}
-    assert comps["encoder_seq_unordered"]["kind"] == "chamfer"  # order-agnostic control
+    # order-agnostic control shares DTW's normalization + Euclidean cost (isolates ordering)
+    assert comps["encoder_seq_assignment"]["kind"] == "assignment"
+    assert comps["encoder_seq_assignment"]["normalize"] == "per_feature_minmax_over_time"
+    assert comps["encoder_seq_assignment"]["cost"] == "l2"
 
 
 def test_require_scored_canary(tmp_path):
@@ -153,6 +157,25 @@ def test_event_span_boundary_clamp(tmp_path):
     assert spans[f"A|1|{dur_ms - 500}"] == [dur_ms - w, dur_ms]   # end: shifted + clamped
     assert spans["A|1|100000"] == [98000, 102000]                 # interior: centered
     assert all(s[1] - s[0] == w for s in spans.values())          # frozen width everywhere
+
+
+def test_event_null_duration_fails_closed(tmp_path):
+    # NewM3: an event whose half has no duration_s cannot have its end boundary validated,
+    # so plan-building must fail closed (proves the guard fires, not just that manifests
+    # were patched with durations to avoid it).
+    m = {
+        "metadata": {"window_policy": LOCKED},
+        "matches": [{"game": "A", "halves": {"2": {"duration_s": 2700}}}],  # wrong half
+        "events": [{"event_id": "A|1|5000", "split": "test", "game": "A", "half": "1",
+                    "anchor_ms": 5000, "action_label": "Goal"}],
+        "queries": [{"query_id": "A|1|6000", "split": "test", "game": "A",
+                     "event_id": "A|1|5000", "replay_half": "1",
+                     "replay_span_ms": [5800, 6300], "cohort": "primary", "cross_half": False}],
+    }
+    p = tmp_path / "m.json"
+    p.write_text(json.dumps(m))
+    with pytest.raises(SystemExit):
+        build_extraction_plan(p, "vjepa2_encoder_seq", fingerprint=False)
 
 
 def test_model_fingerprint_resolves_or_skips():
