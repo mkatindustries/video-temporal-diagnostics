@@ -109,12 +109,17 @@ def test_plan_binds_comparator_spec(tmp_path):
     plan = build_extraction_plan(_write(tmp_path, LOCKED), "vjepa2_encoder_seq", fingerprint=False)
     comps = plan["comparators"]
     assert set(comps) == {
-        "bot", "encoder_seq_dtw", "temporal_residual_dtw", "encoder_seq_assignment"}
+        "bot", "encoder_seq_dtw", "temporal_residual_dtw",
+        "encoder_seq_dtw_shuffled", "encoder_seq_assignment"}
     assert comps["encoder_seq_dtw"] == {
         "feature": "encoder_seq", "kind": "dtw", "cost": "l2",
         "normalize": "per_feature_minmax_over_time", "path_norm": "T1+T2",
         "warping": "unconstrained"}
-    # order-agnostic control shares DTW's normalization + Euclidean cost (isolates ordering)
+    # HEADLINE ordering control: same DTW on the time-permuted event, K perms, reproducible seed
+    assert comps["encoder_seq_dtw_shuffled"]["kind"] == "dtw_shuffled"
+    assert comps["encoder_seq_dtw_shuffled"]["n_permutations"] == 10
+    assert comps["encoder_seq_dtw_shuffled"]["seed"] == 42
+    # secondary rigid-structure control (removes ordering+warp+anchoring jointly, NOT isolating)
     assert comps["encoder_seq_assignment"]["kind"] == "assignment"
     assert comps["encoder_seq_assignment"]["normalize"] == "per_feature_minmax_over_time"
     assert comps["encoder_seq_assignment"]["cost"] == "l2"

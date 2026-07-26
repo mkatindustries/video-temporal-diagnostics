@@ -68,10 +68,24 @@ COMPARATORS = {
     "temporal_residual_dtw": {"feature": "temporal_residual", "kind": "dtw", "cost": "l2",
                               "normalize": "per_feature_minmax_over_time",
                               "path_norm": "T1+T2", "warping": "unconstrained"},
-    # Order-agnostic control: min-cost ONE-TO-ONE assignment over the SAME normalized
-    # Euclidean cost matrix DTW builds. Differs from encoder_seq_dtw ONLY by dropping the
-    # monotonic-alignment constraint (assignment is bijective, like DTW's warp path), so the
-    # encoder_seq_dtw - encoder_seq_assignment contrast isolates ordering, not a norm/metric swap.
+    # HEADLINE ordering control: the SAME DTW (same cost, warp tolerance, endpoint anchoring,
+    # normalization) run on the query vs the event with its TIME AXIS randomly permuted, averaged
+    # over K independent permutations. min-max normalization is a per-dim over-time statistic and
+    # COMMUTES with the shuffle, so the ONLY thing that differs from encoder_seq_dtw is the
+    # temporal arrangement the monotonic path sees -> encoder_seq_dtw - encoder_seq_dtw_shuffled
+    # isolates ordering with warp/anchoring/metric/normalization all held constant. Permutations
+    # are drawn independently per (query, event, k) from a stable hash seed: reproducible, and
+    # never one fixed per-event shuffle reused across queries (which would correlate errors).
+    "encoder_seq_dtw_shuffled": {"feature": "encoder_seq", "kind": "dtw_shuffled", "cost": "l2",
+                                 "normalize": "per_feature_minmax_over_time",
+                                 "path_norm": "T1+T2", "warping": "unconstrained",
+                                 "n_permutations": 10, "seed": 42,
+                                 "shuffle": "event_time_axis_per_query_event_perm"},
+    # Secondary STRUCTURAL control: min-cost ONE-TO-ONE assignment over the SAME normalized
+    # Euclidean cost matrix DTW builds. This is a rigid bijective match; vs encoder_seq_dtw it
+    # removes ordering AND DTW's one-to-many warp tolerance AND endpoint anchoring JOINTLY -- NOT
+    # ordering alone (use encoder_seq_dtw_shuffled for that). Reported as a "does any rigid
+    # alignment structure help" comparator, not an ordering isolator.
     "encoder_seq_assignment": {"feature": "encoder_seq", "kind": "assignment", "cost": "l2",
                                "normalize": "per_feature_minmax_over_time",
                                "matching": "min_cost_one_to_one"},
@@ -283,10 +297,10 @@ def build_extraction_plan(manifest_path: Path, arm: str, split: str = "test",
         if t0 < 0:  # shift (not shorten) to preserve the frozen width at the start boundary
             t0, t1 = 0, width
         dur = half_dur_ms.get((e["game"], e["half"]))
-        if dur is None:  # NewM3: cannot validate the end boundary without a known half length
+        if dur is None or dur <= 0:  # NewM3: no valid half length -> can't validate end boundary
             raise SystemExit(
-                f"event {e['event_id']}: half {e['game']}|{e['half']} has no duration_s; "
-                "cannot clamp the end-boundary window (fail-closed)")
+                f"event {e['event_id']}: half {e['game']}|{e['half']} has no valid duration_s "
+                f"(got {dur}); cannot clamp the end-boundary window (fail-closed)")
         if t1 > dur:  # shift to preserve width at the end boundary
             t1, t0 = dur, max(0, dur - width)
         clips.append({
@@ -336,15 +350,15 @@ MAX_DROP_RATE = 0.02  # NewM1: full run fails closed if more than this fraction 
 
 
 def write_feature_cache(cache_path: Path, plan: dict, features: dict,
-                        dropped: dict | None = None, *, canary: bool, limit: int = 0,
-                        max_drop_rate: float = MAX_DROP_RATE) -> dict:
+                        dropped: dict | None = None, *, canary: bool, limit: int = 0) -> dict:
     """Write an extractor cache bound to ``plan``. Every plan row must be *accounted for* —
     either extracted (in ``features``) or explicitly recorded in ``dropped`` ({clip_id: reason},
     e.g. short/non-finite/degenerate-static clips, NewM1). A run is ``complete`` only if it is
-    NOT a canary, every row is accounted for, and the drop-rate is within ``max_drop_rate``;
-    only then is a sibling ``_SUCCESS`` marker written. A full run whose drop-rate EXCEEDS the
-    guard fails closed (hard error), never a silently-degraded cache. ``--limit`` (canary)
-    outputs are tagged, never complete, and cannot be published as full results."""
+    NOT a canary, every row is accounted for, and the drop-rate is within the module constant
+    ``MAX_DROP_RATE``; only then is a sibling ``_SUCCESS`` marker written. A full run whose
+    drop-rate EXCEEDS the guard fails closed (hard error), never a silently-degraded cache.
+    The guard is the code constant (not a caller/cache-supplied knob), so a cache cannot
+    self-relax it. ``--limit`` (canary) outputs are tagged, never complete, unpublishable."""
     import torch
 
     dropped = dict(dropped or {})
@@ -352,11 +366,11 @@ def write_feature_cache(cache_path: Path, plan: dict, features: dict,
     accounted = set(features) | set(dropped)
     drop_rate = (len(dropped) / len(expected)) if expected else 0.0
     fully_accounted = len(expected) > 0 and set(expected) <= accounted
-    if (not canary) and fully_accounted and drop_rate > max_drop_rate:
+    if (not canary) and fully_accounted and drop_rate > MAX_DROP_RATE:
         raise SystemExit(
-            f"{cache_path}: drop-rate {drop_rate:.3f} > {max_drop_rate} "
+            f"{cache_path}: drop-rate {drop_rate:.3f} > {MAX_DROP_RATE} "
             f"({len(dropped)}/{len(expected)} rows dropped); fail-closed (bad extraction)")
-    complete = (not canary) and fully_accounted and drop_rate <= max_drop_rate
+    complete = (not canary) and fully_accounted and drop_rate <= MAX_DROP_RATE
     blob = {
         "schema": FEATURE_CACHE_SCHEMA, "plan_sha256": plan["plan_sha256"],
         "arm": plan["arm"], "split": plan["split"],
@@ -364,7 +378,7 @@ def write_feature_cache(cache_path: Path, plan: dict, features: dict,
         "preprocessing": plan["model"]["preprocessing"],
         "comparators_schema": plan.get("comparators_schema"),
         "canary": bool(canary), "limit": int(limit), "complete": complete,
-        "dropped": dropped, "max_drop_rate": float(max_drop_rate),
+        "dropped": dropped, "max_drop_rate": float(MAX_DROP_RATE),  # recorded for audit only
         "n_features": len(features), "n_dropped": len(dropped),
         "n_expected": len(expected), "features": features,
     }
@@ -405,10 +419,15 @@ def load_feature_cache(cache_path: Path, plan: dict) -> dict:
             f"{cache_path}: {len(unaccounted)}/{len(plan['row_order'])} rows neither extracted "
             f"nor recorded-dropped (first {unaccounted[0]}); fail-closed")
     drop_rate = (len(dropped) / len(plan["row_order"])) if plan["row_order"] else 0.0
-    if drop_rate > cache.get("max_drop_rate", MAX_DROP_RATE):
+    # Enforce the CODE constant, not the cache-recorded value: a cache cannot self-relax the guard.
+    stored = float(cache.get("max_drop_rate", MAX_DROP_RATE))
+    if stored > MAX_DROP_RATE:
         raise SystemExit(
-            f"{cache_path}: drop-rate {drop_rate:.3f} exceeds guard "
-            f"{cache.get('max_drop_rate', MAX_DROP_RATE)}; fail-closed")
+            f"{cache_path}: recorded max_drop_rate {stored} exceeds ceiling {MAX_DROP_RATE}; "
+            "fail-closed")
+    if drop_rate > MAX_DROP_RATE:
+        raise SystemExit(
+            f"{cache_path}: drop-rate {drop_rate:.3f} exceeds guard {MAX_DROP_RATE}; fail-closed")
     # Content validation over PRESENT features only: a FINITE tensor of sane rank.
     # (Non-finite values would otherwise invert into a best rank — a silent metric inflation.)
     for cid, fd in cache["features"].items():

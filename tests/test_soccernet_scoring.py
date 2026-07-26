@@ -17,6 +17,7 @@ sys.path.insert(0, str(EXPERIMENTS))
 
 from eval_soccernet_replay import (  # noqa: E402
     _assignment_distance,
+    _dtw_shuffled_scores,
     build_gallery,
     evaluate_method,
     score_comparator,
@@ -81,6 +82,37 @@ def test_score_comparator_cosine_dtw_assignment():
     assert asg["qA"]["A|1|1"] == pytest.approx(0.0, abs=1e-6)
     assert asg["qA"]["A|1|1"] > asg["qA"]["A|1|2"]
 
+    shuf = score_comparator(feats, g, {"feature": "encoder_seq", "kind": "dtw_shuffled",
+                                       "n_permutations": 4, "seed": 1})
+    assert set(shuf["qA"]) == {"A|1|1", "A|1|2"}  # scores every same-match candidate
+
+
+def test_assignment_matches_dtw_cost_at_production_shape():
+    # NewM2 nit: at production T=32 (D>25, so torch.cdist's matmul path with its ~1e-3 floor),
+    # assignment self-distance == DTW self-distance (both sum the same normalized-cdist diagonal
+    # over (T1+T2)). Guards a normalization/metric drift on ONE side that the small-T ==0 tests
+    # miss. (encoder_seq is [32,1024] in production.)
+    from video_retrieval.fingerprints.dtw import dtw_distance
+    torch.manual_seed(0)
+    a = torch.randn(32, 64)
+    assert _assignment_distance(a, a) == pytest.approx(dtw_distance(a, a, normalize=True), abs=1e-6)
+
+
+def test_dtw_shuffled_reproducible_independent_and_averaged():
+    g = build_gallery(_mini_manifest(), "test")
+    torch.manual_seed(0)
+    feats = {k: {"encoder_seq": torch.randn(6, 4)} for k in ("qA", "A|1|1", "A|1|2")}
+    m1, pp1 = _dtw_shuffled_scores(feats, g, "encoder_seq", n_perms=5, base_seed=42)
+    m2, pp2 = _dtw_shuffled_scores(feats, g, "encoder_seq", n_perms=5, base_seed=42)
+    assert m1 == m2 and len(pp1) == 5  # stable hash seed -> fully reproducible
+    # mean score is the average of the K per-permutation scores
+    for q in m1:
+        for e in m1[q]:
+            assert m1[q][e] == pytest.approx(sum(pp[q][e] for pp in pp1) / 5)
+    # per-(query,event,k) seeding: the two candidates of qA get DIFFERENT permutations in perm 0
+    # (not one fixed shuffle) -> their raw cost draws differ; and a different base seed shifts all
+    assert _dtw_shuffled_scores(feats, g, "encoder_seq", n_perms=5, base_seed=7)[0] != m1
+
 
 def test_score_comparator_query_subset():
     g = build_gallery(_mini_manifest(), "test")
@@ -126,19 +158,28 @@ def test_feature_cache_roundtrip_and_fail_closed(tmp_path):
 
 
 def test_feature_cache_dropped_accounting_and_drop_rate(tmp_path):
-    # NewM1: a recorded drop within the guard -> row accounted -> complete -> round-trips,
+    # NewM1: a recorded drop within the 2% guard -> row accounted -> complete -> round-trips,
     # and the eval sees the drop set (so it can restrict the gallery to present clips).
-    plan3 = _fake_plan(rows=("c1", "c2", "c3"))
+    rows = tuple(f"c{i}" for i in range(100))
+    plan100 = _fake_plan(rows=rows)
+    feats = {r: _feat() for r in rows[:-1]}  # 99 kept, 1 dropped -> 1% <= 2%
     drp = tmp_path / "drop.pt"
-    bd = write_feature_cache(drp, plan3, {"c1": _feat(), "c2": _feat()},
-                             {"c3": "degenerate_static"}, canary=False, max_drop_rate=0.5)
+    bd = write_feature_cache(drp, plan100, feats, {rows[-1]: "degenerate_static"}, canary=False)
     assert bd["complete"] is True and bd["n_dropped"] == 1
-    loaded = load_feature_cache(drp, plan3)
-    assert loaded["dropped"] == {"c3": "degenerate_static"}
-    # exceeding the drop-rate guard fails closed at write (not a silently-degraded cache)
+    assert load_feature_cache(drp, plan100)["dropped"] == {rows[-1]: "degenerate_static"}
+    # exceeding the 2% guard fails closed at write (not a silently-degraded cache)
+    plan3 = _fake_plan(rows=("c1", "c2", "c3"))
     with pytest.raises(SystemExit):
         write_feature_cache(tmp_path / "toomany.pt", plan3, {"c1": _feat()},
                             {"c2": "short_clip", "c3": "short_clip"}, canary=False)
+    # a cache cannot self-relax the guard: a tampered blob with a lax stored ceiling is refused
+    ok = tmp_path / "tamper.pt"
+    write_feature_cache(ok, plan100, feats, {rows[-1]: "degenerate_static"}, canary=False)
+    blob = torch.load(ok, weights_only=False)
+    blob["max_drop_rate"] = 0.9  # pretend the writer allowed 90%
+    torch.save(blob, ok)
+    with pytest.raises(SystemExit):
+        load_feature_cache(ok, plan100)
 
 
 def _e2e_manifest() -> dict:

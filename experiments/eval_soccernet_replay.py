@@ -9,12 +9,14 @@ event, so AP == reciprocal rank; we therefore report R@1 / R@5 / MRR (not mAP).
 The metric core is method-agnostic: it consumes the manifest built by
 ``scripts/setup_soccernet.py`` and a score map ``scores[query_id][event_id] ->
 float`` (higher = more similar, over the query's own-match gallery), so it is
-unit-testable without features. The CLI computes the four frozen-feature
-comparators from the extractor cache — ``bot`` (mean_emb cosine),
-``encoder_seq_dtw``, ``temporal_residual_dtw`` (``dtw_distance_batch``), and the
-order-agnostic ``encoder_seq_assignment`` control (min-cost assignment) — per the comparator
-spec frozen in the plan. It reports same-half primary and cross-half query sets
-separately, and loads caches fail-closed (refuses canary/incomplete/mismatched).
+unit-testable without features. The CLI computes the frozen-feature comparators
+from the extractor cache — ``bot`` (mean_emb cosine), ``encoder_seq_dtw``,
+``temporal_residual_dtw`` (``dtw_distance_batch``), the HEADLINE ordering control
+``encoder_seq_dtw_shuffled`` (same DTW on the time-permuted event, K perms), and
+the secondary rigid-structure control ``encoder_seq_assignment`` (min-cost
+one-to-one) — per the comparator spec frozen in the plan. It reports same-half
+primary and cross-half query sets separately, and loads caches fail-closed
+(refuses canary/incomplete/mismatched).
 
 Reporting (locked with reviewer 2026-07-23):
   * Primary: match-macro R@1, R@5, MRR + paired match-clustered 95% CIs.
@@ -26,6 +28,7 @@ Resampling unit = match (``game``).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -237,15 +240,18 @@ def smearing_composition(scores: dict[str, dict[str, float]], pq: dict[str, dict
 
 
 def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery,
-                    query_ids: set[str] | None = None) -> dict:
-    """Full metric bundle for one method's score map (optionally a query subset)."""
+                    query_ids: set[str] | None = None, *, bootstrap: bool = True) -> dict:
+    """Full metric bundle for one method's score map (optionally a query subset).
+
+    ``bootstrap=False`` skips the match-clustered CI (used in the shuffled-DTW per-permutation
+    loop, where only the point match-macro RR is needed per permutation)."""
     pq = per_query_metrics(scores, gallery, query_ids)
     agg = aggregate(pq, gallery)
     per_match_rr = agg.pop("_per_match_rr")
     boots = {k: cluster_bootstrap_mean(
         {g: float(np.mean([pq[q][k] for q in pq if pq[q]["game"] == g]))
          for g in {pq[q]["game"] for q in pq}})
-        for k in (["rr"] + [f"r@{k}" for k in RANKS])}
+        for k in (["rr"] + [f"r@{k}" for k in RANKS])} if bootstrap else {}
     return {"aggregate": agg, "match_macro_ci": boots,
             "smearing": smearing_composition(scores, pq, gallery),
             "_per_match_rr": per_match_rr}
@@ -255,12 +261,13 @@ def evaluate_method(scores: dict[str, dict[str, float]], gallery: Gallery,
 # Frozen-feature comparator scoring from the extractor cache.
 # --------------------------------------------------------------------------- #
 def _assignment_distance(a, b) -> float:
-    """Order-agnostic min-cost ONE-TO-ONE assignment over the SAME normalized Euclidean
-    cost matrix DTW builds (``_normalize_sequence`` per-feature min-max + ``cdist``),
-    normalized by ``T1+T2`` to mirror DTW. Removes ONLY the monotonicity constraint —
-    assignment is bijective, like DTW's near-bijective warp path — so
-    ``encoder_seq_dtw - encoder_seq_assignment`` isolates ordering (not a
-    normalization/metric swap, unlike a Chamfer/cosine control)."""
+    """Rigid min-cost ONE-TO-ONE assignment over the SAME normalized Euclidean cost matrix DTW
+    builds (``_normalize_sequence`` per-feature min-max + ``cdist``), normalized by ``T1+T2`` to
+    mirror DTW. NOTE (round-3 review): vs ``encoder_seq_dtw`` this removes the monotonic-ordering
+    constraint AND DTW's one-to-many time-warp tolerance AND endpoint anchoring JOINTLY — it is a
+    rigid-STRUCTURE control, NOT an ordering isolator. The ordering-isolating control is
+    ``encoder_seq_dtw_shuffled`` (the same DTW on the time-permuted event), where normalization
+    commutes with the shuffle so only the temporal arrangement changes."""
     import torch
     from scipy.optimize import linear_sum_assignment
 
@@ -269,6 +276,48 @@ def _assignment_distance(a, b) -> float:
     cost = torch.cdist(_normalize_sequence(a), _normalize_sequence(b))
     ri, ci = linear_sum_assignment(cost.numpy())
     return float(cost[ri, ci].sum()) / (a.shape[0] + b.shape[0])
+
+
+def _dtw_shuffled_scores(features: dict[str, dict], gallery: Gallery, feat: str, *,
+                         n_perms: int, base_seed: int, query_ids: set[str] | None = None):
+    """Shuffled-DTW ordering control. For each (query, event) pair, run the SAME
+    ``dtw_distance_batch`` on the query vs the event with its TIME AXIS randomly permuted, over
+    ``n_perms`` permutations drawn INDEPENDENTLY per (query, event, k) from a stable hash seed
+    (reproducible; never one fixed per-event shuffle reused across queries, which would correlate
+    errors). ``_normalize_sequence`` is a per-dim over-time statistic and COMMUTES with the
+    shuffle, so the only thing that differs from ``encoder_seq_dtw`` is the temporal arrangement
+    the monotonic path sees. Returns ``(mean_scores, per_perm_scores)``: the K-averaged score map
+    (for ranking) and the K per-permutation score maps (for the permutation CI). Higher = more
+    similar (DTW distance negated)."""
+    import torch
+
+    from video_retrieval.fingerprints.dtw import dtw_distance_batch
+
+    pairs = [(qid, eid)
+             for qid, game in gallery.game_of_query.items()
+             if (query_ids is None or qid in query_ids) and qid in features
+             for eid in gallery.events_of_game.get(game, []) if eid in features]
+    per_perm: list[dict[str, dict[str, float]]] = []
+    for k in range(n_perms):
+        qseqs, eseqs = [], []
+        for qid, eid in pairs:
+            seq = features[eid][feat]
+            seed = int.from_bytes(
+                hashlib.sha256(f"{base_seed}|{qid}|{eid}|{k}".encode()).digest()[:8], "little")
+            gen = torch.Generator().manual_seed(seed % (2**63 - 1))
+            perm = torch.randperm(seq.shape[0], generator=gen)
+            qseqs.append(features[qid][feat])
+            eseqs.append(seq[perm])
+        dists = dtw_distance_batch(qseqs, eseqs, normalize=True)
+        d: dict[str, dict[str, float]] = {}
+        for (qid, eid), dist in zip(pairs, dists.tolist()):
+            d.setdefault(qid, {})[eid] = -float(dist)  # higher = more similar
+        per_perm.append(d)
+    mean_scores: dict[str, dict[str, float]] = {}
+    for qid, eid in pairs:
+        vals = [pp[qid][eid] for pp in per_perm]
+        mean_scores.setdefault(qid, {})[eid] = sum(vals) / len(vals)
+    return mean_scores, per_perm
 
 
 def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
@@ -303,9 +352,23 @@ def score_comparator(features: dict[str, dict], gallery: Gallery, cfg: dict,
                                    [features[e][feat] for _, e in pairs], normalize=True)
         for (qid, eid), d in zip(pairs, dists.tolist()):
             scores.setdefault(qid, {})[eid] = -float(d)  # higher = more similar
+    elif kind == "dtw_shuffled":
+        scores, _ = _dtw_shuffled_scores(  # K-averaged score map (per-perm CI computed in main)
+            features, gallery, feat, n_perms=int(cfg.get("n_permutations", 10)),
+            base_seed=int(cfg.get("seed", 42)), query_ids=query_ids)
     else:
         raise ValueError(f"unknown comparator kind {kind!r}")
     return scores
+
+
+def _perm_ci(values: list[float]) -> dict:
+    """Mean / std / 95% percentile CI of match-macro RR across shuffled-DTW permutations — the
+    Monte-Carlo uncertainty of the shuffle draw, reported alongside each comparator's standard
+    match-clustered bootstrap CI."""
+    arr = np.asarray(values, dtype=float)
+    return {"K": len(values), "match_macro_rr_mean": float(arr.mean()),
+            "std": float(arr.std(ddof=1)) if arr.size > 1 else 0.0,
+            "ci95": [float(np.percentile(arr, 2.5)), float(np.percentile(arr, 97.5))]}
 
 
 def main() -> None:
@@ -338,9 +401,18 @@ def main() -> None:
     same_half = {q for q in gallery.pos_event_of_query if not gallery.query_cross_half[q]}
     cross_half = {q for q in gallery.pos_event_of_query if gallery.query_cross_half[q]}
 
-    methods, same_rr = {}, {}
+    methods, same_rr, perm_uncertainty = {}, {}, {}
     for name, cfg in plan["comparators"].items():
-        scores = score_comparator(features, gallery, cfg)
+        if cfg["kind"] == "dtw_shuffled":
+            scores, per_perm = _dtw_shuffled_scores(
+                features, gallery, cfg["feature"],
+                n_perms=int(cfg.get("n_permutations", 10)), base_seed=int(cfg.get("seed", 42)))
+            # permutation CI: match-macro RR of each single permutation over the same-half set
+            perm_rr = [evaluate_method(pp, gallery, same_half, bootstrap=False)[
+                "aggregate"]["match_macro"]["rr"] for pp in per_perm]
+            perm_uncertainty[name] = _perm_ci(perm_rr)
+        else:
+            scores = score_comparator(features, gallery, cfg)
         sh = evaluate_method(scores, gallery, same_half)
         ch = evaluate_method(scores, gallery, cross_half)
         same_rr[name] = sh["_per_match_rr"]
@@ -350,7 +422,8 @@ def main() -> None:
 
     paired = {}  # paired match-level RR contrasts on the same-half primary set
     for a, b in [("encoder_seq_dtw", "bot"),
-                 ("encoder_seq_dtw", "encoder_seq_assignment"),  # isolates ordering
+                 ("encoder_seq_dtw", "encoder_seq_dtw_shuffled"),   # HEADLINE: does ordering help
+                 ("encoder_seq_dtw", "encoder_seq_assignment"),     # secondary: rigid structure
                  ("temporal_residual_dtw", "bot")]:
         if same_rr.get(a) and same_rr.get(b):
             paired[f"{a}_minus_{b}"] = paired_cluster_bootstrap_mean_difference(
@@ -370,7 +443,8 @@ def main() -> None:
             "rate": round(len(dropped) / max(1, len(plan["row_order"])), 4),
             "by_reason": dict(sorted(Counter(dropped.values()).items())),
         },
-    }, "methods": methods, "paired_same_half_rr": paired}
+    }, "methods": methods, "paired_same_half_rr": paired,
+        "shuffled_dtw_permutation_ci": perm_uncertainty}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2))
     print(f"wrote {args.output}  (arm={args.arm} plan={plan['plan_sha256'][:12]})")

@@ -111,7 +111,15 @@ def main() -> None:
     plan = build_extraction_plan(manifest_path, args.arm, args.split)
     if args.plan_out:
         print(f"wrote plan {write_plan(plan, args.plan_out)}")
-    clips = plan["clips"][: args.limit] if args.limit else plan["clips"]
+    if args.limit:
+        # Canary: a query+event MIX (row_order sorts event<query, so a naive head slice would be
+        # all-event and never smoke-test the variable-width replay-query short_clip path).
+        ev = [c for c in plan["clips"] if c["kind"] == "event"]
+        qr = [c for c in plan["clips"] if c["kind"] == "query"]
+        n_q = min(len(qr), args.limit // 2)
+        clips = qr[:n_q] + ev[: args.limit - n_q]
+    else:
+        clips = plan["clips"]
     print(f"plan {plan['plan_sha256'][:12]} | arm={args.arm} split={args.split} | "
           f"{len(clips)} clips (window {plan['window_policy']['pre_s']},"
           f"{plan['window_policy']['post_s']}s)")
