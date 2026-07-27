@@ -10,8 +10,8 @@
 # SoccerNet replay-grounding frozen-feature event retrieval.
 #   1. Extract V-JEPA 2 features per the immutable plan (GATED: refuses unless the
 #      manifest's window policy is locked/approved AND its canary evidence re-grounds).
-#   2. Evaluate BoT / encoder-seq DTW / temporal-residual DTW / Chamfer over the
-#      within-match gallery (fail-closed: refuses a canary/incomplete cache).
+#   2. Evaluate BoT / encoder-seq DTW / temporal-residual DTW / shuffled-DTW (ordering
+#      control) / assignment over the within-match gallery (fail-closed on canary/incomplete).
 #
 # Submit (account/qos at submit time, per slurm_jobs/README.md):
 #   SOCCERNET_DIR=<root> sbatch --account=dream --qos=h200_dev slurm_jobs/rerun_soccernet.sbatch
@@ -32,9 +32,15 @@ if [[ "$LIMIT" -gt 0 ]]; then
     FEATURE_CACHE="${FEATURE_CACHE%.pt}.canary.pt"  # canary cache can never shadow the full one
 fi
 
+# Frozen-feature line uses its OWN manifest, decoupled from the temporal-SDM line's shared
+# freeze (both bind the same [-2,+2] window but their own audit artifact; whoever writes the
+# shared manifest last would otherwise fail-close the other's re-grounding).
+MANIFEST="${MANIFEST:-$SOCCERNET_DIR/replay_event_manifest_v1_seed42_frozenfeat.json}"
+
 # 1. Extraction — gated on the locked+re-grounded window policy via build_extraction_plan.
 "$PYTHON" experiments/extract_soccernet_features.py \
     --soccernet-dir "$SOCCERNET_DIR" \
+    --manifest "$MANIFEST" \
     --split "$SPLIT" --arm "$ARM" \
     --out-cache "$FEATURE_CACHE" \
     --plan-out "$REPO_ROOT/results/soccernet/plans" \
@@ -47,6 +53,7 @@ if [[ "$LIMIT" -gt 0 ]]; then
 else
     "$PYTHON" experiments/eval_soccernet_replay.py \
         --soccernet-dir "$SOCCERNET_DIR" \
+        --manifest "$MANIFEST" \
         --split "$SPLIT" --arm "$ARM" \
         --feature-cache "$FEATURE_CACHE" \
         --output "$RESULTS_OUTPUT"
