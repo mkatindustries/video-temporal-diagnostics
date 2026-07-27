@@ -24,6 +24,8 @@ Shared configuration for every artifact below:
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `13250dd` | `9674479` | nuScenes v1.0-trainval |
+| `hdd/conditional_querywise_results.json` | this commit | local CPU, 2026-07-27 | HDD release_2019_07_08 |
+| `nuscenes/conditional_querywise_results.json` | this commit | local CPU, 2026-07-27 | nuScenes v1.0-trainval |
 
 Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
@@ -59,4 +61,10 @@ Notes:
   wrong-intersection fraction is 0.4632 on HDD and 0.8649 on nuScenes; same-intersection,
   wrong-maneuver errors remain at or below 0.06%. The updated result JSONs and regenerated
   `figures/v4r_error_composition.png` were committed in `11a10d0`.
+- The conditional query-wise artifacts use the same directed AP definition and eligible query
+  sets as the full-gallery fusion runs, but restrict each gallery to the query's intersection
+  cluster. Their source score-cache SHA-256, cache version, and feature-cache identity metadata
+  are embedded in each JSON. They were generated locally from the validated fusion caches;
+  replace the local-run job field above with cluster job IDs after the shuffled-DTW/assignment
+  rerun.
 - Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.

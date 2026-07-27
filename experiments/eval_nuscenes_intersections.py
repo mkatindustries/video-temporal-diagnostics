@@ -44,7 +44,7 @@ from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
 )
-from video_retrieval.fingerprints.dtw import dtw_distance_shuffled
+from video_retrieval.fingerprints.dtw import assignment_distance, dtw_distance_shuffled
 from video_retrieval.fingerprints.trajectory import dtw_distance
 
 if TYPE_CHECKING:
@@ -665,9 +665,10 @@ def compute_all_similarities(
 ]:
     """Compute pairwise similarities within each cluster.
 
-    Same 7 methods as HDD evaluation:
+    Eleven methods:
     - DINOv3: bag_of_frames, chamfer, temporal_derivative, attention_trajectory
-    - V-JEPA 2: bag_of_tokens, encoder_seq_dtw, temporal_residual
+    - V-JEPA 2: bag_of_tokens; encoder-sequence DTW, shuffled DTW, and
+      assignment; temporal-residual DTW, shuffled DTW, and assignment
 
     Returns:
         Score/label arrays and aligned cluster IDs for each method.
@@ -692,8 +693,11 @@ def compute_all_similarities(
     if vjepa2_features:
         all_scores["vjepa2_bag_of_tokens"] = ([], [])
         all_scores["vjepa2_encoder_seq_dtw"] = ([], [])
+        all_scores["vjepa2_encoder_seq_dtw_shuffled"] = ([], [])
+        all_scores["vjepa2_encoder_seq_assignment"] = ([], [])
         all_scores["vjepa2_temporal_residual"] = ([], [])
         all_scores["vjepa2_temporal_residual_shuffled"] = ([], [])
+        all_scores["vjepa2_temporal_residual_assignment"] = ([], [])
     cluster_ids_by_method = {method: [] for method in all_scores}
 
     total_pairs = 0
@@ -768,6 +772,11 @@ def compute_all_similarities(
                     all_scores["vjepa2_bag_of_tokens"][1].append(gt)
                     cluster_ids_by_method["vjepa2_bag_of_tokens"].append(cid)
 
+                    pair_id = (
+                        (seg_a.scene_name, seg_a.start_ts),
+                        (seg_b.scene_name, seg_b.start_ts),
+                    )
+
                     if "encoder_seq" in va and "encoder_seq" in vb:
                         enc_dist = dtw_distance(
                             va["encoder_seq"],
@@ -779,6 +788,39 @@ def compute_all_similarities(
                         all_scores["vjepa2_encoder_seq_dtw"][1].append(gt)
                         cluster_ids_by_method["vjepa2_encoder_seq_dtw"].append(cid)
 
+                        enc_shuf_dist = dtw_distance_shuffled(
+                            va["encoder_seq"],
+                            vb["encoder_seq"],
+                            pair_id=pair_id,
+                            n_perms=10,
+                            base_seed=42,
+                            normalize=True,
+                        )
+                        enc_shuf_sim = float(
+                            torch.exp(torch.tensor(-enc_shuf_dist)).item()
+                        )
+                        all_scores["vjepa2_encoder_seq_dtw_shuffled"][0].append(
+                            enc_shuf_sim
+                        )
+                        all_scores["vjepa2_encoder_seq_dtw_shuffled"][1].append(gt)
+                        cluster_ids_by_method[
+                            "vjepa2_encoder_seq_dtw_shuffled"
+                        ].append(cid)
+
+                        enc_assignment_dist = assignment_distance(
+                            va["encoder_seq"], vb["encoder_seq"], normalize=True
+                        )
+                        enc_assignment_sim = float(
+                            torch.exp(torch.tensor(-enc_assignment_dist)).item()
+                        )
+                        all_scores["vjepa2_encoder_seq_assignment"][0].append(
+                            enc_assignment_sim
+                        )
+                        all_scores["vjepa2_encoder_seq_assignment"][1].append(gt)
+                        cluster_ids_by_method[
+                            "vjepa2_encoder_seq_assignment"
+                        ].append(cid)
+
                     res_dist = dtw_distance(
                         va["temporal_residual"],
                         vb["temporal_residual"],
@@ -789,23 +831,36 @@ def compute_all_similarities(
                     all_scores["vjepa2_temporal_residual"][1].append(gt)
                     cluster_ids_by_method["vjepa2_temporal_residual"].append(cid)
 
-                    # Order-ablation control: identical DTW machinery (same
-                    # dtw_distance call, same normalize flag), time axis of seg_b's
-                    # residual randomly permuted (10 draws, injectively seeded per
-                    # pair). Isolates whether temporal order -- not just per-frame
-                    # token granularity -- contributes to the residual DTW gain.
+                    # Order-ablation control: identical DTW machinery, each side
+                    # randomly permuted in turn (10 paired draws, injectively seeded
+                    # per pair). Averaging both directions keeps the score symmetric
+                    # for these unordered pairs.
                     res_shuf_dist = dtw_distance_shuffled(
                         va["temporal_residual"],
                         vb["temporal_residual"],
-                        pair_id=(seg_a.scene_name, seg_a.start_ts,
-                                 seg_b.scene_name, seg_b.start_ts),
+                        pair_id=pair_id,
                         n_perms=10,
+                        base_seed=42,
                         normalize=True,
                     )
                     res_shuf_sim = float(torch.exp(torch.tensor(-res_shuf_dist)).item())
                     all_scores["vjepa2_temporal_residual_shuffled"][0].append(res_shuf_sim)
                     all_scores["vjepa2_temporal_residual_shuffled"][1].append(gt)
                     cluster_ids_by_method["vjepa2_temporal_residual_shuffled"].append(cid)
+
+                    res_assignment_dist = assignment_distance(
+                        va["temporal_residual"], vb["temporal_residual"], normalize=True
+                    )
+                    res_assignment_sim = float(
+                        torch.exp(torch.tensor(-res_assignment_dist)).item()
+                    )
+                    all_scores["vjepa2_temporal_residual_assignment"][0].append(
+                        res_assignment_sim
+                    )
+                    all_scores["vjepa2_temporal_residual_assignment"][1].append(gt)
+                    cluster_ids_by_method[
+                        "vjepa2_temporal_residual_assignment"
+                    ].append(cid)
 
     return all_scores, cluster_ids_by_method
 
@@ -836,7 +891,11 @@ def plot_discrimination(results: dict, fig_dir: Path):
         "attention_trajectory": "#3498db",
         "vjepa2_bag_of_tokens": "#9b59b6",
         "vjepa2_encoder_seq_dtw": "#8e44ad",
+        "vjepa2_encoder_seq_dtw_shuffled": "#34495e",
+        "vjepa2_encoder_seq_assignment": "#16a085",
         "vjepa2_temporal_residual": "#f39c12",
+        "vjepa2_temporal_residual_shuffled": "#7f8c8d",
+        "vjepa2_temporal_residual_assignment": "#c0392b",
     }
 
     if "vjepa2_bag_of_tokens" in results:
@@ -845,9 +904,21 @@ def plot_discrimination(results: dict, fig_dir: Path):
     if "vjepa2_encoder_seq_dtw" in results:
         methods.append("vjepa2_encoder_seq_dtw")
         labels.append("V-JEPA 2\nEncoder-Seq DTW")
+    if "vjepa2_encoder_seq_dtw_shuffled" in results:
+        methods.append("vjepa2_encoder_seq_dtw_shuffled")
+        labels.append("V-JEPA 2\nShuffled Enc.")
+    if "vjepa2_encoder_seq_assignment" in results:
+        methods.append("vjepa2_encoder_seq_assignment")
+        labels.append("V-JEPA 2\nEnc. Assignment")
     if "vjepa2_temporal_residual" in results:
         methods.append("vjepa2_temporal_residual")
         labels.append("V-JEPA 2\nTemporal Res.")
+    if "vjepa2_temporal_residual_shuffled" in results:
+        methods.append("vjepa2_temporal_residual_shuffled")
+        labels.append("V-JEPA 2\nShuffled Res.")
+    if "vjepa2_temporal_residual_assignment" in results:
+        methods.append("vjepa2_temporal_residual_assignment")
+        labels.append("V-JEPA 2\nRes. Assignment")
 
     aps = [results[m]["ap"] for m in methods]
     aucs = [results[m]["auc"] for m in methods]
@@ -941,11 +1012,35 @@ def plot_similarity_distributions(
         methods.append("vjepa2_encoder_seq_dtw")
         titles.append("V-JEPA 2 Encoder-Seq DTW")
     if (
+        "vjepa2_encoder_seq_dtw_shuffled" in all_scores
+        and all_scores["vjepa2_encoder_seq_dtw_shuffled"][0]
+    ):
+        methods.append("vjepa2_encoder_seq_dtw_shuffled")
+        titles.append("V-JEPA 2 Shuffled Encoder-Seq DTW")
+    if (
+        "vjepa2_encoder_seq_assignment" in all_scores
+        and all_scores["vjepa2_encoder_seq_assignment"][0]
+    ):
+        methods.append("vjepa2_encoder_seq_assignment")
+        titles.append("V-JEPA 2 Encoder-Seq Assignment")
+    if (
         "vjepa2_temporal_residual" in all_scores
         and all_scores["vjepa2_temporal_residual"][0]
     ):
         methods.append("vjepa2_temporal_residual")
         titles.append("V-JEPA 2 Temporal Residual")
+    if (
+        "vjepa2_temporal_residual_shuffled" in all_scores
+        and all_scores["vjepa2_temporal_residual_shuffled"][0]
+    ):
+        methods.append("vjepa2_temporal_residual_shuffled")
+        titles.append("V-JEPA 2 Shuffled Temporal Residual")
+    if (
+        "vjepa2_temporal_residual_assignment" in all_scores
+        and all_scores["vjepa2_temporal_residual_assignment"][0]
+    ):
+        methods.append("vjepa2_temporal_residual_assignment")
+        titles.append("V-JEPA 2 Temporal Residual Assignment")
 
     n_methods = len(methods)
     ncols = 3 if n_methods > 4 else 2
@@ -1201,7 +1296,7 @@ def main():
     # ------------------------------------------------------------------
     # Step 3: Cluster intersections
     # ------------------------------------------------------------------
-    print(f"\nStep 3: Clustering intersections (DBSCAN eps=30m)...")
+    print("\nStep 3: Clustering intersections (DBSCAN eps=30m)...")
     clusters = cluster_intersections(
         all_segments,
         eps=30.0,
@@ -1367,8 +1462,22 @@ def main():
         method_order.append("vjepa2_bag_of_tokens")
     if "vjepa2_encoder_seq_dtw" in all_scores and all_scores["vjepa2_encoder_seq_dtw"][0]:
         method_order.append("vjepa2_encoder_seq_dtw")
+    if (
+        "vjepa2_encoder_seq_dtw_shuffled" in all_scores
+        and all_scores["vjepa2_encoder_seq_dtw_shuffled"][0]
+    ):
+        method_order.append("vjepa2_encoder_seq_dtw_shuffled")
+    if (
+        "vjepa2_encoder_seq_assignment" in all_scores
+        and all_scores["vjepa2_encoder_seq_assignment"][0]
+    ):
+        method_order.append("vjepa2_encoder_seq_assignment")
     if "vjepa2_temporal_residual" in all_scores:
         method_order.append("vjepa2_temporal_residual")
+    if "vjepa2_temporal_residual_shuffled" in all_scores:
+        method_order.append("vjepa2_temporal_residual_shuffled")
+    if "vjepa2_temporal_residual_assignment" in all_scores:
+        method_order.append("vjepa2_temporal_residual_assignment")
 
     for method in method_order:
         scores_list, labels_list = all_scores[method]
@@ -1428,7 +1537,7 @@ def main():
     for method_name, (scores_list, labels_list) in all_scores.items():
         pair_data[method_name] = {
             "scores": [float(s) for s in scores_list],
-            "labels": [int(l) for l in labels_list],
+            "labels": [int(label) for label in labels_list],
             "cluster_ids": cluster_ids_by_method[method_name],
         }
 

@@ -36,7 +36,11 @@ from common import (
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
-from video_retrieval.fingerprints.dtw import dtw_distance_batch
+from video_retrieval.fingerprints.dtw import (
+    assignment_distance_batch,
+    dtw_distance_batch,
+    dtw_distance_batch_shuffled,
+)
 
 
 def extract_vjepa2_all_features(
@@ -234,18 +238,67 @@ def main():
     mean_a = torch.stack([features[i]["mean_emb"] for i in pair_a]).to(device)
     mean_b = torch.stack([features[i]["mean_emb"] for i in pair_b]).to(device)
     bot_scores = (mean_a * mean_b).sum(dim=1).cpu().numpy()
+    del mean_a, mean_b
 
     # Encoder-sequence DTW (the new baseline)
-    enc_seqs_a = [features[i]["encoder_seq"].to(device) for i in pair_a]
-    enc_seqs_b = [features[i]["encoder_seq"].to(device) for i in pair_b]
+    pair_indices = set(pair_a) | set(pair_b)
+    enc_by_index = {
+        index: features[index]["encoder_seq"].to(device) for index in pair_indices
+    }
+    enc_seqs_a = [enc_by_index[i] for i in pair_a]
+    enc_seqs_b = [enc_by_index[i] for i in pair_b]
     enc_dists = dtw_distance_batch(enc_seqs_a, enc_seqs_b, normalize=True)
     enc_scores = torch.exp(-enc_dists).cpu().numpy()
 
+    # Headline ordering control: the same encoder-sequence DTW after symmetrically
+    # ablating temporal order, with stable endpoint IDs and ten paired draws.
+    pair_ids = [
+        (
+            (eval_segments[a].session_id, eval_segments[a].start_frame),
+            (eval_segments[b].session_id, eval_segments[b].start_frame),
+        )
+        for a, b in zip(pair_a, pair_b)
+    ]
+    enc_shuf_dists = dtw_distance_batch_shuffled(
+        enc_seqs_a,
+        enc_seqs_b,
+        pair_ids=pair_ids,
+        n_perms=10,
+        base_seed=42,
+        normalize=True,
+    )
+    enc_shuf_scores = torch.exp(-enc_shuf_dists).cpu().numpy()
+
+    # Secondary rigid structural control. This removes monotonic ordering,
+    # one-to-many warping, and endpoint anchoring jointly.
+    enc_assignment_dists = assignment_distance_batch(
+        enc_seqs_a, enc_seqs_b, normalize=True
+    )
+    enc_assignment_scores = torch.exp(-enc_assignment_dists).cpu().numpy()
+    del enc_seqs_a, enc_seqs_b, enc_by_index
+    torch.cuda.empty_cache()
+
     # Temporal residual DTW
-    res_seqs_a = [features[i]["temporal_residual"].to(device) for i in pair_a]
-    res_seqs_b = [features[i]["temporal_residual"].to(device) for i in pair_b]
+    res_by_index = {
+        index: features[index]["temporal_residual"].to(device) for index in pair_indices
+    }
+    res_seqs_a = [res_by_index[i] for i in pair_a]
+    res_seqs_b = [res_by_index[i] for i in pair_b]
     res_dists = dtw_distance_batch(res_seqs_a, res_seqs_b, normalize=True)
     res_scores = torch.exp(-res_dists).cpu().numpy()
+    res_shuf_dists = dtw_distance_batch_shuffled(
+        res_seqs_a,
+        res_seqs_b,
+        pair_ids=pair_ids,
+        n_perms=10,
+        base_seed=42,
+        normalize=True,
+    )
+    res_shuf_scores = torch.exp(-res_shuf_dists).cpu().numpy()
+    res_assignment_dists = assignment_distance_batch(
+        res_seqs_a, res_seqs_b, normalize=True
+    )
+    res_assignment_scores = torch.exp(-res_assignment_dists).cpu().numpy()
 
     # Evaluate
     print("\n" + "=" * 70)
@@ -255,7 +308,11 @@ def main():
     for name, scores in [
         ("V-JEPA 2 BoT (cosine)", bot_scores),
         ("V-JEPA 2 Encoder-Seq DTW", enc_scores),
+        ("V-JEPA 2 Encoder-Seq Shuffled DTW", enc_shuf_scores),
+        ("V-JEPA 2 Encoder-Seq Assignment", enc_assignment_scores),
         ("V-JEPA 2 Temporal Residual DTW", res_scores),
+        ("V-JEPA 2 Temporal Residual Shuffled DTW", res_shuf_scores),
+        ("V-JEPA 2 Temporal Residual Assignment", res_assignment_scores),
     ]:
         ap, ci_lo, ci_hi = bootstrap_ap(scores, labels)
         auc = roc_auc_score(labels, scores)
@@ -265,7 +322,19 @@ def main():
     output = {
         "bot_cosine": {"ap": float(average_precision_score(labels, bot_scores))},
         "encoder_seq_dtw": {"ap": float(average_precision_score(labels, enc_scores))},
+        "encoder_seq_dtw_shuffled": {
+            "ap": float(average_precision_score(labels, enc_shuf_scores))
+        },
+        "encoder_seq_assignment": {
+            "ap": float(average_precision_score(labels, enc_assignment_scores))
+        },
         "temporal_residual_dtw": {"ap": float(average_precision_score(labels, res_scores))},
+        "temporal_residual_dtw_shuffled": {
+            "ap": float(average_precision_score(labels, res_shuf_scores))
+        },
+        "temporal_residual_assignment": {
+            "ap": float(average_precision_score(labels, res_assignment_scores))
+        },
         "n_pairs": n_pairs,
         "n_segments": len(eval_segments),
     }
@@ -285,8 +354,28 @@ def main():
             "labels": labels.tolist(),
             "cluster_ids": pair_cluster_ids,
         },
+        "encoder_seq_dtw_shuffled": {
+            "scores": enc_shuf_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+        "encoder_seq_assignment": {
+            "scores": enc_assignment_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
         "temporal_residual_dtw": {
             "scores": res_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+        "temporal_residual_dtw_shuffled": {
+            "scores": res_shuf_scores.tolist(),
+            "labels": labels.tolist(),
+            "cluster_ids": pair_cluster_ids,
+        },
+        "temporal_residual_assignment": {
+            "scores": res_assignment_scores.tolist(),
             "labels": labels.tolist(),
             "cluster_ids": pair_cluster_ids,
         },

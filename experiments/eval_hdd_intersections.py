@@ -28,7 +28,6 @@ Usage:
 import argparse
 import json
 import logging
-import os
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -36,25 +35,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, roc_auc_score
-from tqdm import tqdm
-from video_retrieval.fingerprints import (
-    TemporalDerivativeFingerprint,
-    TrajectoryFingerprint,
-)
-from video_retrieval.fingerprints.dtw import dtw_distance_batch, dtw_distance_batch_shuffled
-from video_retrieval.fingerprints.trajectory import dtw_distance
-from video_retrieval.models import DINOv3Encoder
-
 from common import (  # noqa: F401 -- re-exported for backward compatibility
     DINOV3_MODEL_NAME,
     MANEUVER_NAMES,
-    ManeuverSegment,
     VJEPA2_MODEL_NAME,
     VJEPA2_NUM_FRAMES,
     VJEPA2_SPATIAL,
     VJEPA2_T_PATCHES,
+    ManeuverSegment,
     bootstrap_ap,
     build_temporal_masks,
     cluster_intersections,
@@ -67,6 +55,15 @@ from common import (  # noqa: F401 -- re-exported for backward compatibility
     load_clip_vjepa2,
     load_gps,
 )
+from sklearn.metrics import average_precision_score, roc_auc_score
+from tqdm import tqdm
+
+from video_retrieval.fingerprints import (
+    TemporalDerivativeFingerprint,
+    TrajectoryFingerprint,
+)
+from video_retrieval.fingerprints.dtw import dtw_distance_batch, dtw_distance_batch_shuffled
+from video_retrieval.models import DINOv3Encoder
 
 logger = logging.getLogger(__name__)
 
@@ -206,18 +203,24 @@ def compute_all_similarities(
             res_dists = dtw_distance_batch(res_seqs_a, res_seqs_b, normalize=True)
             res_sims = torch.exp(-res_dists).cpu().tolist()
 
-            # Order-ablation control: identical DTW machinery, time axis of the second
-            # sequence in each pair randomly permuted (10 draws, injectively seeded per
-            # pair -- see dtw_distance_batch_shuffled). Isolates whether temporal order,
-            # not just per-frame token granularity, contributes to the residual DTW gain.
+            # Order-ablation control: identical DTW machinery, each side randomly
+            # permuted in turn (10 paired draws, injectively seeded per pair). Averaging
+            # both directions keeps the score symmetric for these unordered pairs.
             print("  Computing V-JEPA 2 temporal residual shuffled-DTW control...")
             res_pair_ids = [
-                (segments[a].session_id, segments[a].start_frame,
-                 segments[b].session_id, segments[b].start_frame)
+                (
+                    (segments[a].session_id, segments[a].start_frame),
+                    (segments[b].session_id, segments[b].start_frame),
+                )
                 for a, b in zip(v_a_indices, v_b_indices)
             ]
             res_shuf_dists = dtw_distance_batch_shuffled(
-                res_seqs_a, res_seqs_b, pair_ids=res_pair_ids, n_perms=10, normalize=True
+                res_seqs_a,
+                res_seqs_b,
+                pair_ids=res_pair_ids,
+                n_perms=10,
+                base_seed=42,
+                normalize=True,
             )
             res_shuf_sims = torch.exp(-res_shuf_dists).cpu().tolist()
 
@@ -258,6 +261,7 @@ def plot_discrimination(results: dict, fig_dir: Path):
         "attention_trajectory": "#3498db",
         "vjepa2_bag_of_tokens": "#9b59b6",
         "vjepa2_temporal_residual": "#f39c12",
+        "vjepa2_temporal_residual_shuffled": "#7f8c8d",
     }
 
     # Add V-JEPA 2 methods if present
@@ -267,6 +271,9 @@ def plot_discrimination(results: dict, fig_dir: Path):
     if "vjepa2_temporal_residual" in results:
         methods.append("vjepa2_temporal_residual")
         labels.append("V-JEPA 2\nTemporal Res.")
+    if "vjepa2_temporal_residual_shuffled" in results:
+        methods.append("vjepa2_temporal_residual_shuffled")
+        labels.append("V-JEPA 2\nShuffled Res.")
 
     aps = [results[m]["ap"] for m in methods]
     aucs = [results[m]["auc"] for m in methods]
@@ -360,6 +367,12 @@ def plot_similarity_distributions(
     ):
         methods.append("vjepa2_temporal_residual")
         titles.append("V-JEPA 2 Temporal Residual")
+    if (
+        "vjepa2_temporal_residual_shuffled" in all_scores
+        and all_scores["vjepa2_temporal_residual_shuffled"][0]
+    ):
+        methods.append("vjepa2_temporal_residual_shuffled")
+        titles.append("V-JEPA 2 Shuffled Temporal Residual")
 
     n_methods = len(methods)
     ncols = 3 if n_methods > 4 else 2
@@ -662,6 +675,8 @@ def main():
         method_order.append("vjepa2_bag_of_tokens")
     if "vjepa2_temporal_residual" in all_scores:
         method_order.append("vjepa2_temporal_residual")
+    if "vjepa2_temporal_residual_shuffled" in all_scores:
+        method_order.append("vjepa2_temporal_residual_shuffled")
 
     for method in method_order:
         scores_list, labels_list = all_scores[method]
@@ -706,7 +721,7 @@ def main():
     for method_name, (scores_list, labels_list) in all_scores.items():
         pair_data[method_name] = {
             "scores": [float(s) for s in scores_list],
-            "labels": [int(l) for l in labels_list],
+            "labels": [int(label) for label in labels_list],
         }
 
     pair_path = hdd_dir / "pair_scores.json"
@@ -773,11 +788,15 @@ def main():
                 device=torch.device(args.device),
             )
 
-            for method_key in ["vjepa2_temporal_residual", "vjepa2_bag_of_tokens"]:
+            for method_key in [
+                "vjepa2_temporal_residual",
+                "vjepa2_temporal_residual_shuffled",
+                "vjepa2_bag_of_tokens",
+            ]:
                 if method_key not in ds_scores:
                     continue
-                s, l = ds_scores[method_key]
-                s_arr, l_arr = np.array(s), np.array(l)
+                scores, labels = ds_scores[method_key]
+                s_arr, l_arr = np.array(scores), np.array(labels)
                 if l_arr.sum() == 0 or l_arr.sum() == len(l_arr):
                     continue
                 ap_val, ci_lo, ci_hi = bootstrap_ap(s_arr, l_arr)
@@ -812,7 +831,7 @@ def main():
         print("CONTEXT WINDOW SWEEP (V-JEPA 2 Temporal Residual)")
         print("=" * 70)
         print(f"  Windows: {args.context_sec_sweep}")
-        print(f"  Fixed 64-frame input; varying context changes fps_eff")
+        print("  Fixed 64-frame input; varying context changes fps_eff")
 
         # Load V-JEPA 2 if not already loaded by fps_downsample
         if not args.fps_downsample:
@@ -901,11 +920,15 @@ def main():
                 f"unique_frames={stats_summary['unique_frames_mean']:.1f}"
             )
 
-            for method_key in ["vjepa2_temporal_residual", "vjepa2_bag_of_tokens"]:
+            for method_key in [
+                "vjepa2_temporal_residual",
+                "vjepa2_temporal_residual_shuffled",
+                "vjepa2_bag_of_tokens",
+            ]:
                 if method_key not in ctx_scores:
                     continue
-                s, l = ctx_scores[method_key]
-                s_arr, l_arr = np.array(s), np.array(l)
+                scores, labels = ctx_scores[method_key]
+                s_arr, l_arr = np.array(scores), np.array(labels)
                 if l_arr.sum() == 0 or l_arr.sum() == len(l_arr):
                     continue
                 ap_val, ci_lo, ci_hi = bootstrap_ap(s_arr, l_arr)

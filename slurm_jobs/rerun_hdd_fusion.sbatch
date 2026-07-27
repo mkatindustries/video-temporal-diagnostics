@@ -14,6 +14,7 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
 FEATURE_CACHE="${FEATURE_CACHE:-$REPO_ROOT/datasets/hdd/vjepa2_encoder_features.pt}"
 DIST_CACHE="${DIST_CACHE:-$REPO_ROOT/datasets/hdd/fusion_score_cache.pt}"
 RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/hdd/fusion_results.json}"
+CONDITIONAL_OUTPUT="${CONDITIONAL_OUTPUT:-$REPO_ROOT/results/hdd/conditional_querywise_results.json}"
 
 "$PYTHON" experiments/eval_hdd_fusion.py \
     --hdd-dir "$HDD_DIR" \
@@ -26,3 +27,9 @@ RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/hdd/fusion_results.json}"
     --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"
+
+"$PYTHON" experiments/eval_conditional_querywise.py \
+    --dataset hdd \
+    --score-cache "$DIST_CACHE" \
+    --output "$CONDITIONAL_OUTPUT" \
+    --n-resamples "${N_BOOTSTRAP:-2000}"

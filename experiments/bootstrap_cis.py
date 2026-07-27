@@ -3,9 +3,12 @@
 Bootstrap confidence intervals for all benchmark headline AP/AUC numbers.
 
 Usage:
-    python experiments/bootstrap_cis.py --benchmark vcdb   --pairs-json datasets/vcdb/pair_scores.json
-    python experiments/bootstrap_cis.py --benchmark hdd    --pairs-json datasets/hdd/pair_scores.json
-    python experiments/bootstrap_cis.py --benchmark nuscenes --pairs-json datasets/nuscenes/pair_scores.json
+    python experiments/bootstrap_cis.py --benchmark vcdb \
+        --pairs-json datasets/vcdb/pair_scores.json
+    python experiments/bootstrap_cis.py --benchmark hdd \
+        --pairs-json datasets/hdd/pair_scores.json
+    python experiments/bootstrap_cis.py --benchmark nuscenes \
+        --pairs-json datasets/nuscenes/pair_scores.json
 
 Input format (pair_scores.json):
     {
@@ -26,7 +29,6 @@ Author: Auto-generated for reviewer response.
 
 import argparse
 import json
-import sys
 
 import numpy as np
 import torch
@@ -51,7 +53,9 @@ def _ap_gpu_batch(scores: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
     # Cumulative TP and total predictions
     tp_cumsum = sorted_labels.cumsum(dim=1)  # (B, N)
-    positions = torch.arange(1, N + 1, device=scores.device, dtype=scores.dtype).unsqueeze(0)  # (1, N)
+    positions = torch.arange(
+        1, N + 1, device=scores.device, dtype=scores.dtype
+    ).unsqueeze(0)  # (1, N)
 
     precision = tp_cumsum / positions  # (B, N)
     n_pos = labels.sum(dim=1, keepdim=True).clamp(min=1)  # (B, 1)
@@ -84,7 +88,10 @@ def _auc_gpu_batch(scores: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     sorted_indices = scores.argsort(dim=1)
     ranks = torch.zeros_like(scores)
     batch_idx = torch.arange(B, device=scores.device).unsqueeze(1).expand_as(sorted_indices)
-    ranks[batch_idx, sorted_indices] = torch.arange(1, N + 1, device=scores.device, dtype=scores.dtype).unsqueeze(0).expand(B, -1)
+    ordered_ranks = torch.arange(
+        1, N + 1, device=scores.device, dtype=scores.dtype
+    ).unsqueeze(0)
+    ranks[batch_idx, sorted_indices] = ordered_ranks.expand(B, -1)
 
     # Handle ties by averaging ranks
     # For bootstrap CIs the effect of ties is negligible, skip for speed
@@ -244,7 +251,8 @@ def main():
 
     print(f"\n{'='*70}")
     print(
-        f"Bootstrap CIs for {args.benchmark.upper()} ({args.n_resamples} resamples, seed={args.seed})"
+        f"Bootstrap CIs for {args.benchmark.upper()} "
+        f"({args.n_resamples} resamples, seed={args.seed})"
     )
     print(f"{'='*70}\n")
 
@@ -294,7 +302,18 @@ def main():
         "temporal_derivative": "DINOv3 Temp.\\ Deriv.",
         "attention_trajectory": "DINOv3 Attn.\\ Traj.",
         "vjepa2_bag_of_tokens": "V-JEPA 2 BoT",
+        "vjepa2_encoder_seq_dtw": "V-JEPA 2 Enc.-Seq DTW",
+        "vjepa2_encoder_seq_dtw_shuffled": "V-JEPA 2 Shuffled Enc.-Seq DTW",
+        "vjepa2_encoder_seq_assignment": "V-JEPA 2 Enc.-Seq Assignment",
         "vjepa2_temporal_residual": "V-JEPA 2 Temp.\\ Res.",
+        "vjepa2_temporal_residual_shuffled": "V-JEPA 2 Shuffled Temp.\\ Res.",
+        "vjepa2_temporal_residual_assignment": "V-JEPA 2 Temp. Res. Assignment",
+        "encoder_seq_dtw": "V-JEPA 2 Enc.-Seq DTW",
+        "encoder_seq_dtw_shuffled": "V-JEPA 2 Shuffled Enc.-Seq DTW",
+        "encoder_seq_assignment": "V-JEPA 2 Enc.-Seq Assignment",
+        "temporal_residual_dtw": "V-JEPA 2 Temp. Res. DTW",
+        "temporal_residual_dtw_shuffled": "V-JEPA 2 Shuffled Temp. Res. DTW",
+        "temporal_residual_assignment": "V-JEPA 2 Temp. Res. Assignment",
     }
 
     for method, r in results.items():

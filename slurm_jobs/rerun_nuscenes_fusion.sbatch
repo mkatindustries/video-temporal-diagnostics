@@ -17,16 +17,24 @@ NUSCENES_VERSION="${NUSCENES_VERSION:-v1.0-trainval}"
 # evaluation-gallery DTW matrix is (re)computed. DIST_CACHE lets smoke and full runs use
 # separate score caches.
 DEFAULT_DIST="$NUSCENES_DIR/feature_cache/nuscenes_fusion_score_cache_${NUSCENES_VERSION}.pt"
+DIST_CACHE_PATH="${DIST_CACHE:-$DEFAULT_DIST}"
 RESULTS_OUTPUT="${RESULTS_OUTPUT:-$REPO_ROOT/results/nuscenes/fusion_results.json}"
+CONDITIONAL_OUTPUT="${CONDITIONAL_OUTPUT:-$REPO_ROOT/results/nuscenes/conditional_querywise_results.json}"
 
 "$PYTHON" experiments/eval_nuscenes_fusion.py \
     --nuscenes-dir "$NUSCENES_DIR" \
     --version "$NUSCENES_VERSION" \
     --device cuda \
     --max-clusters "${MAX_CLUSTERS:-50}" \
-    --dist-cache "${DIST_CACHE:-$DEFAULT_DIST}" \
+    --dist-cache "$DIST_CACHE_PATH" \
     --output "$RESULTS_OUTPUT" \
     --evaluate-temporal-residual \
     --composition-k 1 10 \
     --n-bootstrap "${N_BOOTSTRAP:-2000}" \
     --dtw-batch-size "${DTW_BATCH_SIZE:-256}"
+
+"$PYTHON" experiments/eval_conditional_querywise.py \
+    --dataset nuscenes \
+    --score-cache "$DIST_CACHE_PATH" \
+    --output "$CONDITIONAL_OUTPUT" \
+    --n-resamples "${N_BOOTSTRAP:-2000}"

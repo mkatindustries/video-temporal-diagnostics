@@ -12,6 +12,8 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
 
 : "${NUSCENES_DIR:?Set NUSCENES_DIR to the nuScenes dataset root}"
 
+"$PYTHON" -m pytest tests/test_dtw.py -k 'Shuffled or Assignment' -v
+
 "$PYTHON" experiments/eval_nuscenes_intersections.py \
     --nuscenes-dir "$NUSCENES_DIR" \
     --version "${NUSCENES_VERSION:-v1.0-trainval}" \
@@ -23,5 +25,9 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
     --output "$NUSCENES_DIR/cluster_bootstrap_results.json" \
     --n-resamples "${N_BOOTSTRAP:-2000}" \
     --paired-methods vjepa2_encoder_seq_dtw vjepa2_bag_of_tokens \
+    --paired-methods vjepa2_encoder_seq_dtw vjepa2_encoder_seq_dtw_shuffled \
+    --paired-methods vjepa2_encoder_seq_dtw vjepa2_encoder_seq_assignment \
     --paired-methods vjepa2_encoder_seq_dtw vjepa2_temporal_residual \
-    --paired-methods vjepa2_temporal_residual vjepa2_bag_of_tokens
+    --paired-methods vjepa2_temporal_residual vjepa2_bag_of_tokens \
+    --paired-methods vjepa2_temporal_residual vjepa2_temporal_residual_shuffled \
+    --paired-methods vjepa2_temporal_residual vjepa2_temporal_residual_assignment
