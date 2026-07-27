@@ -11,6 +11,7 @@ mkdir -p slurm_logs
 
 VCDB_DIR=/datasets/VCDB sbatch slurm_jobs/rerun_vcdb_scramble.sbatch
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_retrieval.sbatch
+HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_controls.sbatch
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
 NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes.sbatch
 EPIC_DIR=/datasets/EPIC_KITCHENS sbatch slurm_jobs/rerun_epic_residual.sbatch
