@@ -6,6 +6,8 @@ For a T1xT2 matrix this reduces T1*T2 serial Python iterations to T1+T2 vectoriz
 torch ops. Batching N pairs into (N, T1, T2) processes all pairs simultaneously.
 """
 
+import hashlib
+
 import torch
 
 
@@ -172,3 +174,89 @@ def dtw_distance_batch(
         all_dists.append(dists)
 
     return torch.cat(all_dists)
+
+
+def dtw_distance_shuffled(
+    seq1: torch.Tensor,
+    seq2: torch.Tensor,
+    *,
+    pair_id: object,
+    n_perms: int = 10,
+    normalize: bool = True,
+) -> float:
+    """Order-ablation control for one pair.
+
+    Runs the identical DTW machinery as :func:`dtw_distance` -- same normalization,
+    cost matrix, warp tolerance, and endpoint anchoring -- but with ``seq2``'s time axis
+    randomly permuted, averaged over ``n_perms`` independently-seeded draws. Because
+    ``_normalize_sequence`` is a per-feature statistic over the *set* of values across
+    time, it commutes with the permutation, so the only thing that differs from
+    ``dtw_distance(seq1, seq2, normalize)`` is the temporal arrangement the monotonic
+    path sees -- not the cost function, scale, or alignment tolerance.
+
+    Args:
+        pair_id: must be injective across pairs -- a tuple of stable, content-based
+            identifiers (e.g. ``(session_id, start_frame, session_id, start_frame)``),
+            not raw list indices that can be reordered across runs. Combined with the
+            permutation index via ``repr`` (not string concatenation) so ids containing
+            arbitrary separator characters can't collide -- this is the exact bug class
+            the SoccerNet shuffled-DTW round-4 review caught and fixed.
+        n_perms: number of independent permutation draws to average over.
+
+    Returns:
+        Mean DTW distance (lower = more similar) over the ``n_perms`` shuffled draws.
+    """
+    dists = []
+    for k in range(n_perms):
+        seed = int.from_bytes(
+            hashlib.sha256(repr((pair_id, k)).encode()).digest()[:8], "little"
+        ) % (2**63 - 1)
+        gen = torch.Generator().manual_seed(seed)
+        perm = torch.randperm(seq2.shape[0], generator=gen)
+        dists.append(dtw_distance(seq1, seq2[perm], normalize=normalize))
+    return sum(dists) / len(dists)
+
+
+def dtw_distance_batch_shuffled(
+    seqs_a: list[torch.Tensor],
+    seqs_b: list[torch.Tensor],
+    *,
+    pair_ids: list,
+    n_perms: int = 10,
+    normalize: bool = True,
+    chunk_size: int = 1024,
+) -> torch.Tensor:
+    """Batched order-ablation control (see :func:`dtw_distance_shuffled`).
+
+    For GPU-scale pair counts (HDD/nuScenes have thousands of within-cluster pairs,
+    unlike SoccerNet's smaller per-match galleries), this processes all pairs at once
+    per permutation draw via :func:`dtw_distance_batch`, rather than looping per pair.
+
+    Args:
+        pair_ids: one injective, content-based id per pair (see
+            :func:`dtw_distance_shuffled`) -- length must match ``seqs_a``/``seqs_b``.
+
+    Returns:
+        (N,) tensor of mean DTW distance per pair, averaged over ``n_perms`` draws.
+    """
+    assert len(seqs_a) == len(seqs_b) == len(pair_ids), (
+        "seqs_a, seqs_b, and pair_ids must have matching length"
+    )
+    n = len(seqs_a)
+    if n == 0:
+        return torch.tensor([])
+    acc = torch.zeros(n)
+    for k in range(n_perms):
+        shuffled_b = []
+        for i, seq in enumerate(seqs_b):
+            seed = int.from_bytes(
+                hashlib.sha256(repr((pair_ids[i], k)).encode()).digest()[:8], "little"
+            ) % (2**63 - 1)
+            gen = torch.Generator().manual_seed(seed)
+            perm = torch.randperm(seq.shape[0], generator=gen)
+            shuffled_b.append(seq[perm])
+        dists = dtw_distance_batch(
+            seqs_a, shuffled_b, normalize=normalize, chunk_size=chunk_size
+        )
+        acc += dists.cpu()
+    return acc / n_perms

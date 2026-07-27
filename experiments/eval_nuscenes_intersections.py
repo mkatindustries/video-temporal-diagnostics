@@ -44,6 +44,7 @@ from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
 )
+from video_retrieval.fingerprints.dtw import dtw_distance_shuffled
 from video_retrieval.fingerprints.trajectory import dtw_distance
 
 if TYPE_CHECKING:
@@ -692,6 +693,7 @@ def compute_all_similarities(
         all_scores["vjepa2_bag_of_tokens"] = ([], [])
         all_scores["vjepa2_encoder_seq_dtw"] = ([], [])
         all_scores["vjepa2_temporal_residual"] = ([], [])
+        all_scores["vjepa2_temporal_residual_shuffled"] = ([], [])
     cluster_ids_by_method = {method: [] for method in all_scores}
 
     total_pairs = 0
@@ -786,6 +788,24 @@ def compute_all_similarities(
                     all_scores["vjepa2_temporal_residual"][0].append(res_sim)
                     all_scores["vjepa2_temporal_residual"][1].append(gt)
                     cluster_ids_by_method["vjepa2_temporal_residual"].append(cid)
+
+                    # Order-ablation control: identical DTW machinery (same
+                    # dtw_distance call, same normalize flag), time axis of seg_b's
+                    # residual randomly permuted (10 draws, injectively seeded per
+                    # pair). Isolates whether temporal order -- not just per-frame
+                    # token granularity -- contributes to the residual DTW gain.
+                    res_shuf_dist = dtw_distance_shuffled(
+                        va["temporal_residual"],
+                        vb["temporal_residual"],
+                        pair_id=(seg_a.scene_name, seg_a.start_ts,
+                                 seg_b.scene_name, seg_b.start_ts),
+                        n_perms=10,
+                        normalize=True,
+                    )
+                    res_shuf_sim = float(torch.exp(torch.tensor(-res_shuf_dist)).item())
+                    all_scores["vjepa2_temporal_residual_shuffled"][0].append(res_shuf_sim)
+                    all_scores["vjepa2_temporal_residual_shuffled"][1].append(gt)
+                    cluster_ids_by_method["vjepa2_temporal_residual_shuffled"].append(cid)
 
     return all_scores, cluster_ids_by_method
 

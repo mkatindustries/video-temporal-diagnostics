@@ -43,7 +43,7 @@ from video_retrieval.fingerprints import (
     TemporalDerivativeFingerprint,
     TrajectoryFingerprint,
 )
-from video_retrieval.fingerprints.dtw import dtw_distance_batch
+from video_retrieval.fingerprints.dtw import dtw_distance_batch, dtw_distance_batch_shuffled
 from video_retrieval.fingerprints.trajectory import dtw_distance
 from video_retrieval.models import DINOv3Encoder
 
@@ -206,11 +206,28 @@ def compute_all_similarities(
             res_dists = dtw_distance_batch(res_seqs_a, res_seqs_b, normalize=True)
             res_sims = torch.exp(-res_dists).cpu().tolist()
 
+            # Order-ablation control: identical DTW machinery, time axis of the second
+            # sequence in each pair randomly permuted (10 draws, injectively seeded per
+            # pair -- see dtw_distance_batch_shuffled). Isolates whether temporal order,
+            # not just per-frame token granularity, contributes to the residual DTW gain.
+            print("  Computing V-JEPA 2 temporal residual shuffled-DTW control...")
+            res_pair_ids = [
+                (segments[a].session_id, segments[a].start_frame,
+                 segments[b].session_id, segments[b].start_frame)
+                for a, b in zip(v_a_indices, v_b_indices)
+            ]
+            res_shuf_dists = dtw_distance_batch_shuffled(
+                res_seqs_a, res_seqs_b, pair_ids=res_pair_ids, n_perms=10, normalize=True
+            )
+            res_shuf_sims = torch.exp(-res_shuf_dists).cpu().tolist()
+
             all_scores["vjepa2_bag_of_tokens"] = (bot_sims, list(v_gts))
             all_scores["vjepa2_temporal_residual"] = (res_sims, list(v_gts))
+            all_scores["vjepa2_temporal_residual_shuffled"] = (res_shuf_sims, list(v_gts))
         else:
             all_scores["vjepa2_bag_of_tokens"] = ([], [])
             all_scores["vjepa2_temporal_residual"] = ([], [])
+            all_scores["vjepa2_temporal_residual_shuffled"] = ([], [])
 
     return all_scores
 

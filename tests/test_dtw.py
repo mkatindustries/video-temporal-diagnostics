@@ -10,6 +10,8 @@ import torch
 from video_retrieval.fingerprints.dtw import (
     dtw_distance,
     dtw_distance_batch,
+    dtw_distance_shuffled,
+    dtw_distance_batch_shuffled,
     _normalize_sequence,
 )
 
@@ -180,6 +182,88 @@ class TestDTWDistanceBatch:
     def test_empty_batch(self):
         """Empty batch returns empty tensor."""
         result = dtw_distance_batch([], [], normalize=True)
+        assert result.shape == (0,)
+
+
+class TestDTWDistanceShuffled:
+    """Order-ablation control: identical machinery to dtw_distance, only seq2's time
+    axis is permuted. Mirrors the design validated for SoccerNet's shuffled-DTW control
+    (encoder_seq_dtw vs encoder_seq_dtw_shuffled), now reused for the driving datasets."""
+
+    def test_self_comparison_not_zero(self):
+        """Shuffling breaks the identical-sequence zero-distance property, confirming
+        the permutation actually changes what's compared (unlike dtw_distance(s, s))."""
+        s = torch.linspace(0, 1, 20).unsqueeze(1).repeat(1, 4)  # smooth, structured
+        unshuffled = dtw_distance(s, s.clone(), normalize=True)
+        shuffled = dtw_distance_shuffled(
+            s, s.clone(), pair_id="a|b", n_perms=10, normalize=True
+        )
+        assert unshuffled < 1e-6
+        assert shuffled > 1e-3
+
+    def test_reproducible(self):
+        """Same pair_id + same inputs -> identical result across calls."""
+        torch.manual_seed(2)
+        s1 = torch.randn(15, 4)
+        s2 = torch.randn(12, 4)
+        pid = ("sessA", 10, "sessB", 20)
+        d1 = dtw_distance_shuffled(s1, s2, pair_id=pid, n_perms=5)
+        d2 = dtw_distance_shuffled(s1, s2, pair_id=pid, n_perms=5)
+        assert d1 == d2
+
+    def test_injective_across_separator_collision(self):
+        """Pair ids that would collide under naive '|'-joined string concatenation must
+        not share a permutation draw -- the exact bug class the SoccerNet round-4
+        review caught (event ids there contain literal '|' characters)."""
+        torch.manual_seed(3)
+        s1 = torch.randn(10, 4)
+        s2 = torch.randn(10, 4)
+        d1 = dtw_distance_shuffled(s1, s2, pair_id=("a|b", "c"), n_perms=1)
+        d2 = dtw_distance_shuffled(s1, s2, pair_id=("a", "b|c"), n_perms=1)
+        assert d1 != d2
+
+    def test_normalize_flag_respected(self):
+        """normalize=False should skip the min-max step, same as dtw_distance."""
+        torch.manual_seed(4)
+        s1 = torch.randn(10, 4)
+        s2 = torch.randn(10, 4)
+        d_norm = dtw_distance_shuffled(s1, s2, pair_id="x", n_perms=3, normalize=True)
+        d_raw = dtw_distance_shuffled(s1, s2, pair_id="x", n_perms=3, normalize=False)
+        assert d_norm != d_raw
+
+
+class TestDTWDistanceBatchShuffled:
+    """Batched order-ablation control must match per-pair dtw_distance_shuffled calls
+    exactly, since it's the same seeding scheme applied per pair per permutation."""
+
+    def test_batch_matches_individual(self):
+        torch.manual_seed(10)
+        N = 4
+        seqs_a = [torch.randn(10 + i, 4) for i in range(N)]
+        seqs_b = [torch.randn(8 + i, 4) for i in range(N)]
+        pair_ids = [("sessA", i, "sessB", i * 2) for i in range(N)]
+
+        batch = dtw_distance_batch_shuffled(
+            seqs_a, seqs_b, pair_ids=pair_ids, n_perms=5, normalize=True
+        )
+        individual = [
+            dtw_distance_shuffled(a, b, pair_id=pid, n_perms=5, normalize=True)
+            for a, b, pid in zip(seqs_a, seqs_b, pair_ids)
+        ]
+        for i in range(N):
+            assert abs(batch[i].item() - individual[i]) < 1e-4, (
+                f"Pair {i}: batch={batch[i].item()}, individual={individual[i]}"
+            )
+
+    def test_mismatched_lengths_raise(self):
+        with pytest.raises(AssertionError):
+            dtw_distance_batch_shuffled(
+                [torch.randn(5, 4)], [torch.randn(5, 4), torch.randn(5, 4)],
+                pair_ids=["a"],
+            )
+
+    def test_empty_batch(self):
+        result = dtw_distance_batch_shuffled([], [], pair_ids=[])
         assert result.shape == (0,)
 
 
