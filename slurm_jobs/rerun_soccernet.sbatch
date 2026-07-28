@@ -14,9 +14,9 @@
 #      control) / assignment over the within-match gallery (fail-closed on canary/incomplete).
 #
 # Submit (account/qos at submit time, per slurm_jobs/README.md):
-#   SOCCERNET_DIR=<root> sbatch --account=dream --qos=h200_dev slurm_jobs/rerun_soccernet.sbatch
+#   SOCCERNET_DIR=<root> sbatch slurm_jobs/rerun_soccernet.sbatch
 # GPU canary before the full run (extraction only; cache is canary-tagged, unpublishable):
-#   SOCCERNET_DIR=<root> LIMIT=24 sbatch --account=dream --qos=h200_dev slurm_jobs/rerun_soccernet.sbatch
+#   SOCCERNET_DIR=<root> LIMIT=24 sbatch slurm_jobs/rerun_soccernet.sbatch
 
 set -euo pipefail
 source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.sh"

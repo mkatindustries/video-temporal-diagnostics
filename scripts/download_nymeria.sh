@@ -1,12 +1,12 @@
 #!/bin/bash
-# Download a subset of Nymeria multi-activity person-sessions from Manifold.
+# Download a subset of Nymeria multi-activity person-sessions from an object store.
 #
-# Source: manifold://fair_data/tree/aria/nymeria/<recording_id>/data.mp4
+# Source: $NYMERIA_SOURCE_ROOT/<recording_id>/data.mp4
 # Destination: datasets/nymeria/<recording_id>/<recording_id>/data.mp4
 #   (double-nested to match eval_nymeria_activities.py expectations)
 #
 # Discovery logic:
-#   1. List all recording IDs via manifold ls
+#   1. List all recording IDs via the configured object-store client
 #   2. Parse regex to group by person-session
 #   3. Keep only sessions with ≥2 activities
 #   4. Select first N sessions (sorted alphabetically)
@@ -19,7 +19,8 @@
 set -euo pipefail
 
 DATASET_ROOT="datasets/nymeria"
-MANIFOLD_BASE="fair_data/tree/aria/nymeria"
+STORE_CLI="${OBJECT_STORE_CLI:-}"
+SOURCE_ROOT="${NYMERIA_SOURCE_ROOT:-}"
 
 # Parse arguments
 MAX_SESSIONS=30
@@ -42,18 +43,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check for manifold
-if ! command -v manifold &>/dev/null; then
-    echo "ERROR: manifold CLI not found."
-    echo "This script requires Meta's internal manifold tool."
+# Check for a configured object-store client and source path.
+if [[ -z "$STORE_CLI" ]] || ! command -v "$STORE_CLI" &>/dev/null; then
+    echo "ERROR: set OBJECT_STORE_CLI to an available object-store client."
+    exit 1
+fi
+if [[ -z "$SOURCE_ROOT" ]]; then
+    echo "ERROR: set NYMERIA_SOURCE_ROOT to the dataset source path."
     exit 1
 fi
 
 echo "Discovering Nymeria recording IDs..."
-mapfile -t ALL_IDS < <(manifold ls "$MANIFOLD_BASE" 2>/dev/null | sed 's/^DIR[[:space:]]*//' | sed 's:/*$::' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
+mapfile -t ALL_IDS < <("$STORE_CLI" ls "$SOURCE_ROOT" 2>/dev/null | sed 's/^DIR[[:space:]]*//' | sed 's:/*$::' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
 
 if [[ ${#ALL_IDS[@]} -eq 0 ]]; then
-    echo "ERROR: No recording IDs found at manifold://$MANIFOLD_BASE"
+    echo "ERROR: No recording IDs found at $SOURCE_ROOT"
     exit 1
 fi
 
@@ -148,7 +152,7 @@ for session in "${SELECTED_SESSIONS[@]}"; do
         mkdir -p "$(dirname "$dest")"
         echo "  [$rec_id] Downloading..."
 
-        if manifold get "$MANIFOLD_BASE/$rec_id/data.mp4" "$dest" 2>/dev/null; then
+        if "$STORE_CLI" get "$SOURCE_ROOT/$rec_id/data.mp4" "$dest" 2>/dev/null; then
             downloaded=$((downloaded + 1))
             echo "  [$rec_id] Done"
         else

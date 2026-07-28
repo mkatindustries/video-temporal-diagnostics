@@ -1,7 +1,7 @@
 #!/bin/bash
-# Download Everyday Life Aria recordings (≥60 min) from Manifold.
+# Download Everyday Life Aria recordings (>=60 min) from an object store.
 #
-# Source: manifold://fair_data/tree/aria/Everyday_Life/<recording_id>/data.mp4
+# Source: $EVERYDAY_LIFE_SOURCE_ROOT/<recording_id>/data.mp4
 # Destination: datasets/everyday_life/<recording_id>/data.mp4
 #
 # Duration filter: fetches metadata.json (~17 KB) first to check duration_seconds,
@@ -16,7 +16,8 @@
 set -euo pipefail
 
 DATASET_ROOT="datasets/everyday_life"
-MANIFOLD_BASE="fair_data/tree/aria/Everyday_Life"
+STORE_CLI="${OBJECT_STORE_CLI:-}"
+SOURCE_ROOT="${EVERYDAY_LIFE_SOURCE_ROOT:-}"
 
 # Parse arguments
 MAX_RECORDINGS=20
@@ -46,18 +47,21 @@ done
 
 MIN_DURATION_SEC=$((MIN_DURATION_MIN * 60))
 
-# Check for manifold
-if ! command -v manifold &>/dev/null; then
-    echo "ERROR: manifold CLI not found."
-    echo "This script requires Meta's internal manifold tool."
+# Check for a configured object-store client and source path.
+if [[ -z "$STORE_CLI" ]] || ! command -v "$STORE_CLI" &>/dev/null; then
+    echo "ERROR: set OBJECT_STORE_CLI to an available object-store client."
+    exit 1
+fi
+if [[ -z "$SOURCE_ROOT" ]]; then
+    echo "ERROR: set EVERYDAY_LIFE_SOURCE_ROOT to the dataset source path."
     exit 1
 fi
 
 echo "Discovering Everyday Life recording IDs..."
-mapfile -t ALL_IDS < <(manifold ls "$MANIFOLD_BASE" 2>/dev/null | sed 's/^DIR[[:space:]]*//' | sed 's:/*$::' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
+mapfile -t ALL_IDS < <("$STORE_CLI" ls "$SOURCE_ROOT" 2>/dev/null | sed 's/^DIR[[:space:]]*//' | sed 's:/*$::' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$')
 
 if [[ ${#ALL_IDS[@]} -eq 0 ]]; then
-    echo "ERROR: No recording IDs found at manifold://$MANIFOLD_BASE"
+    echo "ERROR: No recording IDs found at $SOURCE_ROOT"
     exit 1
 fi
 
@@ -99,7 +103,7 @@ for rec_id in "${ALL_IDS[@]}"; do
     meta_file="$meta_dir/metadata.json"
     mkdir -p "$meta_dir"
 
-    if ! manifold get "$MANIFOLD_BASE/$rec_id/metadata.json" "$meta_file" 2>/dev/null; then
+    if ! "$STORE_CLI" get "$SOURCE_ROOT/$rec_id/metadata.json" "$meta_file" 2>/dev/null; then
         echo "[$rec_id] Failed to fetch metadata, skipping"
         failed=$((failed + 1))
         rm -f "$meta_file"
@@ -123,7 +127,7 @@ for rec_id in "${ALL_IDS[@]}"; do
 
     echo "[$rec_id] Duration ${duration_min} min — downloading data.mp4..."
 
-    if manifold get "$MANIFOLD_BASE/$rec_id/data.mp4" "$dest" 2>/dev/null; then
+    if "$STORE_CLI" get "$SOURCE_ROOT/$rec_id/data.mp4" "$dest" 2>/dev/null; then
         downloaded=$((downloaded + 1))
         echo "[$rec_id] Done"
     else
