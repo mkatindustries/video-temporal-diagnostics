@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "dataset": {
+    "name": "EPIC-Kitchens-100",
+    "sequence_manifest": "temporal_order_sequences_v1_len6-15_narr2-3_seed42",
+    "n_sequences": 500,
+    "n_videos": 19,
+    "frames_per_clip": 16
+  },
+  "sample_counts": {
+    "direct_direction": {
+      "n_prompts": 3,
+      "nominal_forward_inputs_per_prompt": 500,
+      "nominal_reverse_inputs_per_prompt": 500
+    },
+    "integrity": {
+      "nominal_inputs_per_condition": 500,
+      "conditions": [
+        "forward",
+        "reversed",
+        "scramble_k4",
+        "scramble_k16"
+      ]
+    },
+    "valid_response_denominators": null,
+    "note": "The source reports 500 sequences. Exact parsed-response denominators are unavailable because the raw generative aggregate files are not present in this checkout."
+  },
+  "metrics": {
+    "direct_direction": {
+      "definition": "Balanced accuracy over FORWARD and REVERSE clips.",
+      "prompt_sd_definition": "Standard deviation across the three prompts, not statistical uncertainty.",
+      "prompts": [
+        "Analyze the physics, motion, and causality in this video. Is this video playing FORWARD normally, or is it playing in REVERSE (backwards)? Answer with a single word: either FORWARD or REVERSE.",
+        "Is this video playing forward or in reverse? Answer FORWARD or REVERSE.",
+        "Watch the actions in this video carefully. Are events happening in their natural chronological order, or is the video reversed? Answer FORWARD or REVERSE."
+      ]
+    },
+    "integrity": {
+      "prompt": "Is this video temporally intact (normal chronological order), or has it been temporally manipulated (reversed or scrambled)? Answer with one word: INTACT or TAMPERED.",
+      "condition_rate_definition": "Fraction of responses classified as TAMPERED.",
+      "balanced_accuracy_definition": "0.5 * ((1 - forward_fraction_tampered) + reversed_fraction_tampered)"
+    }
+  },
+  "models": {
+    "gemma4": {
+      "display_name": "Gemma-4-31B",
+      "direct_direction": {
+        "per_prompt_balanced_accuracy": [
+          0.549,
+          0.528,
+          0.535
+        ],
+        "reported_mean_balanced_accuracy": 0.538,
+        "reported_prompt_sd": 0.009
+      },
+      "integrity": {
+        "fraction_tampered": {
+          "forward": 0.15,
+          "reversed": 0.84,
+          "scramble_k4": 0.202,
+          "scramble_k16": 0.22
+        },
+        "derived_forward_reverse_balanced_accuracy": 0.845,
+        "is_degenerate": false,
+        "excluded_from_integrity_summary": false
+      }
+    },
+    "llava_video": {
+      "display_name": "LLaVA-Video-7B",
+      "direct_direction": {
+        "per_prompt_balanced_accuracy": [
+          0.503,
+          0.501,
+          0.505
+        ],
+        "reported_mean_balanced_accuracy": 0.503,
+        "reported_prompt_sd": 0.002
+      },
+      "integrity": {
+        "fraction_tampered": {
+          "forward": 1.0,
+          "reversed": 1.0,
+          "scramble_k4": 1.0,
+          "scramble_k16": 1.0
+        },
+        "derived_forward_reverse_balanced_accuracy": 0.5,
+        "is_degenerate": true,
+        "constant_label": "TAMPERED",
+        "text_only_baseline_confirms_constant_label": true,
+        "excluded_from_integrity_summary": true
+      }
+    },
+    "qwen3_vl": {
+      "display_name": "Qwen3-VL-8B",
+      "direct_direction": {
+        "per_prompt_balanced_accuracy": [
+          0.517,
+          0.502,
+          0.504
+        ],
+        "reported_mean_balanced_accuracy": 0.508,
+        "reported_prompt_sd": 0.007
+      },
+      "integrity": {
+        "fraction_tampered": {
+          "forward": 0.112,
+          "reversed": 0.87,
+          "scramble_k4": 0.668,
+          "scramble_k16": 0.66
+        },
+        "derived_forward_reverse_balanced_accuracy": 0.879,
+        "is_degenerate": false,
+        "excluded_from_integrity_summary": false
+      }
+    }
+  },
+  "provenance": {
+    "metric_origin": "transcribed_aggregate",
+    "raw_per_clip_responses_included": false,
+    "raw_generative_aggregate_present_in_checkout": false,
+    "note": "Rounded prompt metrics and integrity rates were transcribed from contemporaneous paper artifacts. The dataset-local JSON files below authenticate the model and protocol metadata but contain embedding results, not the quoted generative metrics.",
+    "metric_transcription_sources": [
+      {
+        "path": "paper/neurips.tex",
+        "git_revision": "4b54312b15b147b777dfc1a1bea90cef178f3104",
+        "sha256": "8a853bc63c6c6bf43bda914bfb8a8252822939a2569bb9475f8430b84e7b30c8"
+      },
+      {
+        "path": "paper/video4real.tex",
+        "git_revision": "09f6d9c38528f64ef1baf6ab33bcecd1260fb86f",
+        "sha256": "76d5e26c7c77c241a904c6eb23c3f53fbc41e010b14f78d8845478f2563cbd3f"
+      }
+    ],
+    "protocol_metadata_sources": [
+      {
+        "path": "datasets/epic_kitchens/temporal_order_results_gemma4.json",
+        "sha256": "4b7cea0da60f373ac36ae97ac09d2d1df9a1e78729ead6977b1fc096e99d213e"
+      },
+      {
+        "path": "datasets/epic_kitchens/temporal_order_results_llava-video.json",
+        "sha256": "7c5071a79740f066f57636bd4fea25f0e641ae36e64255e054b8f904653c6881"
+      },
+      {
+        "path": "datasets/epic_kitchens/temporal_order_results_qwen3.json",
+        "sha256": "ea123b90a0be4ea88762a931511d9a791b457303ab1f8fa37bf1ab297e904ed5"
+      }
+    ],
+    "metric_computation_source": {
+      "path": "experiments/eval_epic_temporal_order.py",
+      "git_revision": "c2daec7690b6d6de57b92754a4313cb51fb8423b",
+      "sha256": "c35c092a94282095e90bdff2e1105f12e297fb4df1e6d5e07554b231d80e0ed9"
+    }
+  }
+}

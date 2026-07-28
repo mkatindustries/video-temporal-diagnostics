@@ -254,6 +254,12 @@ reduces accuracy here. The study covers two driving datasets, their $50$ largest
 clusters, one backbone, tested DTW variants, and one linear fusion family on a $0.05$ grid.
 Per-sequence min--max normalization may itself discard location evidence. Moreover, nuScenes tiles
 sparse keyframes to a fixed input length, so its intact-vs-shuffled contrast remains provisional.
+Separately, multimodal LLMs can carry recoverable temporal evidence that standard prompting hides:
+on EPIC-Kitchens forward/reverse clips, three direct direction prompts leave Gemma-4, LLaVA-Video,
+and Qwen3-VL near chance ($0.503$--$0.538$ balanced accuracy), yet an intact-vs-tampered integrity
+prompt reaches $0.845$ (Gemma-4) and $0.879$ (Qwen3-VL) (LLaVA-Video degenerates to constant output;
+transcribed from artifacts not in the compact result bundle). A larger multimodal model therefore
+does not by itself resolve the retrieval-vs-order tension studied here.
 These are scoped failure cases, not evidence that sequence retrieval or nonlinear fusion cannot
 succeed. We release the diagnostics to support broader tests.
 

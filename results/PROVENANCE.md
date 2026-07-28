@@ -23,6 +23,7 @@ Shared configuration for every artifact below:
 | `hdd/encoder_seq_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
+| `epic/vlm_prompt_results.json` | this commit (artifact consolidation) | historical cluster aggregates; raw job IDs unavailable | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
 | `hdd/conditional_querywise_results.json` | `9236c63` | local CPU, 2026-07-27 | HDD release_2019_07_08 |
@@ -43,6 +44,12 @@ Notes:
   [−0.0157, 0.0680]. DTW does not significantly outperform assignment; residual assignment
   exceeds residual DTW by 0.0474 [0.0171, 0.0796]. Both jobs exited successfully.
 - VCDB (multiseed + raw) and EPIC ran cleanly at the original submission commit `c2daec7`.
+- `epic/vlm_prompt_results.json` is a compact aggregate-only record: it contains no per-clip
+  responses. The rounded prompt metrics and integrity condition rates were transcribed from two
+  contemporaneous paper artifacts because the original generative aggregate files are absent from
+  this checkout. Their SHA-256 values are embedded in the JSON. Three separately hashed
+  dataset-local result files authenticate the 500-sequence protocol, prompts, and model identities;
+  they contain embedding results and are explicitly not represented as metric sources.
 - `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
   DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines match
   `hdd/bof_dtw_directed_rerank_results.json` at reported precision (0.2556 / 0.1765 mAP). Honest null:
