@@ -42,7 +42,12 @@ discrimination}---telling such cases apart \emph{within} a known location. We as
 advantage transfers across intersections and observe the same failure on two driving
 datasets. V-JEPA~2 encoder-sequence DTW clearly beats a bag-of-tokens (BoT) cosine baseline on
 conditional pooled-pair discrimination (Honda HDD $0.942$ vs.\ $0.825$ AP; nuScenes $0.867$ vs.\
-$0.791$) yet \emph{underperforms} it over the full evaluation gallery (HDD $0.177$ vs.\ $0.256$
+$0.791$). A shuffled-order control shows this sequence-based gain is attributable to temporal order
+specifically only for nuScenes encoder-sequence DTW, not for HDD or for temporal-residual DTW on
+either dataset; an order-free assignment control matched or exceeded DTW in every evaluated
+comparison, but the paired interval excluded zero only for nuScenes residual features. The
+encoder-sequence-DTW gain nonetheless \emph{underperforms} pooling over the full evaluation gallery
+(HDD $0.177$ vs.\ $0.256$
 mAP; nuScenes $0.141$ vs.\ $0.315$). Temporal-residual DTW, the conditional HDD winner
 ($0.956$ AP), is weaker still globally ($0.164$ HDD; $0.122$ nuScenes mAP). Across all six top-1 rankings, at least $98.9\%$ of errors
 retrieve the wrong intersection rather than the wrong maneuver at the correct one. A
@@ -65,9 +70,10 @@ Video-retrieval systems that scale to large galleries typically represent a clip
 descriptor and rank by cosine similarity. Such pooling can be insensitive to order, so reversing a
 clip or comparing opposite turns at one intersection can change little. This is exact for pooled
 independent-frame features but only empirical for contextual video tokens. A natural remedy compares per-frame
-feature \emph{sequences} with an order-aware comparator such as dynamic time
-warping (DTW)~\cite{sakoe1978dtw}, which is markedly stronger on conditional discrimination.
-Yet its full-gallery failures are overwhelmingly wrong-location retrievals
+feature \emph{sequences} with a comparator such as dynamic time
+warping (DTW)~\cite{sakoe1978dtw}, which is markedly stronger on conditional discrimination; we
+return in \cref{sec:retrieval} to whether that strength is attributable to temporal order
+specifically or to finer per-frame comparison. Yet its full-gallery failures are overwhelmingly wrong-location retrievals
 (\cref{fig:error_composition}).
 
 \begin{figure}[t!]
@@ -120,8 +126,8 @@ invariant to the scale constant while the similarity values are not; scores from
 comparators are therefore not numerically comparable.
 
 \textbf{Segments, clusters, eligibility.} Maneuver segments are grouped into intersections by DBSCAN
-on GPS position ($\epsilon{\approx}30$\,m, min.\ samples $2$); an intersection is retained if it
-contains both left and right turns. A candidate is \emph{relevant} to a query if it shares the
+on GPS position ($\epsilon{\approx}30$\,m; min.\ samples $3$ for HDD, $2$ for nuScenes); an
+intersection is retained if it contains both left and right turns. A candidate is \emph{relevant} to a query if it shares the
 query's intersection cluster \emph{and} maneuver label; out-of-cluster candidates remain negatives.
 A segment is an eligible query if it has at least one relevant gallery item. HDD yields $1{,}687$
 segments in the $50$ largest mixed clusters; nuScenes (v1.0-trainval) yields $264$ segments from
@@ -153,6 +159,23 @@ not interpret the fraction of resamples favoring one method as a $p$-value.
 temporal-residual DTW has the highest conditional pooled-pair AP on HDD ($0.956$), while
 encoder-sequence DTW leads on nuScenes ($0.867$). Paired encoder-sequence gains over BoT exclude
 zero: $+0.117$ $[0.044, 0.127]$ (HDD) and $+0.075$ $[0.028, 0.128]$ (nuScenes).
+
+\textbf{The sequence-based gain is not consistently attributable to temporal order.} A
+shuffled-DTW control---identical cost, normalization, and warp tolerance to
+encoder-sequence/temporal-residual DTW, with each sequence in the pair randomly permuted in turn
+and the two one-sided distances averaged (10 independently-seeded draws)---isolates an
+order-specific gain from per-frame granularity. Encoder-sequence DTW's order-specific gain is
+established on nuScenes ($+0.060$ AP, $95\%$ paired cluster-bootstrap CI $[0.023, 0.094]$), but not
+on HDD (CI $[-0.001, 0.054]$, crossing zero); temporal-residual DTW's order-specific gain is not
+established on either dataset (HDD CI $[-0.008, 0.043]$; nuScenes CI $[-0.015, 0.064]$). A second,
+rigid one-to-one assignment control---same cost and normalization, but a bijective match with no
+monotonicity constraint, one-to-many warping, or endpoint anchoring---matched or exceeded DTW in
+every evaluated comparison, but the paired interval excluded zero only for nuScenes residual
+features ($+0.043$, CI $[0.017, 0.070]$, favoring assignment). The sequence-based conditional edge
+over BoT above is real; that temporal order specifically, rather than finer per-frame comparison,
+drives it is established only for encoder-sequence DTW on nuScenes, where short segments are padded
+by tiling sparse $2$\,Hz keyframes to the fixed $64$-frame input, a repetition that could itself
+dampen the shuffle control's sensitivity; we treat this one positive result as provisional.
 
 \textbf{The ranking reverses across the evaluation gallery.} Under directed gallery retrieval
 (\cref{tab:reversal}, middle) both sequence scores lose in mAP and MRR: BoT reaches mAP $0.256$ /
