@@ -2,11 +2,11 @@
   "dataset": "nuscenes",
   "score_cache": {
     "filename": "nuscenes_fusion_score_cache_v1.0-trainval.pt",
-    "size_bytes": 848807,
-    "sha256": "8fd33867c677cdfc9c5503327dffa46c59c92cb72d9dd11248d7fdc727c154cd",
+    "size_bytes": 726362,
+    "sha256": "1a8ab3580daa85a4e5a7e01523d6bab8767ee546e17297a92d8664bdfd87d685",
     "version": 1,
-    "feature_cache_size": 53219875,
-    "feature_cache_mtime_ns": 1784380724000000000
+    "feature_cache_size": 49188275,
+    "feature_cache_mtime_ns": 1785260499000000000
   },
   "protocol": {
     "directional": true,
@@ -19,117 +19,117 @@
     "uncertainty": "intersection-cluster bootstrap over fixed per-query AP",
     "pooled_pair_protocol": false
   },
-  "n_segments": 264,
-  "n_queries": 222,
-  "n_global_eligible_queries": 222,
-  "n_conditional_eligible_queries": 222,
-  "n_clusters": 40,
+  "n_segments": 244,
+  "n_queries": 197,
+  "n_global_eligible_queries": 197,
+  "n_conditional_eligible_queries": 197,
+  "n_clusters": 37,
   "n_bootstrap": 2000,
   "seed": 42,
   "methods": {
     "bot_cosine": {
       "query_macro_ap": {
-        "mean": 0.856111715525231,
+        "mean": 0.8549913701671156,
         "cluster_ci": [
-          0.8258701127495289,
-          0.8957825559993629
+          0.825178475799409,
+          0.8902319459911672
         ],
-        "n_queries": 222,
-        "n_clusters": 40
+        "n_queries": 197,
+        "n_clusters": 37
       }
     },
     "encoder_seq_dtw": {
       "query_macro_ap": {
-        "mean": 0.9158652648513175,
+        "mean": 0.9215670154561206,
         "cluster_ci": [
-          0.8892025017702001,
-          0.9478273737500873
+          0.8954039113069041,
+          0.9513068428946878
         ],
-        "n_queries": 222,
-        "n_clusters": 40
+        "n_queries": 197,
+        "n_clusters": 37
       }
     },
     "temporal_residual_dtw": {
       "query_macro_ap": {
-        "mean": 0.8908412901077467,
+        "mean": 0.9029302501728705,
         "cluster_ci": [
-          0.8607233903479534,
-          0.9252336400810647
+          0.874310932708392,
+          0.935344470467072
         ],
-        "n_queries": 222,
-        "n_clusters": 40
+        "n_queries": 197,
+        "n_clusters": 37
       }
     }
   },
   "paired_ap_differences": {
     "encoder_seq_dtw_minus_bot_cosine": {
-      "mean_a": 0.9158652648513175,
-      "mean_b": 0.856111715525231,
-      "difference_a_minus_b": 0.05975354932608667,
+      "mean_a": 0.9215670154561206,
+      "mean_b": 0.8549913701671156,
+      "difference_a_minus_b": 0.06657564528900499,
       "ci": [
-        0.02757771309195543,
-        0.0931173427786642
+        0.03563603443828364,
+        0.10060830521450172
       ],
-      "bootstrap_probability_a_gt_b": 0.9995,
-      "n_clusters": 40
+      "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 37
     },
     "temporal_residual_dtw_minus_bot_cosine": {
-      "mean_a": 0.8908412901077467,
-      "mean_b": 0.856111715525231,
-      "difference_a_minus_b": 0.03472957458251576,
+      "mean_a": 0.9029302501728705,
+      "mean_b": 0.8549913701671156,
+      "difference_a_minus_b": 0.04793888000575498,
       "ci": [
-        0.0014305789359042931,
-        0.06924361839552384
+        0.018005339307785466,
+        0.08235843405544412
       ],
-      "bootstrap_probability_a_gt_b": 0.9805,
-      "n_clusters": 40
+      "bootstrap_probability_a_gt_b": 0.9995,
+      "n_clusters": 37
     },
     "temporal_residual_dtw_minus_encoder_seq_dtw": {
-      "mean_a": 0.8908412901077467,
-      "mean_b": 0.9158652648513175,
-      "difference_a_minus_b": -0.02502397474357091,
+      "mean_a": 0.9029302501728705,
+      "mean_b": 0.9215670154561206,
+      "difference_a_minus_b": -0.018636765283250013,
       "ci": [
-        -0.04575528950405573,
-        -0.006512372564071933
+        -0.03728103756872268,
+        -0.002169756898423371
       ],
-      "bootstrap_probability_a_gt_b": 0.003,
-      "n_clusters": 40
+      "bootstrap_probability_a_gt_b": 0.018,
+      "n_clusters": 37
     }
   },
   "heterogeneity": {
     "encoder_seq_dtw_minus_bot_cosine": {
-      "n_queries": 222,
-      "win_count": 102,
-      "tie_count": 79,
-      "loss_count": 41,
-      "win_rate": 0.4594594594594595,
-      "tie_rate": 0.35585585585585583,
-      "loss_rate": 0.18468468468468469,
-      "mean_ap_difference": 0.05975354932608667,
+      "n_queries": 197,
+      "win_count": 88,
+      "tie_count": 74,
+      "loss_count": 35,
+      "win_rate": 0.4467005076142132,
+      "tie_rate": 0.3756345177664975,
+      "loss_rate": 0.17766497461928935,
+      "mean_ap_difference": 0.06657564528900499,
       "median_ap_difference": 0.0,
       "tie_atol": 1e-12
     },
     "temporal_residual_dtw_minus_bot_cosine": {
-      "n_queries": 222,
-      "win_count": 89,
-      "tie_count": 71,
-      "loss_count": 62,
-      "win_rate": 0.4009009009009009,
-      "tie_rate": 0.31981981981981983,
-      "loss_rate": 0.27927927927927926,
-      "mean_ap_difference": 0.03472957458251576,
+      "n_queries": 197,
+      "win_count": 73,
+      "tie_count": 72,
+      "loss_count": 52,
+      "win_rate": 0.37055837563451777,
+      "tie_rate": 0.36548223350253806,
+      "loss_rate": 0.2639593908629442,
+      "mean_ap_difference": 0.04793888000575498,
       "median_ap_difference": 0.0,
       "tie_atol": 1e-12
     },
     "temporal_residual_dtw_minus_encoder_seq_dtw": {
-      "n_queries": 222,
-      "win_count": 31,
-      "tie_count": 117,
-      "loss_count": 74,
-      "win_rate": 0.13963963963963963,
-      "tie_rate": 0.527027027027027,
-      "loss_rate": 0.3333333333333333,
-      "mean_ap_difference": -0.02502397474357091,
+      "n_queries": 197,
+      "win_count": 26,
+      "tie_count": 109,
+      "loss_count": 62,
+      "win_rate": 0.1319796954314721,
+      "tie_rate": 0.5532994923857868,
+      "loss_rate": 0.3147208121827411,
+      "mean_ap_difference": -0.018636765283250013,
       "median_ap_difference": 0.0,
       "tie_atol": 1e-12
     }
@@ -138,7 +138,7 @@
     {
       "query_index": 0,
       "segment_index": 0,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -151,7 +151,7 @@
     {
       "query_index": 1,
       "segment_index": 1,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -164,7 +164,7 @@
     {
       "query_index": 2,
       "segment_index": 2,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -177,7 +177,7 @@
     {
       "query_index": 3,
       "segment_index": 3,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -190,7 +190,7 @@
     {
       "query_index": 4,
       "segment_index": 4,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -203,7 +203,7 @@
     {
       "query_index": 5,
       "segment_index": 5,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -216,7 +216,7 @@
     {
       "query_index": 6,
       "segment_index": 6,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -229,7 +229,7 @@
     {
       "query_index": 7,
       "segment_index": 7,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -242,7 +242,7 @@
     {
       "query_index": 8,
       "segment_index": 8,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -255,7 +255,7 @@
     {
       "query_index": 9,
       "segment_index": 9,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -268,7 +268,7 @@
     {
       "query_index": 10,
       "segment_index": 10,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -281,7 +281,7 @@
     {
       "query_index": 11,
       "segment_index": 11,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -294,7 +294,7 @@
     {
       "query_index": 12,
       "segment_index": 12,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -307,7 +307,7 @@
     {
       "query_index": 13,
       "segment_index": 13,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -320,7 +320,7 @@
     {
       "query_index": 14,
       "segment_index": 14,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -333,7 +333,7 @@
     {
       "query_index": 15,
       "segment_index": 15,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -346,7 +346,7 @@
     {
       "query_index": 16,
       "segment_index": 16,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 0,
       "n_gallery": 17,
       "n_relevant": 7,
@@ -359,7 +359,7 @@
     {
       "query_index": 17,
       "segment_index": 17,
-      "cluster_id": 33,
+      "cluster_id": 84,
       "label_id": 1,
       "n_gallery": 17,
       "n_relevant": 9,
@@ -372,9 +372,9 @@
     {
       "query_index": 18,
       "segment_index": 18,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.8218253968253969,
@@ -385,22 +385,22 @@
     {
       "query_index": 19,
       "segment_index": 19,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.729933954933955,
-        "encoder_seq_dtw": 0.9519230769230769,
-        "temporal_residual_dtw": 0.9416666666666667
+        "bot_cosine": 0.7580197580197581,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 20,
       "segment_index": 20,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.6806878306878307,
@@ -411,9 +411,9 @@
     {
       "query_index": 21,
       "segment_index": 21,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.7634920634920634,
@@ -424,35 +424,35 @@
     {
       "query_index": 22,
       "segment_index": 22,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.6742327117327117,
-        "encoder_seq_dtw": 0.9519230769230769,
-        "temporal_residual_dtw": 0.9416666666666667
+        "bot_cosine": 0.6943611943611944,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 23,
       "segment_index": 23,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.7141826923076924,
-        "encoder_seq_dtw": 0.8477678571428571,
-        "temporal_residual_dtw": 0.8015241702741703
+        "bot_cosine": 0.7400183150183148,
+        "encoder_seq_dtw": 0.8736394557823128,
+        "temporal_residual_dtw": 0.8121315192743763
       }
     },
     {
       "query_index": 24,
       "segment_index": 24,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.746164021164021,
@@ -463,9 +463,9 @@
     {
       "query_index": 25,
       "segment_index": 25,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.7999999999999999,
@@ -476,22 +476,22 @@
     {
       "query_index": 26,
       "segment_index": 26,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.8729166666666667,
-        "encoder_seq_dtw": 0.975,
-        "temporal_residual_dtw": 0.9861111111111112
+        "bot_cosine": 0.9214285714285715,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 27,
       "segment_index": 27,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.9761904761904762,
@@ -502,22 +502,22 @@
     {
       "query_index": 28,
       "segment_index": 28,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.6407925407925408,
-        "encoder_seq_dtw": 0.9583333333333333,
-        "temporal_residual_dtw": 0.9416666666666667
+        "bot_cosine": 0.6561438561438562,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 29,
       "segment_index": 29,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 1,
-      "n_gallery": 15,
+      "n_gallery": 14,
       "n_relevant": 6,
       "average_precision": {
         "bot_cosine": 0.7958333333333333,
@@ -528,59 +528,46 @@
     {
       "query_index": 30,
       "segment_index": 30,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.7901785714285714,
+        "bot_cosine": 0.8214285714285714,
         "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9659090909090909
+        "temporal_residual_dtw": 0.9571428571428572
       }
     },
     {
       "query_index": 31,
       "segment_index": 31,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.8545454545454545,
-        "encoder_seq_dtw": 0.9583333333333333,
-        "temporal_residual_dtw": 0.9416666666666667
+        "bot_cosine": 0.9004329004329005,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 32,
       "segment_index": 32,
-      "cluster_id": 26,
+      "cluster_id": 11,
       "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
+      "n_gallery": 14,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.9260416666666667,
+        "bot_cosine": 0.9821428571428571,
         "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9861111111111112
+        "temporal_residual_dtw": 0.9821428571428571
       }
     },
     {
       "query_index": 33,
       "segment_index": 33,
-      "cluster_id": 26,
-      "label_id": 0,
-      "n_gallery": 15,
-      "n_relevant": 8,
-      "average_precision": {
-        "bot_cosine": 0.5275613275613276,
-        "encoder_seq_dtw": 0.8072916666666666,
-        "temporal_residual_dtw": 0.7874660062160063
-      }
-    },
-    {
-      "query_index": 34,
-      "segment_index": 34,
-      "cluster_id": 17,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -591,9 +578,9 @@
       }
     },
     {
-      "query_index": 35,
-      "segment_index": 35,
-      "cluster_id": 17,
+      "query_index": 34,
+      "segment_index": 34,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -604,9 +591,9 @@
       }
     },
     {
-      "query_index": 36,
-      "segment_index": 36,
-      "cluster_id": 17,
+      "query_index": 35,
+      "segment_index": 35,
+      "cluster_id": 2,
       "label_id": 1,
       "n_gallery": 13,
       "n_relevant": 2,
@@ -617,9 +604,9 @@
       }
     },
     {
-      "query_index": 37,
-      "segment_index": 37,
-      "cluster_id": 17,
+      "query_index": 36,
+      "segment_index": 36,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -630,9 +617,9 @@
       }
     },
     {
-      "query_index": 38,
-      "segment_index": 38,
-      "cluster_id": 17,
+      "query_index": 37,
+      "segment_index": 37,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -643,9 +630,9 @@
       }
     },
     {
-      "query_index": 39,
-      "segment_index": 39,
-      "cluster_id": 17,
+      "query_index": 38,
+      "segment_index": 38,
+      "cluster_id": 2,
       "label_id": 1,
       "n_gallery": 13,
       "n_relevant": 2,
@@ -656,9 +643,9 @@
       }
     },
     {
-      "query_index": 40,
-      "segment_index": 40,
-      "cluster_id": 17,
+      "query_index": 39,
+      "segment_index": 39,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -669,9 +656,9 @@
       }
     },
     {
-      "query_index": 41,
-      "segment_index": 41,
-      "cluster_id": 17,
+      "query_index": 40,
+      "segment_index": 40,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -682,9 +669,9 @@
       }
     },
     {
-      "query_index": 42,
-      "segment_index": 42,
-      "cluster_id": 17,
+      "query_index": 41,
+      "segment_index": 41,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -695,9 +682,9 @@
       }
     },
     {
-      "query_index": 43,
-      "segment_index": 43,
-      "cluster_id": 17,
+      "query_index": 42,
+      "segment_index": 42,
+      "cluster_id": 2,
       "label_id": 1,
       "n_gallery": 13,
       "n_relevant": 2,
@@ -708,9 +695,9 @@
       }
     },
     {
-      "query_index": 44,
-      "segment_index": 44,
-      "cluster_id": 17,
+      "query_index": 43,
+      "segment_index": 43,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -721,9 +708,9 @@
       }
     },
     {
-      "query_index": 45,
-      "segment_index": 45,
-      "cluster_id": 17,
+      "query_index": 44,
+      "segment_index": 44,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -734,9 +721,9 @@
       }
     },
     {
-      "query_index": 46,
-      "segment_index": 46,
-      "cluster_id": 17,
+      "query_index": 45,
+      "segment_index": 45,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -747,9 +734,9 @@
       }
     },
     {
-      "query_index": 47,
-      "segment_index": 47,
-      "cluster_id": 17,
+      "query_index": 46,
+      "segment_index": 46,
+      "cluster_id": 2,
       "label_id": 0,
       "n_gallery": 13,
       "n_relevant": 10,
@@ -760,191 +747,9 @@
       }
     },
     {
-      "query_index": 48,
-      "segment_index": 48,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.6592857142857144,
-        "encoder_seq_dtw": 0.7100000000000001,
-        "temporal_residual_dtw": 0.6861904761904762
-      }
-    },
-    {
-      "query_index": 49,
-      "segment_index": 49,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9821428571428571,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 50,
-      "segment_index": 50,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.4783189033189033,
-        "encoder_seq_dtw": 0.9379251700680271,
-        "temporal_residual_dtw": 0.9682539682539683
-      }
-    },
-    {
-      "query_index": 51,
-      "segment_index": 51,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.7088888888888889,
-        "encoder_seq_dtw": 0.44904761904761903,
-        "temporal_residual_dtw": 0.4848595848595848
-      }
-    },
-    {
-      "query_index": 52,
-      "segment_index": 52,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.7266666666666667,
-        "encoder_seq_dtw": 0.72,
-        "temporal_residual_dtw": 0.7311111111111112
-      }
-    },
-    {
-      "query_index": 53,
-      "segment_index": 53,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.7266666666666667,
-        "encoder_seq_dtw": 0.7251948051948053,
-        "temporal_residual_dtw": 0.7833333333333333
-      }
-    },
-    {
-      "query_index": 54,
-      "segment_index": 54,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9682539682539683,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 55,
-      "segment_index": 55,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9276437847866419,
-        "encoder_seq_dtw": 0.6893424036281178,
-        "temporal_residual_dtw": 0.7545918367346939
-      }
-    },
-    {
-      "query_index": 56,
-      "segment_index": 56,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.696923076923077,
-        "encoder_seq_dtw": 0.6491452991452991,
-        "temporal_residual_dtw": 0.6366666666666666
-      }
-    },
-    {
-      "query_index": 57,
-      "segment_index": 57,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.8976190476190476,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9821428571428571
-      }
-    },
-    {
-      "query_index": 58,
-      "segment_index": 58,
-      "cluster_id": 45,
-      "label_id": 1,
-      "n_gallery": 13,
-      "n_relevant": 5,
-      "average_precision": {
-        "bot_cosine": 0.7602564102564102,
-        "encoder_seq_dtw": 0.6102564102564102,
-        "temporal_residual_dtw": 0.6102564102564102
-      }
-    },
-    {
-      "query_index": 59,
-      "segment_index": 59,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.8373376623376624,
-        "encoder_seq_dtw": 0.9379251700680271,
-        "temporal_residual_dtw": 0.9093537414965985
-      }
-    },
-    {
-      "query_index": 60,
-      "segment_index": 60,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9821428571428571,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9276437847866419
-      }
-    },
-    {
-      "query_index": 61,
-      "segment_index": 61,
-      "cluster_id": 45,
-      "label_id": 0,
-      "n_gallery": 13,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.7329931972789115,
-        "encoder_seq_dtw": 0.9123376623376623,
-        "temporal_residual_dtw": 0.5786641929499072
-      }
-    },
-    {
-      "query_index": 62,
-      "segment_index": 62,
-      "cluster_id": 1,
+      "query_index": 47,
+      "segment_index": 47,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -955,9 +760,9 @@
       }
     },
     {
-      "query_index": 63,
-      "segment_index": 63,
-      "cluster_id": 1,
+      "query_index": 48,
+      "segment_index": 48,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -968,9 +773,9 @@
       }
     },
     {
-      "query_index": 64,
-      "segment_index": 64,
-      "cluster_id": 1,
+      "query_index": 49,
+      "segment_index": 49,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -981,9 +786,9 @@
       }
     },
     {
-      "query_index": 65,
-      "segment_index": 65,
-      "cluster_id": 1,
+      "query_index": 50,
+      "segment_index": 50,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -994,9 +799,9 @@
       }
     },
     {
-      "query_index": 66,
-      "segment_index": 66,
-      "cluster_id": 1,
+      "query_index": 51,
+      "segment_index": 51,
+      "cluster_id": 58,
       "label_id": 1,
       "n_gallery": 12,
       "n_relevant": 3,
@@ -1007,9 +812,9 @@
       }
     },
     {
-      "query_index": 67,
-      "segment_index": 67,
-      "cluster_id": 1,
+      "query_index": 52,
+      "segment_index": 52,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -1020,9 +825,9 @@
       }
     },
     {
-      "query_index": 68,
-      "segment_index": 68,
-      "cluster_id": 1,
+      "query_index": 53,
+      "segment_index": 53,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -1033,9 +838,9 @@
       }
     },
     {
-      "query_index": 69,
-      "segment_index": 69,
-      "cluster_id": 1,
+      "query_index": 54,
+      "segment_index": 54,
+      "cluster_id": 58,
       "label_id": 1,
       "n_gallery": 12,
       "n_relevant": 3,
@@ -1046,9 +851,9 @@
       }
     },
     {
-      "query_index": 70,
-      "segment_index": 70,
-      "cluster_id": 1,
+      "query_index": 55,
+      "segment_index": 55,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -1059,9 +864,9 @@
       }
     },
     {
-      "query_index": 71,
-      "segment_index": 71,
-      "cluster_id": 1,
+      "query_index": 56,
+      "segment_index": 56,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -1072,9 +877,9 @@
       }
     },
     {
-      "query_index": 72,
-      "segment_index": 72,
-      "cluster_id": 1,
+      "query_index": 57,
+      "segment_index": 57,
+      "cluster_id": 58,
       "label_id": 1,
       "n_gallery": 12,
       "n_relevant": 3,
@@ -1085,9 +890,9 @@
       }
     },
     {
-      "query_index": 73,
-      "segment_index": 73,
-      "cluster_id": 1,
+      "query_index": 58,
+      "segment_index": 58,
+      "cluster_id": 58,
       "label_id": 1,
       "n_gallery": 12,
       "n_relevant": 3,
@@ -1098,9 +903,9 @@
       }
     },
     {
-      "query_index": 74,
-      "segment_index": 74,
-      "cluster_id": 1,
+      "query_index": 59,
+      "segment_index": 59,
+      "cluster_id": 58,
       "label_id": 0,
       "n_gallery": 12,
       "n_relevant": 8,
@@ -1111,152 +916,165 @@
       }
     },
     {
-      "query_index": 75,
-      "segment_index": 75,
-      "cluster_id": 35,
+      "query_index": 60,
+      "segment_index": 60,
+      "cluster_id": 91,
       "label_id": 0,
-      "n_gallery": 10,
+      "n_gallery": 11,
       "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.9093537414965985,
-        "encoder_seq_dtw": 0.8083900226757369,
-        "temporal_residual_dtw": 0.8083900226757369
-      }
-    },
-    {
-      "query_index": 76,
-      "segment_index": 76,
-      "cluster_id": 35,
-      "label_id": 0,
-      "n_gallery": 10,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.855952380952381,
-        "encoder_seq_dtw": 0.8687074829931973,
-        "temporal_residual_dtw": 0.8917233560090703
-      }
-    },
-    {
-      "query_index": 77,
-      "segment_index": 77,
-      "cluster_id": 35,
-      "label_id": 0,
-      "n_gallery": 10,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.8687074829931973,
-        "encoder_seq_dtw": 0.9240362811791382,
-        "temporal_residual_dtw": 0.9379251700680271
-      }
-    },
-    {
-      "query_index": 78,
-      "segment_index": 78,
-      "cluster_id": 35,
-      "label_id": 0,
-      "n_gallery": 10,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9095238095238096,
-        "encoder_seq_dtw": 0.9682539682539683,
-        "temporal_residual_dtw": 0.8441043083900226
-      }
-    },
-    {
-      "query_index": 79,
-      "segment_index": 79,
-      "cluster_id": 35,
-      "label_id": 0,
-      "n_gallery": 10,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.827437641723356,
-        "encoder_seq_dtw": 0.740702947845805,
-        "temporal_residual_dtw": 0.740702947845805
-      }
-    },
-    {
-      "query_index": 80,
-      "segment_index": 80,
-      "cluster_id": 35,
-      "label_id": 0,
-      "n_gallery": 10,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.855952380952381,
-        "encoder_seq_dtw": 0.855952380952381,
-        "temporal_residual_dtw": 0.8083333333333333
-      }
-    },
-    {
-      "query_index": 81,
-      "segment_index": 81,
-      "cluster_id": 35,
-      "label_id": 1,
-      "n_gallery": 10,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.325,
+        "bot_cosine": 0.9821428571428571,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
     },
     {
-      "query_index": 82,
-      "segment_index": 82,
-      "cluster_id": 35,
-      "label_id": 1,
-      "n_gallery": 10,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.6,
-        "encoder_seq_dtw": 0.3611111111111111,
-        "temporal_residual_dtw": 0.39285714285714285
-      }
-    },
-    {
-      "query_index": 83,
-      "segment_index": 83,
-      "cluster_id": 35,
+      "query_index": 61,
+      "segment_index": 61,
+      "cluster_id": 91,
       "label_id": 0,
-      "n_gallery": 10,
+      "n_gallery": 11,
       "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.9379251700680271,
-        "encoder_seq_dtw": 0.9087301587301587,
-        "temporal_residual_dtw": 0.8631519274376417
+        "bot_cosine": 0.5172129457843744,
+        "encoder_seq_dtw": 0.9379251700680271,
+        "temporal_residual_dtw": 0.9682539682539683
       }
     },
     {
-      "query_index": 84,
-      "segment_index": 84,
-      "cluster_id": 35,
+      "query_index": 62,
+      "segment_index": 62,
+      "cluster_id": 91,
+      "label_id": 1,
+      "n_gallery": 11,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 0.8055555555555555,
+        "encoder_seq_dtw": 0.8095238095238094,
+        "temporal_residual_dtw": 0.8666666666666667
+      }
+    },
+    {
+      "query_index": 63,
+      "segment_index": 63,
+      "cluster_id": 91,
+      "label_id": 1,
+      "n_gallery": 11,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 0.8055555555555555,
+        "encoder_seq_dtw": 0.5777777777777777,
+        "temporal_residual_dtw": 0.5444444444444444
+      }
+    },
+    {
+      "query_index": 64,
+      "segment_index": 64,
+      "cluster_id": 91,
       "label_id": 0,
-      "n_gallery": 10,
+      "n_gallery": 11,
+      "n_relevant": 7,
+      "average_precision": {
+        "bot_cosine": 0.9682539682539683,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 65,
+      "segment_index": 65,
+      "cluster_id": 91,
+      "label_id": 0,
+      "n_gallery": 11,
+      "n_relevant": 7,
+      "average_precision": {
+        "bot_cosine": 0.936734693877551,
+        "encoder_seq_dtw": 0.9093537414965985,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 66,
+      "segment_index": 66,
+      "cluster_id": 91,
+      "label_id": 1,
+      "n_gallery": 11,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 0.8666666666666667,
+        "encoder_seq_dtw": 0.6464646464646464,
+        "temporal_residual_dtw": 0.6
+      }
+    },
+    {
+      "query_index": 67,
+      "segment_index": 67,
+      "cluster_id": 91,
+      "label_id": 0,
+      "n_gallery": 11,
+      "n_relevant": 7,
+      "average_precision": {
+        "bot_cosine": 0.9087301587301587,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.9821428571428571
+      }
+    },
+    {
+      "query_index": 68,
+      "segment_index": 68,
+      "cluster_id": 91,
+      "label_id": 1,
+      "n_gallery": 11,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 0.9166666666666666,
+        "encoder_seq_dtw": 0.6464646464646464,
+        "temporal_residual_dtw": 0.6464646464646464
+      }
+    },
+    {
+      "query_index": 69,
+      "segment_index": 69,
+      "cluster_id": 91,
+      "label_id": 0,
+      "n_gallery": 11,
       "n_relevant": 7,
       "average_precision": {
         "bot_cosine": 0.8687074829931973,
-        "encoder_seq_dtw": 0.9214285714285715,
-        "temporal_residual_dtw": 0.9325396825396826
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
-      "query_index": 85,
-      "segment_index": 85,
-      "cluster_id": 35,
-      "label_id": 1,
-      "n_gallery": 10,
-      "n_relevant": 2,
+      "query_index": 70,
+      "segment_index": 70,
+      "cluster_id": 91,
+      "label_id": 0,
+      "n_gallery": 11,
+      "n_relevant": 7,
       "average_precision": {
-        "bot_cosine": 0.6428571428571428,
-        "encoder_seq_dtw": 0.8333333333333333,
-        "temporal_residual_dtw": 0.8333333333333333
+        "bot_cosine": 0.9821428571428571,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.936734693877551
       }
     },
     {
-      "query_index": 86,
-      "segment_index": 86,
-      "cluster_id": 23,
+      "query_index": 71,
+      "segment_index": 71,
+      "cluster_id": 91,
+      "label_id": 0,
+      "n_gallery": 11,
+      "n_relevant": 7,
+      "average_precision": {
+        "bot_cosine": 0.7405689548546691,
+        "encoder_seq_dtw": 0.9214285714285715,
+        "temporal_residual_dtw": 0.5972789115646258
+      }
+    },
+    {
+      "query_index": 72,
+      "segment_index": 72,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1267,9 +1085,9 @@
       }
     },
     {
-      "query_index": 87,
-      "segment_index": 87,
-      "cluster_id": 23,
+      "query_index": 73,
+      "segment_index": 73,
+      "cluster_id": 8,
       "label_id": 0,
       "n_gallery": 9,
       "n_relevant": 2,
@@ -1280,9 +1098,9 @@
       }
     },
     {
-      "query_index": 88,
-      "segment_index": 88,
-      "cluster_id": 23,
+      "query_index": 74,
+      "segment_index": 74,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1293,9 +1111,9 @@
       }
     },
     {
-      "query_index": 89,
-      "segment_index": 89,
-      "cluster_id": 23,
+      "query_index": 75,
+      "segment_index": 75,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1306,9 +1124,9 @@
       }
     },
     {
-      "query_index": 90,
-      "segment_index": 90,
-      "cluster_id": 23,
+      "query_index": 76,
+      "segment_index": 76,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1319,9 +1137,9 @@
       }
     },
     {
-      "query_index": 91,
-      "segment_index": 91,
-      "cluster_id": 23,
+      "query_index": 77,
+      "segment_index": 77,
+      "cluster_id": 8,
       "label_id": 0,
       "n_gallery": 9,
       "n_relevant": 2,
@@ -1332,9 +1150,9 @@
       }
     },
     {
-      "query_index": 92,
-      "segment_index": 92,
-      "cluster_id": 23,
+      "query_index": 78,
+      "segment_index": 78,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1345,9 +1163,9 @@
       }
     },
     {
-      "query_index": 93,
-      "segment_index": 93,
-      "cluster_id": 23,
+      "query_index": 79,
+      "segment_index": 79,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1358,9 +1176,9 @@
       }
     },
     {
-      "query_index": 94,
-      "segment_index": 94,
-      "cluster_id": 23,
+      "query_index": 80,
+      "segment_index": 80,
+      "cluster_id": 8,
       "label_id": 0,
       "n_gallery": 9,
       "n_relevant": 2,
@@ -1371,9 +1189,9 @@
       }
     },
     {
-      "query_index": 95,
-      "segment_index": 95,
-      "cluster_id": 23,
+      "query_index": 81,
+      "segment_index": 81,
+      "cluster_id": 8,
       "label_id": 1,
       "n_gallery": 9,
       "n_relevant": 6,
@@ -1384,139 +1202,126 @@
       }
     },
     {
-      "query_index": 96,
-      "segment_index": 96,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 97,
-      "segment_index": 97,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.9821428571428571,
-        "temporal_residual_dtw": 0.961734693877551
-      }
-    },
-    {
-      "query_index": 98,
-      "segment_index": 98,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9821428571428571,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 99,
-      "segment_index": 99,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 0.9821428571428571,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 100,
-      "segment_index": 100,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9093537414965985
-      }
-    },
-    {
-      "query_index": 101,
-      "segment_index": 101,
-      "cluster_id": 44,
+      "query_index": 82,
+      "segment_index": 82,
+      "cluster_id": 86,
       "label_id": 0,
-      "n_gallery": 9,
-      "n_relevant": 1,
+      "n_gallery": 8,
+      "n_relevant": 5,
       "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
+        "bot_cosine": 0.9266666666666665,
+        "encoder_seq_dtw": 0.7961904761904762,
+        "temporal_residual_dtw": 0.7961904761904762
       }
     },
     {
-      "query_index": 102,
-      "segment_index": 102,
-      "cluster_id": 44,
+      "query_index": 83,
+      "segment_index": 83,
+      "cluster_id": 86,
       "label_id": 0,
-      "n_gallery": 9,
-      "n_relevant": 1,
+      "n_gallery": 8,
+      "n_relevant": 5,
       "average_precision": {
-        "bot_cosine": 1.0,
+        "bot_cosine": 0.8392857142857142,
+        "encoder_seq_dtw": 0.9428571428571428,
+        "temporal_residual_dtw": 0.7961904761904762
+      }
+    },
+    {
+      "query_index": 84,
+      "segment_index": 84,
+      "cluster_id": 86,
+      "label_id": 0,
+      "n_gallery": 8,
+      "n_relevant": 5,
+      "average_precision": {
+        "bot_cosine": 0.8261904761904761,
+        "encoder_seq_dtw": 0.6861904761904762,
+        "temporal_residual_dtw": 0.6861904761904762
+      }
+    },
+    {
+      "query_index": 85,
+      "segment_index": 85,
+      "cluster_id": 86,
+      "label_id": 0,
+      "n_gallery": 8,
+      "n_relevant": 5,
+      "average_precision": {
+        "bot_cosine": 0.7392857142857142,
+        "encoder_seq_dtw": 0.7392857142857142,
+        "temporal_residual_dtw": 0.6392857142857142
+      }
+    },
+    {
+      "query_index": 86,
+      "segment_index": 86,
+      "cluster_id": 86,
+      "label_id": 1,
+      "n_gallery": 8,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 0.41666666666666663,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
     },
     {
-      "query_index": 103,
-      "segment_index": 103,
-      "cluster_id": 44,
+      "query_index": 87,
+      "segment_index": 87,
+      "cluster_id": 86,
       "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
+      "n_gallery": 8,
+      "n_relevant": 2,
       "average_precision": {
-        "bot_cosine": 0.961734693877551,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
+        "bot_cosine": 0.625,
+        "encoder_seq_dtw": 0.39285714285714285,
+        "temporal_residual_dtw": 0.41666666666666663
       }
     },
     {
-      "query_index": 104,
-      "segment_index": 104,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
+      "query_index": 88,
+      "segment_index": 88,
+      "cluster_id": 86,
+      "label_id": 0,
+      "n_gallery": 8,
+      "n_relevant": 5,
       "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
+        "bot_cosine": 0.9266666666666665,
+        "encoder_seq_dtw": 0.9028571428571428,
+        "temporal_residual_dtw": 0.8761904761904761
       }
     },
     {
-      "query_index": 105,
-      "segment_index": 105,
-      "cluster_id": 44,
-      "label_id": 1,
-      "n_gallery": 9,
-      "n_relevant": 7,
+      "query_index": 89,
+      "segment_index": 89,
+      "cluster_id": 86,
+      "label_id": 0,
+      "n_gallery": 8,
+      "n_relevant": 5,
       "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.9821428571428571
+        "bot_cosine": 0.7592857142857143,
+        "encoder_seq_dtw": 0.8583333333333332,
+        "temporal_residual_dtw": 0.8761904761904761
       }
     },
     {
-      "query_index": 106,
-      "segment_index": 106,
-      "cluster_id": 20,
+      "query_index": 90,
+      "segment_index": 90,
+      "cluster_id": 86,
+      "label_id": 1,
+      "n_gallery": 8,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 0.7,
+        "encoder_seq_dtw": 0.8333333333333333,
+        "temporal_residual_dtw": 0.8333333333333333
+      }
+    },
+    {
+      "query_index": 91,
+      "segment_index": 91,
+      "cluster_id": 5,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1527,9 +1332,9 @@
       }
     },
     {
-      "query_index": 107,
-      "segment_index": 107,
-      "cluster_id": 20,
+      "query_index": 92,
+      "segment_index": 92,
+      "cluster_id": 5,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1540,9 +1345,9 @@
       }
     },
     {
-      "query_index": 108,
-      "segment_index": 108,
-      "cluster_id": 20,
+      "query_index": 93,
+      "segment_index": 93,
+      "cluster_id": 5,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1553,9 +1358,9 @@
       }
     },
     {
-      "query_index": 109,
-      "segment_index": 109,
-      "cluster_id": 20,
+      "query_index": 94,
+      "segment_index": 94,
+      "cluster_id": 5,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1566,9 +1371,9 @@
       }
     },
     {
-      "query_index": 110,
-      "segment_index": 110,
-      "cluster_id": 20,
+      "query_index": 95,
+      "segment_index": 95,
+      "cluster_id": 5,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1579,9 +1384,9 @@
       }
     },
     {
-      "query_index": 111,
-      "segment_index": 111,
-      "cluster_id": 20,
+      "query_index": 96,
+      "segment_index": 96,
+      "cluster_id": 5,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1592,9 +1397,9 @@
       }
     },
     {
-      "query_index": 112,
-      "segment_index": 112,
-      "cluster_id": 20,
+      "query_index": 97,
+      "segment_index": 97,
+      "cluster_id": 5,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1605,9 +1410,9 @@
       }
     },
     {
-      "query_index": 113,
-      "segment_index": 113,
-      "cluster_id": 20,
+      "query_index": 98,
+      "segment_index": 98,
+      "cluster_id": 5,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 3,
@@ -1618,9 +1423,9 @@
       }
     },
     {
-      "query_index": 114,
-      "segment_index": 114,
-      "cluster_id": 53,
+      "query_index": 99,
+      "segment_index": 99,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1631,9 +1436,9 @@
       }
     },
     {
-      "query_index": 115,
-      "segment_index": 115,
-      "cluster_id": 53,
+      "query_index": 100,
+      "segment_index": 100,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1644,9 +1449,9 @@
       }
     },
     {
-      "query_index": 116,
-      "segment_index": 116,
-      "cluster_id": 53,
+      "query_index": 101,
+      "segment_index": 101,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1657,9 +1462,9 @@
       }
     },
     {
-      "query_index": 117,
-      "segment_index": 117,
-      "cluster_id": 53,
+      "query_index": 102,
+      "segment_index": 102,
+      "cluster_id": 21,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 1,
@@ -1670,9 +1475,9 @@
       }
     },
     {
-      "query_index": 118,
-      "segment_index": 118,
-      "cluster_id": 53,
+      "query_index": 103,
+      "segment_index": 103,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1683,9 +1488,9 @@
       }
     },
     {
-      "query_index": 119,
-      "segment_index": 119,
-      "cluster_id": 53,
+      "query_index": 104,
+      "segment_index": 104,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1696,9 +1501,9 @@
       }
     },
     {
-      "query_index": 120,
-      "segment_index": 120,
-      "cluster_id": 53,
+      "query_index": 105,
+      "segment_index": 105,
+      "cluster_id": 21,
       "label_id": 1,
       "n_gallery": 7,
       "n_relevant": 5,
@@ -1709,12 +1514,181 @@
       }
     },
     {
-      "query_index": 121,
-      "segment_index": 121,
-      "cluster_id": 53,
+      "query_index": 106,
+      "segment_index": 106,
+      "cluster_id": 21,
       "label_id": 0,
       "n_gallery": 7,
       "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 107,
+      "segment_index": 107,
+      "cluster_id": 72,
+      "label_id": 1,
+      "n_gallery": 6,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 108,
+      "segment_index": 108,
+      "cluster_id": 72,
+      "label_id": 0,
+      "n_gallery": 6,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 0.8333333333333333,
+        "encoder_seq_dtw": 0.75,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 109,
+      "segment_index": 109,
+      "cluster_id": 72,
+      "label_id": 0,
+      "n_gallery": 6,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 0.8333333333333333,
+        "encoder_seq_dtw": 0.75,
+        "temporal_residual_dtw": 0.8333333333333333
+      }
+    },
+    {
+      "query_index": 110,
+      "segment_index": 110,
+      "cluster_id": 72,
+      "label_id": 1,
+      "n_gallery": 6,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 111,
+      "segment_index": 111,
+      "cluster_id": 72,
+      "label_id": 1,
+      "n_gallery": 6,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 112,
+      "segment_index": 112,
+      "cluster_id": 72,
+      "label_id": 0,
+      "n_gallery": 6,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 0.3333333333333333,
+        "temporal_residual_dtw": 0.75
+      }
+    },
+    {
+      "query_index": 113,
+      "segment_index": 113,
+      "cluster_id": 72,
+      "label_id": 1,
+      "n_gallery": 6,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 114,
+      "segment_index": 114,
+      "cluster_id": 13,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 115,
+      "segment_index": 115,
+      "cluster_id": 13,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
+      "average_precision": {
+        "bot_cosine": 0.95,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 117,
+      "segment_index": 117,
+      "cluster_id": 13,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 118,
+      "segment_index": 118,
+      "cluster_id": 13,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 0.95,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 119,
+      "segment_index": 119,
+      "cluster_id": 13,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
+      "average_precision": {
+        "bot_cosine": 0.95,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 121,
+      "segment_index": 121,
+      "cluster_id": 29,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -1726,24 +1700,24 @@
       "segment_index": 122,
       "cluster_id": 29,
       "label_id": 1,
-      "n_gallery": 6,
-      "n_relevant": 3,
+      "n_gallery": 5,
+      "n_relevant": 4,
       "average_precision": {
-        "bot_cosine": 1.0,
+        "bot_cosine": 0.8875,
         "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
+        "temporal_residual_dtw": 0.8875
       }
     },
     {
       "query_index": 123,
       "segment_index": 123,
       "cluster_id": 29,
-      "label_id": 0,
-      "n_gallery": 6,
-      "n_relevant": 2,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
       "average_precision": {
-        "bot_cosine": 0.8333333333333333,
-        "encoder_seq_dtw": 0.75,
+        "bot_cosine": 0.8875,
+        "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
     },
@@ -1751,13 +1725,13 @@
       "query_index": 124,
       "segment_index": 124,
       "cluster_id": 29,
-      "label_id": 0,
-      "n_gallery": 6,
-      "n_relevant": 2,
+      "label_id": 1,
+      "n_gallery": 5,
+      "n_relevant": 4,
       "average_precision": {
-        "bot_cosine": 0.8333333333333333,
-        "encoder_seq_dtw": 0.75,
-        "temporal_residual_dtw": 0.8333333333333333
+        "bot_cosine": 0.8875,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
@@ -1765,21 +1739,8 @@
       "segment_index": 125,
       "cluster_id": 29,
       "label_id": 1,
-      "n_gallery": 6,
-      "n_relevant": 3,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 126,
-      "segment_index": 126,
-      "cluster_id": 29,
-      "label_id": 1,
-      "n_gallery": 6,
-      "n_relevant": 3,
+      "n_gallery": 5,
+      "n_relevant": 4,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -1789,22 +1750,22 @@
     {
       "query_index": 127,
       "segment_index": 127,
-      "cluster_id": 29,
+      "cluster_id": 1,
       "label_id": 0,
-      "n_gallery": 6,
-      "n_relevant": 2,
+      "n_gallery": 4,
+      "n_relevant": 3,
       "average_precision": {
         "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.3333333333333333,
-        "temporal_residual_dtw": 0.75
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 128,
       "segment_index": 128,
-      "cluster_id": 29,
-      "label_id": 1,
-      "n_gallery": 6,
+      "cluster_id": 1,
+      "label_id": 0,
+      "n_gallery": 4,
       "n_relevant": 3,
       "average_precision": {
         "bot_cosine": 1.0,
@@ -1815,12 +1776,25 @@
     {
       "query_index": 129,
       "segment_index": 129,
-      "cluster_id": 11,
+      "cluster_id": 1,
       "label_id": 0,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "n_gallery": 4,
+      "n_relevant": 3,
       "average_precision": {
-        "bot_cosine": 0.8875,
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 130,
+      "segment_index": 130,
+      "cluster_id": 1,
+      "label_id": 0,
+      "n_gallery": 4,
+      "n_relevant": 3,
+      "average_precision": {
+        "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
@@ -1828,25 +1802,25 @@
     {
       "query_index": 131,
       "segment_index": 131,
-      "cluster_id": 11,
-      "label_id": 0,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "cluster_id": 15,
+      "label_id": 1,
+      "n_gallery": 4,
+      "n_relevant": 1,
       "average_precision": {
-        "bot_cosine": 0.8875,
-        "encoder_seq_dtw": 0.95,
-        "temporal_residual_dtw": 0.95
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
       }
     },
     {
       "query_index": 132,
       "segment_index": 132,
-      "cluster_id": 11,
+      "cluster_id": 15,
       "label_id": 0,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "n_gallery": 4,
+      "n_relevant": 2,
       "average_precision": {
-        "bot_cosine": 0.8875,
+        "bot_cosine": 0.8333333333333333,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
@@ -1854,12 +1828,12 @@
     {
       "query_index": 133,
       "segment_index": 133,
-      "cluster_id": 11,
-      "label_id": 0,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "cluster_id": 15,
+      "label_id": 1,
+      "n_gallery": 4,
+      "n_relevant": 1,
       "average_precision": {
-        "bot_cosine": 0.8875,
+        "bot_cosine": 0.5,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
@@ -1867,23 +1841,23 @@
     {
       "query_index": 134,
       "segment_index": 134,
-      "cluster_id": 11,
+      "cluster_id": 15,
       "label_id": 0,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "n_gallery": 4,
+      "n_relevant": 2,
       "average_precision": {
-        "bot_cosine": 0.6791666666666667,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
+        "bot_cosine": 0.5833333333333333,
+        "encoder_seq_dtw": 0.5833333333333333,
+        "temporal_residual_dtw": 0.5833333333333333
       }
     },
     {
       "query_index": 135,
       "segment_index": 135,
-      "cluster_id": 41,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
+      "cluster_id": 15,
+      "label_id": 0,
+      "n_gallery": 4,
+      "n_relevant": 2,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -1893,241 +1867,7 @@
     {
       "query_index": 136,
       "segment_index": 136,
-      "cluster_id": 41,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 0.95,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 138,
-      "segment_index": 138,
-      "cluster_id": 41,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 139,
-      "segment_index": 139,
-      "cluster_id": 41,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.95,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 140,
-      "segment_index": 140,
-      "cluster_id": 41,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 0.95,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 142,
-      "segment_index": 142,
-      "cluster_id": 73,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 143,
-      "segment_index": 143,
-      "cluster_id": 73,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 0.8875,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.8875
-      }
-    },
-    {
-      "query_index": 144,
-      "segment_index": 144,
-      "cluster_id": 73,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 0.8875,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 145,
-      "segment_index": 145,
-      "cluster_id": 73,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 0.8875,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 146,
-      "segment_index": 146,
-      "cluster_id": 73,
-      "label_id": 1,
-      "n_gallery": 5,
-      "n_relevant": 4,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 147,
-      "segment_index": 147,
-      "cluster_id": 8,
-      "label_id": 1,
-      "n_gallery": 4,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.5,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 148,
-      "segment_index": 148,
-      "cluster_id": 8,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.75,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 149,
-      "segment_index": 149,
-      "cluster_id": 8,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.75,
-        "encoder_seq_dtw": 0.8333333333333333,
-        "temporal_residual_dtw": 0.8333333333333333
-      }
-    },
-    {
-      "query_index": 150,
-      "segment_index": 150,
-      "cluster_id": 8,
-      "label_id": 1,
-      "n_gallery": 4,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.3333333333333333
-      }
-    },
-    {
-      "query_index": 151,
-      "segment_index": 151,
-      "cluster_id": 8,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 153,
-      "segment_index": 153,
-      "cluster_id": 16,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 3,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 154,
-      "segment_index": 154,
-      "cluster_id": 16,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 3,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 155,
-      "segment_index": 155,
-      "cluster_id": 16,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 3,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 156,
-      "segment_index": 156,
-      "cluster_id": 16,
-      "label_id": 0,
-      "n_gallery": 4,
-      "n_relevant": 3,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 157,
-      "segment_index": 157,
-      "cluster_id": 27,
+      "cluster_id": 70,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 3,
@@ -2138,9 +1878,9 @@
       }
     },
     {
-      "query_index": 158,
-      "segment_index": 158,
-      "cluster_id": 27,
+      "query_index": 137,
+      "segment_index": 137,
+      "cluster_id": 70,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 3,
@@ -2151,9 +1891,9 @@
       }
     },
     {
-      "query_index": 160,
-      "segment_index": 160,
-      "cluster_id": 27,
+      "query_index": 139,
+      "segment_index": 139,
+      "cluster_id": 70,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 3,
@@ -2164,9 +1904,9 @@
       }
     },
     {
-      "query_index": 161,
-      "segment_index": 161,
-      "cluster_id": 27,
+      "query_index": 140,
+      "segment_index": 140,
+      "cluster_id": 70,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 3,
@@ -2177,9 +1917,9 @@
       }
     },
     {
-      "query_index": 162,
-      "segment_index": 162,
-      "cluster_id": 30,
+      "query_index": 141,
+      "segment_index": 141,
+      "cluster_id": 73,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 2,
@@ -2190,9 +1930,9 @@
       }
     },
     {
-      "query_index": 163,
-      "segment_index": 163,
-      "cluster_id": 30,
+      "query_index": 142,
+      "segment_index": 142,
+      "cluster_id": 73,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 2,
@@ -2203,9 +1943,9 @@
       }
     },
     {
-      "query_index": 164,
-      "segment_index": 164,
-      "cluster_id": 30,
+      "query_index": 143,
+      "segment_index": 143,
+      "cluster_id": 73,
       "label_id": 0,
       "n_gallery": 4,
       "n_relevant": 2,
@@ -2216,9 +1956,9 @@
       }
     },
     {
-      "query_index": 165,
-      "segment_index": 165,
-      "cluster_id": 30,
+      "query_index": 144,
+      "segment_index": 144,
+      "cluster_id": 73,
       "label_id": 1,
       "n_gallery": 4,
       "n_relevant": 1,
@@ -2229,9 +1969,9 @@
       }
     },
     {
-      "query_index": 166,
-      "segment_index": 166,
-      "cluster_id": 30,
+      "query_index": 145,
+      "segment_index": 145,
+      "cluster_id": 73,
       "label_id": 1,
       "n_gallery": 4,
       "n_relevant": 1,
@@ -2242,50 +1982,37 @@
       }
     },
     {
-      "query_index": 167,
-      "segment_index": 167,
-      "cluster_id": 43,
+      "query_index": 146,
+      "segment_index": 146,
+      "cluster_id": 0,
       "label_id": 1,
-      "n_gallery": 4,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 168,
-      "segment_index": 168,
-      "cluster_id": 43,
-      "label_id": 0,
-      "n_gallery": 4,
+      "n_gallery": 3,
       "n_relevant": 2,
       "average_precision": {
-        "bot_cosine": 0.8333333333333333,
+        "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
     },
     {
-      "query_index": 169,
-      "segment_index": 169,
-      "cluster_id": 43,
+      "query_index": 147,
+      "segment_index": 147,
+      "cluster_id": 0,
       "label_id": 1,
-      "n_gallery": 4,
-      "n_relevant": 1,
+      "n_gallery": 3,
+      "n_relevant": 2,
       "average_precision": {
-        "bot_cosine": 0.5,
+        "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
     },
     {
-      "query_index": 170,
-      "segment_index": 170,
-      "cluster_id": 43,
-      "label_id": 0,
-      "n_gallery": 4,
+      "query_index": 149,
+      "segment_index": 149,
+      "cluster_id": 0,
+      "label_id": 1,
+      "n_gallery": 3,
       "n_relevant": 2,
       "average_precision": {
         "bot_cosine": 0.5833333333333333,
@@ -2294,12 +2021,259 @@
       }
     },
     {
-      "query_index": 171,
-      "segment_index": 171,
+      "query_index": 150,
+      "segment_index": 150,
+      "cluster_id": 23,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 151,
+      "segment_index": 151,
+      "cluster_id": 23,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 153,
+      "segment_index": 153,
+      "cluster_id": 23,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 154,
+      "segment_index": 154,
+      "cluster_id": 43,
+      "label_id": 1,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 155,
+      "segment_index": 155,
+      "cluster_id": 43,
+      "label_id": 1,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.3333333333333333,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.3333333333333333
+      }
+    },
+    {
+      "query_index": 156,
+      "segment_index": 156,
       "cluster_id": 43,
       "label_id": 0,
-      "n_gallery": 4,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.5
+      }
+    },
+    {
+      "query_index": 157,
+      "segment_index": 157,
+      "cluster_id": 43,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 159,
+      "segment_index": 159,
+      "cluster_id": 60,
+      "label_id": 0,
+      "n_gallery": 3,
       "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 160,
+      "segment_index": 160,
+      "cluster_id": 60,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 161,
+      "segment_index": 161,
+      "cluster_id": 60,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 162,
+      "segment_index": 162,
+      "cluster_id": 65,
+      "label_id": 1,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 0.5,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 163,
+      "segment_index": 163,
+      "cluster_id": 65,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 164,
+      "segment_index": 164,
+      "cluster_id": 65,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 165,
+      "segment_index": 165,
+      "cluster_id": 65,
+      "label_id": 1,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.5
+      }
+    },
+    {
+      "query_index": 166,
+      "segment_index": 166,
+      "cluster_id": 66,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 168,
+      "segment_index": 168,
+      "cluster_id": 66,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 169,
+      "segment_index": 169,
+      "cluster_id": 66,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 2,
+      "average_precision": {
+        "bot_cosine": 0.5833333333333333,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 170,
+      "segment_index": 170,
+      "cluster_id": 69,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 0.5
+      }
+    },
+    {
+      "query_index": 171,
+      "segment_index": 171,
+      "cluster_id": 69,
+      "label_id": 0,
+      "n_gallery": 3,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.3333333333333333,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 172,
+      "segment_index": 172,
+      "cluster_id": 69,
+      "label_id": 1,
+      "n_gallery": 3,
+      "n_relevant": 1,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -2309,10 +2283,10 @@
     {
       "query_index": 173,
       "segment_index": 173,
-      "cluster_id": 3,
-      "label_id": 0,
+      "cluster_id": 69,
+      "label_id": 1,
       "n_gallery": 3,
-      "n_relevant": 2,
+      "n_relevant": 1,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -2322,10 +2296,10 @@
     {
       "query_index": 174,
       "segment_index": 174,
-      "cluster_id": 3,
-      "label_id": 0,
+      "cluster_id": 94,
+      "label_id": 1,
       "n_gallery": 3,
-      "n_relevant": 2,
+      "n_relevant": 1,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -2335,10 +2309,10 @@
     {
       "query_index": 175,
       "segment_index": 175,
-      "cluster_id": 3,
-      "label_id": 0,
+      "cluster_id": 94,
+      "label_id": 1,
       "n_gallery": 3,
-      "n_relevant": 2,
+      "n_relevant": 1,
       "average_precision": {
         "bot_cosine": 1.0,
         "encoder_seq_dtw": 1.0,
@@ -2348,267 +2322,7 @@
     {
       "query_index": 176,
       "segment_index": 176,
-      "cluster_id": 9,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.8333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 178,
-      "segment_index": 178,
-      "cluster_id": 9,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.8333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 179,
-      "segment_index": 179,
-      "cluster_id": 9,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.8333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 180,
-      "segment_index": 180,
-      "cluster_id": 10,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.3333333333333333
-      }
-    },
-    {
-      "query_index": 181,
-      "segment_index": 181,
-      "cluster_id": 10,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 182,
-      "segment_index": 182,
-      "cluster_id": 10,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.3333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 183,
-      "segment_index": 183,
-      "cluster_id": 10,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.3333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 184,
-      "segment_index": 184,
-      "cluster_id": 14,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 185,
-      "segment_index": 185,
-      "cluster_id": 14,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.3333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 186,
-      "segment_index": 186,
-      "cluster_id": 14,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 187,
-      "segment_index": 187,
-      "cluster_id": 14,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 188,
-      "segment_index": 188,
-      "cluster_id": 15,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 189,
-      "segment_index": 189,
-      "cluster_id": 15,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 191,
-      "segment_index": 191,
-      "cluster_id": 15,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 0.5833333333333333,
-        "encoder_seq_dtw": 0.5833333333333333,
-        "temporal_residual_dtw": 0.5833333333333333
-      }
-    },
-    {
-      "query_index": 192,
-      "segment_index": 192,
-      "cluster_id": 55,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 193,
-      "segment_index": 193,
-      "cluster_id": 55,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.3333333333333333,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.3333333333333333
-      }
-    },
-    {
-      "query_index": 194,
-      "segment_index": 194,
-      "cluster_id": 55,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 195,
-      "segment_index": 195,
-      "cluster_id": 55,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 196,
-      "segment_index": 196,
-      "cluster_id": 65,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 197,
-      "segment_index": 197,
-      "cluster_id": 65,
-      "label_id": 1,
-      "n_gallery": 3,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 198,
-      "segment_index": 198,
-      "cluster_id": 65,
+      "cluster_id": 94,
       "label_id": 0,
       "n_gallery": 3,
       "n_relevant": 1,
@@ -2619,9 +2333,9 @@
       }
     },
     {
-      "query_index": 199,
-      "segment_index": 199,
-      "cluster_id": 65,
+      "query_index": 177,
+      "segment_index": 177,
+      "cluster_id": 94,
       "label_id": 0,
       "n_gallery": 3,
       "n_relevant": 1,
@@ -2632,48 +2346,9 @@
       }
     },
     {
-      "query_index": 200,
-      "segment_index": 200,
-      "cluster_id": 67,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 201,
-      "segment_index": 201,
-      "cluster_id": 67,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 203,
-      "segment_index": 203,
-      "cluster_id": 67,
-      "label_id": 0,
-      "n_gallery": 3,
-      "n_relevant": 2,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 205,
-      "segment_index": 205,
-      "cluster_id": 90,
+      "query_index": 179,
+      "segment_index": 179,
+      "cluster_id": 98,
       "label_id": 0,
       "n_gallery": 3,
       "n_relevant": 2,
@@ -2684,9 +2359,9 @@
       }
     },
     {
-      "query_index": 206,
-      "segment_index": 206,
-      "cluster_id": 90,
+      "query_index": 180,
+      "segment_index": 180,
+      "cluster_id": 98,
       "label_id": 0,
       "n_gallery": 3,
       "n_relevant": 2,
@@ -2697,9 +2372,9 @@
       }
     },
     {
-      "query_index": 207,
-      "segment_index": 207,
-      "cluster_id": 90,
+      "query_index": 181,
+      "segment_index": 181,
+      "cluster_id": 98,
       "label_id": 0,
       "n_gallery": 3,
       "n_relevant": 2,
@@ -2710,9 +2385,35 @@
       }
     },
     {
-      "query_index": 208,
-      "segment_index": 208,
-      "cluster_id": 12,
+      "query_index": 183,
+      "segment_index": 183,
+      "cluster_id": 18,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 184,
+      "segment_index": 184,
+      "cluster_id": 18,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 185,
+      "segment_index": 185,
+      "cluster_id": 20,
       "label_id": 1,
       "n_gallery": 2,
       "n_relevant": 1,
@@ -2723,9 +2424,204 @@
       }
     },
     {
-      "query_index": 210,
-      "segment_index": 210,
-      "cluster_id": 12,
+      "query_index": 187,
+      "segment_index": 187,
+      "cluster_id": 20,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 188,
+      "segment_index": 188,
+      "cluster_id": 26,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 189,
+      "segment_index": 189,
+      "cluster_id": 26,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 192,
+      "segment_index": 192,
+      "cluster_id": 34,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 193,
+      "segment_index": 193,
+      "cluster_id": 34,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 194,
+      "segment_index": 194,
+      "cluster_id": 46,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 195,
+      "segment_index": 195,
+      "cluster_id": 46,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 197,
+      "segment_index": 197,
+      "cluster_id": 47,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 199,
+      "segment_index": 199,
+      "cluster_id": 47,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 200,
+      "segment_index": 200,
+      "cluster_id": 50,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 201,
+      "segment_index": 201,
+      "cluster_id": 50,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 0.5,
+        "temporal_residual_dtw": 0.5
+      }
+    },
+    {
+      "query_index": 204,
+      "segment_index": 204,
+      "cluster_id": 51,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 205,
+      "segment_index": 205,
+      "cluster_id": 51,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 206,
+      "segment_index": 206,
+      "cluster_id": 67,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 208,
+      "segment_index": 208,
+      "cluster_id": 67,
+      "label_id": 1,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 1.0,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 209,
+      "segment_index": 209,
+      "cluster_id": 71,
       "label_id": 1,
       "n_gallery": 2,
       "n_relevant": 1,
@@ -2738,7 +2634,7 @@
     {
       "query_index": 211,
       "segment_index": 211,
-      "cluster_id": 28,
+      "cluster_id": 71,
       "label_id": 1,
       "n_gallery": 2,
       "n_relevant": 1,
@@ -2751,12 +2647,12 @@
     {
       "query_index": 213,
       "segment_index": 213,
-      "cluster_id": 28,
-      "label_id": 1,
+      "cluster_id": 92,
+      "label_id": 0,
       "n_gallery": 2,
       "n_relevant": 1,
       "average_precision": {
-        "bot_cosine": 1.0,
+        "bot_cosine": 0.5,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
       }
@@ -2764,7 +2660,20 @@
     {
       "query_index": 214,
       "segment_index": 214,
-      "cluster_id": 52,
+      "cluster_id": 92,
+      "label_id": 0,
+      "n_gallery": 2,
+      "n_relevant": 1,
+      "average_precision": {
+        "bot_cosine": 0.5,
+        "encoder_seq_dtw": 1.0,
+        "temporal_residual_dtw": 1.0
+      }
+    },
+    {
+      "query_index": 215,
+      "segment_index": 215,
+      "cluster_id": 93,
       "label_id": 1,
       "n_gallery": 2,
       "n_relevant": 1,
@@ -2777,7 +2686,7 @@
     {
       "query_index": 216,
       "segment_index": 216,
-      "cluster_id": 52,
+      "cluster_id": 93,
       "label_id": 1,
       "n_gallery": 2,
       "n_relevant": 1,
@@ -2785,240 +2694,6 @@
         "bot_cosine": 0.5,
         "encoder_seq_dtw": 1.0,
         "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 217,
-      "segment_index": 217,
-      "cluster_id": 58,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 218,
-      "segment_index": 218,
-      "cluster_id": 58,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 220,
-      "segment_index": 220,
-      "cluster_id": 59,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 222,
-      "segment_index": 222,
-      "cluster_id": 59,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 223,
-      "segment_index": 223,
-      "cluster_id": 62,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 224,
-      "segment_index": 224,
-      "cluster_id": 62,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 0.5,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 227,
-      "segment_index": 227,
-      "cluster_id": 63,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 228,
-      "segment_index": 228,
-      "cluster_id": 63,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 229,
-      "segment_index": 229,
-      "cluster_id": 64,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 230,
-      "segment_index": 230,
-      "cluster_id": 64,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 232,
-      "segment_index": 232,
-      "cluster_id": 70,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 233,
-      "segment_index": 233,
-      "cluster_id": 70,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 235,
-      "segment_index": 235,
-      "cluster_id": 75,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.5,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 237,
-      "segment_index": 237,
-      "cluster_id": 75,
-      "label_id": 1,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 239,
-      "segment_index": 239,
-      "cluster_id": 78,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 240,
-      "segment_index": 240,
-      "cluster_id": 78,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 0.5,
-        "encoder_seq_dtw": 1.0,
-        "temporal_residual_dtw": 1.0
-      }
-    },
-    {
-      "query_index": 241,
-      "segment_index": 241,
-      "cluster_id": 84,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.5,
-        "temporal_residual_dtw": 0.5
-      }
-    },
-    {
-      "query_index": 242,
-      "segment_index": 242,
-      "cluster_id": 84,
-      "label_id": 0,
-      "n_gallery": 2,
-      "n_relevant": 1,
-      "average_precision": {
-        "bot_cosine": 1.0,
-        "encoder_seq_dtw": 0.5,
-        "temporal_residual_dtw": 0.5
       }
     }
   ]

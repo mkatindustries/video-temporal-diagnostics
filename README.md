@@ -28,7 +28,7 @@ Selected point estimates from the valid pair diagnostics:
 | Copy detection (VCDB) | Chamfer/BoF | AP 0.989 |
 | Reversal diagnostic (EPIC) | DINOv3 attention trajectory | DTW-derived s_rev 0.192 |
 | Maneuver discrimination (HDD) | V-JEPA 2 temporal residual | AP 0.956 |
-| Cross-dataset maneuver (nuScenes) | V-JEPA 2 encoder-sequence DTW | AP 0.867 |
+| Cross-dataset maneuver (nuScenes) | V-JEPA 2 encoder-sequence DTW | AP 0.863 |
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM direct direction prompts (open models) | Prompt-dependent, near chance | 0.50--0.54 balanced accuracy |

@@ -1,7 +1,7 @@
 # Results Provenance
 
 Compact result summaries for the corrected temporal-diagnostics reruns (2026-07-18 through
-2026-07-20).
+2026-07-28).
 Caches (`*.pt`), large per-pair score files (`pair_scores.json`,
 `encoder_seq_pair_scores.json`), and raw SLURM logs are intentionally **not** tracked.
 
@@ -18,29 +18,31 @@ Shared configuration for every artifact below:
 |----------|-------------------|-----------|-----------------|
 | `vcdb/vcdb_scramble_multiseed.json` | `c2daec7` | `9634576_0` | VCDB core_dataset |
 | `vcdb/raw_frame_scramble_results.json` | `c2daec7` | `9634576_1` | VCDB core_dataset |
-| `nuscenes/intersection_results.json` | `f1f4a7c` | `9910773` | nuScenes v1.0-trainval |
-| `nuscenes/cluster_bootstrap_results.json` | `f1f4a7c` | `9910773` | nuScenes v1.0-trainval |
+| `nuscenes/intersection_results.json` | `597ace9` | `9937532` | nuScenes v1.0-trainval |
+| `nuscenes/cluster_bootstrap_results.json` | `597ace9` | `9937532` | nuScenes v1.0-trainval |
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
 | `hdd/encoder_seq_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `hdd/cluster_bootstrap_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
-| `nuscenes/fusion_results.json` | `13250dd` | `9674479` | nuScenes v1.0-trainval |
+| `nuscenes/fusion_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
 | `hdd/conditional_querywise_results.json` | this commit | local CPU, 2026-07-27 | HDD release_2019_07_08 |
-| `nuscenes/conditional_querywise_results.json` | this commit | local CPU, 2026-07-27 | nuScenes v1.0-trainval |
+| `nuscenes/conditional_querywise_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
 
 Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
   (`7e67fe7`) and the HDD feature-cache-reuse fix (`290619c`). Their original runs
   (`9634578`, `9634577`) failed and are superseded.
-- Jobs 9910735 (HDD) and 9910773 (nuScenes), generated from `f1f4a7c`, added shuffled-DTW
-  and order-free assignment controls. Both jobs passed all 24 selected CPU/CUDA tests and
-  exited successfully. Encoder-sequence DTW minus shuffled DTW is +0.0360
-  [−0.0006, 0.0539] on HDD and +0.0603 [0.0234, 0.0939] on nuScenes. Temporal-residual
-  DTW minus shuffled DTW is +0.0288 [−0.0075, 0.0426] on HDD and +0.0286
-  [−0.0145, 0.0638] on nuScenes. DTW does not significantly outperform assignment in any
-  paired contrast; nuScenes temporal-residual assignment exceeds DTW by 0.0434
-  [0.0173, 0.0701].
+- Job 9910735 (HDD), generated from `f1f4a7c`, added shuffled-DTW and order-free assignment
+  controls. Encoder-sequence DTW minus shuffled DTW is +0.0360 [−0.0006, 0.0539], while
+  temporal-residual DTW minus shuffled DTW is +0.0288 [−0.0075, 0.0426].
+- Jobs 9937532 and 9937533, generated from `597ace9`, supersede all earlier nuScenes results.
+  DBSCAN now runs independently within each nuScenes map's local coordinate frame, yielding
+  244 evaluation segments in 50 mixed clusters (824 pooled pairs) and 197 eligible directed
+  queries from 37 clusters. Encoder-sequence DTW minus shuffled DTW is +0.0627
+  [0.0225, 0.1017]; temporal-residual DTW minus shuffled DTW is +0.0299
+  [−0.0157, 0.0680]. DTW does not significantly outperform assignment; residual assignment
+  exceeds residual DTW by 0.0474 [0.0171, 0.0796]. Both jobs exited successfully.
 - VCDB (multiseed + raw) and EPIC ran cleanly at the original submission commit `c2daec7`.
 - `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
   DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines match
@@ -49,32 +51,20 @@ Notes:
   at commit `7539555` (job 9654434) to add the global paired contrast encoder-seq DTW − BoT
   = −0.0790 (95% CI [−0.1059, −0.0617]); all other values reproduced identically.
 - `nuscenes/fusion_results.json` applies the same directed-retrieval + held-out fusion protocol
-  to nuScenes (commit `894edc3`, job `9645008`): 264 segments from 50 clusters; 222 eligible
-  queries from 40 clusters. It replicates HDD's conditional-vs-global reversal — full-gallery
-  BoT mAP 0.3150 [0.254, 0.395] vs encoder-seq DTW 0.1406 [0.106, 0.183] (paired diff
-  −0.1745 [−0.245, −0.117]); the BoT→DTW cascade lowers AP at every k. Leave-one-cluster-out
-  fusion selected α*=1.0 in all 40 folds, so the fused ranking is identical to BoT (fused−BoT
-  difference exactly 0). This is the first nuScenes directed full-gallery evaluation, so the
-  BoT/DTW mAPs here have no earlier counterpart to cross-check against.
-- Jobs 9671544 (HDD) and 9671547 (nuScenes), committed as `18eee91`, reproduced the fusion
-  metrics and added the Video4Real ranked-outcome decomposition. At top 1,
-  encoder-sequence DTW minus BoT increases
-  wrong-intersection retrieval by +0.1417 [0.1081, 0.1869] on HDD and +0.3063 [0.2290, 0.3874]
-  on nuScenes. Same-intersection/wrong-maneuver outcomes are at most 0.45% for all top-1 rows
-  (and at most 1.04% through top 10), localizing nearly all observed errors to location selection.
-  HDD recomputed the full evaluation-gallery DTW matrix because its score cache was absent;
-  nuScenes reused its cache.
-- Jobs 9674478 (HDD) and 9674479 (nuScenes), generated from `13250dd`, reused the validated
-  BoT/encoder-DTW caches and added full-gallery temporal-residual DTW. Previous metrics reproduced
-  unchanged. Residual DTW reaches mAP 0.1644 on HDD and 0.1217 on nuScenes, below BoT by
-  -0.0912 [-0.1162, -0.0767] and -0.1933 [-0.2695, -0.1346], respectively. Its top-1
-  wrong-intersection fraction is 0.4632 on HDD and 0.8649 on nuScenes; same-intersection,
-  wrong-maneuver errors remain at or below 0.06%. The updated result JSONs and regenerated
-  `figures/v4r_error_composition.png` were committed in `11a10d0`.
+  to nuScenes. The location-aware rerun (job 9937533) gives full-gallery BoT mAP 0.3326
+  [0.2713, 0.4127] vs encoder-sequence DTW 0.1595 [0.1222, 0.2043] (paired difference
+  −0.1732 [−0.2404, −0.1176]); the BoT→DTW cascade lowers AP at every k. Leave-one-cluster-out
+  fusion selected α*=1.0 in all 37 folds, so the fused ranking is identical to BoT.
+- The Video4Real ranked-outcome decomposition localizes nearly all top-1 errors to location
+  selection. Encoder-sequence DTW minus BoT increases wrong-intersection retrieval by +0.1417
+  [0.1081, 0.1869] on HDD and +0.2944 [0.2171, 0.3693] on corrected nuScenes. The corresponding
+  residual-DTW increases are +0.172 [0.137, 0.214] and +0.320 [0.241, 0.396].
+- Full-gallery temporal-residual DTW reaches mAP 0.1644 on HDD and 0.1364 on corrected
+  nuScenes, below BoT by -0.0912 [-0.1162, -0.0767] and -0.1962
+  [-0.2710, -0.1357], respectively. Its top-1 wrong-intersection fraction is 0.4632 on HDD
+  and 0.8325 on nuScenes; same-intersection/wrong-maneuver errors remain at or below 0.06%.
 - The conditional query-wise artifacts use the same directed AP definition and eligible query
   sets as the full-gallery fusion runs, but restrict each gallery to the query's intersection
   cluster. Their source score-cache SHA-256, cache version, and feature-cache identity metadata
-  are embedded in each JSON. They were generated locally from the validated fusion caches;
-  replace the local-run job field above with cluster job IDs after the shuffled-DTW/assignment
-  rerun.
+  are embedded in each JSON. The corrected nuScenes artifact was generated by job 9937533.
 - Exact evaluation commands and requested GPU, CPU, memory, and time resources are preserved in `slurm_jobs/`.

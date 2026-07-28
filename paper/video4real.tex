@@ -42,8 +42,8 @@ Sequence comparators such as dynamic time warping (DTW) over per-frame features 
 maneuvers \emph{within} a known location. We ask whether this conditional advantage transfers
 across locations. Under a matched query-wise protocol, V-JEPA~2 encoder-sequence DTW beats a
 bag-of-tokens (BoT) cosine baseline within intersections (Honda HDD $0.955$ vs.\ $0.923$ mAP;
-nuScenes $0.916$ vs.\ $0.856$), yet loses over the full evaluation gallery (HDD $0.177$ vs.\
-$0.256$; nuScenes $0.141$ vs.\ $0.315$). Separate pooled-pair controls do not support a general
+nuScenes $0.922$ vs.\ $0.855$), yet loses over the full evaluation gallery (HDD $0.177$ vs.\
+$0.256$; nuScenes $0.159$ vs.\ $0.333$). Separate pooled-pair controls do not support a general
 order-specific explanation: intact DTW detectably beats shuffled DTW only for nuScenes encoder
 features; order-free assignment differs detectably only once, improving nuScenes residual AP.
 Across all six top-1 rankings, at least $98.9\%$ of errors come from the wrong intersection.
@@ -109,13 +109,14 @@ invariant to the scale constant while the similarity values are not; scores from
 comparators are therefore not numerically comparable.
 
 \textbf{Segments, clusters, eligibility.} Maneuver segments are grouped into intersections by DBSCAN
-on GPS position ($\epsilon{\approx}30$\,m; min.\ samples $3$ for HDD, $2$ for nuScenes); an
+on GPS position ($\epsilon{\approx}30$\,m; min.\ samples $3$ for HDD, $2$ for nuScenes); nuScenes
+clustering runs independently within each map's local coordinate frame. An
 intersection is retained if it contains both left and right turns. A candidate is \emph{relevant} to a query if it shares the
 query's intersection cluster \emph{and} maneuver label; out-of-cluster candidates remain negatives.
 A segment is an eligible query if it has at least one relevant gallery item. HDD yields $1{,}687$
 segments and $1{,}673$ eligible queries in the $50$ largest mixed clusters; nuScenes
-(v1.0-trainval) yields $264$ segments from the $50$ largest mixed clusters, with $222$ eligible
-queries drawn from $40$ clusters.
+(v1.0-trainval) yields $244$ segments from the $50$ largest mixed clusters, with $197$ eligible
+queries drawn from $37$ clusters.
 
 \textbf{Directed retrieval and fusion.} Each eligible segment queries either the other retained
 segments at its intersection (conditional retrieval) or every other retained segment (global
@@ -133,39 +134,40 @@ informs its own weight.
 
 \textbf{Controls and uncertainty.} Primary conditional and global results macro-average per-query
 AP over the same eligible query set. Shuffled-DTW and assignment controls instead use a separate
-pooled unordered-pair AP protocol. All $95\%$ intervals use $2000$ intersection-cluster bootstrap
+pooled AP protocol with $824$ unordered pairs from the $244$ nuScenes segments. All $95\%$
+intervals use $2000$ intersection-cluster bootstrap
 resamples. We report marginal method intervals and paired difference intervals separately; fusion
 intervals bootstrap fixed out-of-fold query metrics rather than refitting $\alpha$ per resample.
 
 \section{Retrieval: Conditional Gains Reverse Globally}
 \label{sec:retrieval}
 \textbf{Conditional retrieval favors sequence comparison.} Restricting each query to its
-intersection, encoder-sequence DTW reaches mAP $0.955$ versus BoT's $0.923$ on HDD and $0.916$
-versus $0.856$ on nuScenes (\cref{tab:reversal}, top). Paired gains exclude zero: $+0.032$
-$[0.016, 0.042]$ and $+0.060$ $[0.028, 0.093]$, respectively.
+intersection, encoder-sequence DTW reaches mAP $0.955$ versus BoT's $0.923$ on HDD and $0.922$
+versus $0.855$ on nuScenes (\cref{tab:reversal}, top). Paired gains exclude zero: $+0.032$
+$[0.016, 0.042]$ and $+0.067$ $[0.036, 0.101]$, respectively.
 
 \textbf{Intact order is not consistently beneficial under pooled-pair AP.} In this separate control
 protocol, shuffled DTW permutes each endpoint in turn and averages the two one-sided distances over
-10 draws. Intact encoder-sequence DTW exceeds this control detectably only on nuScenes ($+0.060$ AP,
-$95\%$ CI $[0.023, 0.094]$); its HDD interval crosses zero ($[-0.001, 0.054]$), as do both residual
+10 draws. Intact encoder-sequence DTW exceeds this control detectably only on nuScenes ($+0.063$ AP,
+$95\%$ CI $[0.023, 0.102]$); its HDD interval crosses zero ($[-0.001, 0.054]$), as do both residual
 DTW intervals. Order-free one-to-one assignment, which also removes one-to-many warping and endpoint
 anchoring, has paired intervals spanning zero in three comparisons and improves nuScenes residual
-features ($+0.043$ $[0.017, 0.070]$). The nuScenes contrast is provisional because tiling sparse
+features ($+0.047$ $[0.017, 0.080]$). The nuScenes contrast is provisional because tiling sparse
 $2$\,Hz keyframes to 64 frames introduces artificial repetition whose effect is unknown.
 
 \textbf{The ranking reverses across the evaluation gallery.} Under directed gallery retrieval
 (\cref{tab:reversal}, middle) both sequence scores lose in mAP and MRR: BoT reaches mAP $0.256$ /
-MRR $0.766$ on HDD and $0.315$ / $0.554$ on nuScenes, while encoder-sequence DTW reaches only
-$0.177$ / $0.640$ and $0.141$ / $0.259$. Temporal-residual DTW falls further to $0.164$ / $0.616$
-and $0.122$ / $0.231$; its paired mAP deficit to BoT is $-0.091$ $[-0.116, -0.077]$ on HDD and
-$-0.193$ $[-0.270, -0.135]$ on nuScenes. The result is consistent with insufficient location
+MRR $0.766$ on HDD and $0.333$ / $0.574$ on nuScenes, while encoder-sequence DTW reaches only
+$0.177$ / $0.640$ and $0.159$ / $0.281$. Temporal-residual DTW falls further to $0.164$ / $0.616$
+and $0.136$ / $0.253$; its paired mAP deficit to BoT is $-0.091$ $[-0.116, -0.077]$ on HDD and
+$-0.196$ $[-0.271, -0.136]$ on nuScenes. The result is consistent with insufficient location
 discrimination; we test that explanation by decomposing top-ranked outcomes.
 
 \textbf{Top-1 error decomposition.} \cref{fig:error_composition} separates failures at the
 correct intersection from retrievals of the wrong location. Same-intersection/wrong-maneuver
-outcomes are at most $0.5\%$ for every top-1 ranking. Encoder-sequence DTW increases wrong-intersection
-retrieval over BoT by $+0.142$ $[0.108, 0.187]$ on HDD and $+0.306$ $[0.229, 0.387]$ on
-nuScenes; residual DTW increases it by $+0.172$ $[0.137, 0.214]$ and $+0.338$ $[0.256, 0.419]$
+outcomes are at most $0.6\%$ for every top-1 ranking. Encoder-sequence DTW increases wrong-intersection
+retrieval over BoT by $+0.142$ $[0.108, 0.187]$ on HDD and $+0.294$ $[0.217, 0.369]$ on
+nuScenes; residual DTW increases it by $+0.172$ $[0.137, 0.214]$ and $+0.320$ $[0.241, 0.396]$
 (paired cluster bootstrap). Thus the conditional gain does not survive location search:
 the global error is overwhelmingly selecting the wrong intersection, not the wrong maneuver at the
 right one.
@@ -173,7 +175,7 @@ right one.
 \textbf{Neither encoder-sequence cascade nor held-out fusion recovers the gap.} Reranking the BoT top-$k$ by encoder-sequence DTW
 lowers AP at every evaluated $k$ on the same candidate set (recall unchanged; \cref{fig:cascade}).
 The held-out BoT/encoder-sequence fusion selects $\alpha^\star{=}0.95$ in all $50$ HDD folds and
-$\alpha^\star{=}1.0$ in all $40$ nuScenes folds: on HDD the fused mAP shows no detected gain over
+$\alpha^\star{=}1.0$ in all $37$ nuScenes folds: on HDD the fused mAP shows no detected gain over
 BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT (difference $0$).
 
 \begin{table}[t]
@@ -191,21 +193,21 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
      & & \textbf{Honda HDD} & \textbf{nuScenes} \\
     \midrule
     \multicolumn{4}{l}{\emph{Conditional within-intersection retrieval}, mAP $[95\%$ CI$]$} \\
-    & BoT (cosine)          & $0.923$ $[0.900, 0.948]$ & $0.856$ $[0.826, 0.896]$ \\
-    & Encoder-seq DTW       & $0.955$ $[0.937, 0.971]$ & $0.916$ $[0.889, 0.948]$ \\
-    & Temporal-residual DTW & $0.949$ $[0.931, 0.965]$ & $0.891$ $[0.861, 0.925]$ \\
+    & BoT (cosine)          & $0.923$ $[0.900, 0.948]$ & $0.855$ $[0.825, 0.890]$ \\
+    & Encoder-seq DTW       & $0.955$ $[0.937, 0.971]$ & $0.922$ $[0.895, 0.951]$ \\
+    & Temporal-residual DTW & $0.949$ $[0.931, 0.965]$ & $0.903$ $[0.874, 0.935]$ \\
     \midrule
     \multicolumn{4}{l}{\emph{Global query-wise retrieval}, mAP $[95\%$ CI$]$ / MRR} \\
-    & BoT (cosine)          & $0.256$ $[0.218, 0.288]$ / $0.766$ & $0.315$ $[0.254, 0.395]$ / $0.554$ \\
-    & Encoder-seq DTW       & $0.177$ $[0.135, 0.212]$ / $0.640$ & $0.141$ $[0.106, 0.183]$ / $0.259$ \\
-    & Temporal-residual DTW & $0.164$ $[0.126, 0.194]$ / $0.616$ & $0.122$ $[0.090, 0.161]$ / $0.231$ \\
-    & Held-out fusion       & $0.257$ $[0.218, 0.289]$ / $0.770$ & $0.315$ $[0.254, 0.395]$ / $0.554$ \\
-    & \quad selected $\alpha^\star$ & $0.95$ (all $50$ folds) & $1.00$ (all $40$ folds) \\
+    & BoT (cosine)          & $0.256$ $[0.218, 0.288]$ / $0.766$ & $0.333$ $[0.271, 0.413]$ / $0.574$ \\
+    & Encoder-seq DTW       & $0.177$ $[0.135, 0.212]$ / $0.640$ & $0.159$ $[0.122, 0.204]$ / $0.281$ \\
+    & Temporal-residual DTW & $0.164$ $[0.126, 0.194]$ / $0.616$ & $0.136$ $[0.102, 0.177]$ / $0.253$ \\
+    & Held-out fusion       & $0.257$ $[0.218, 0.289]$ / $0.770$ & $0.333$ $[0.271, 0.413]$ / $0.574$ \\
+    & \quad selected $\alpha^\star$ & $0.95$ (all $50$ folds) & $1.00$ (all $37$ folds) \\
     \midrule
     \multicolumn{4}{l}{\emph{Paired difference} (cluster-bootstrap, $95\%$ CI)} \\
-    & Enc-seq DTW $-$ BoT (conditional) & $+0.032$ $[0.016, 0.042]$ & $+0.060$ $[0.028, 0.093]$ \\
-    & Enc-seq DTW $-$ BoT (global)      & \hddGlobalDtwBot{}       & $-0.175$ $[-0.245, -0.117]$ \\
-    & Residual DTW $-$ BoT (global)     & $-0.091$ $[-0.116, -0.077]$ & $-0.193$ $[-0.270, -0.135]$ \\
+    & Enc-seq DTW $-$ BoT (conditional) & $+0.032$ $[0.016, 0.042]$ & $+0.067$ $[0.036, 0.101]$ \\
+    & Enc-seq DTW $-$ BoT (global)      & \hddGlobalDtwBot{}       & $-0.173$ $[-0.240, -0.118]$ \\
+    & Residual DTW $-$ BoT (global)     & $-0.091$ $[-0.116, -0.077]$ & $-0.196$ $[-0.271, -0.136]$ \\
     & Fusion $-$ BoT (global)           & $+0.001$ $[-0.003, 0.004]$ & $+0.000$ $[0.000, 0.000]$ \\
     \bottomrule
   \end{tabular}
