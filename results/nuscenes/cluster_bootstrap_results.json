@@ -48,11 +48,43 @@
       ],
       "n_clusters": 50
     },
+    "vjepa2_encoder_seq_dtw_shuffled": {
+      "ap": 0.8064152909702555,
+      "cluster_ci": [
+        0.7532296618837696,
+        0.8661574310123744
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_encoder_seq_assignment": {
+      "ap": 0.8751163422516837,
+      "cluster_ci": [
+        0.8455007422733289,
+        0.911417477850149
+      ],
+      "n_clusters": 50
+    },
     "vjepa2_temporal_residual": {
       "ap": 0.8151706828524619,
       "cluster_ci": [
         0.7820544216075781,
         0.8560384995140803
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual_shuffled": {
+      "ap": 0.7865476673096732,
+      "cluster_ci": [
+        0.7431243745907878,
+        0.8454013306799397
+      ],
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual_assignment": {
+      "ap": 0.8585462087624083,
+      "cluster_ci": [
+        0.8290511971247954,
+        0.8961176594450183
       ],
       "n_clusters": 50
     }
@@ -67,6 +99,28 @@
         0.12806716591958717
       ],
       "bootstrap_probability_a_gt_b": 0.999,
+      "n_clusters": 50
+    },
+    "vjepa2_encoder_seq_dtw_minus_vjepa2_encoder_seq_dtw_shuffled": {
+      "ap_a": 0.8667430111699571,
+      "ap_b": 0.8064152909702555,
+      "difference_a_minus_b": 0.06032772019970156,
+      "ci": [
+        0.023375892540097167,
+        0.09392306204191904
+      ],
+      "bootstrap_probability_a_gt_b": 0.9965,
+      "n_clusters": 50
+    },
+    "vjepa2_encoder_seq_dtw_minus_vjepa2_encoder_seq_assignment": {
+      "ap_a": 0.8667430111699571,
+      "ap_b": 0.8751163422516837,
+      "difference_a_minus_b": -0.008373331081726554,
+      "ci": [
+        -0.03019381258375136,
+        0.011606235387224167
+      ],
+      "bootstrap_probability_a_gt_b": 0.207,
       "n_clusters": 50
     },
     "vjepa2_encoder_seq_dtw_minus_vjepa2_temporal_residual": {
@@ -89,6 +143,28 @@
         0.09025155302094631
       ],
       "bootstrap_probability_a_gt_b": 0.774,
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual_minus_vjepa2_temporal_residual_shuffled": {
+      "ap_a": 0.8151706828524619,
+      "ap_b": 0.7865476673096732,
+      "difference_a_minus_b": 0.028623015542788677,
+      "ci": [
+        -0.01451835721238337,
+        0.06379698391520697
+      ],
+      "bootstrap_probability_a_gt_b": 0.913,
+      "n_clusters": 50
+    },
+    "vjepa2_temporal_residual_minus_vjepa2_temporal_residual_assignment": {
+      "ap_a": 0.8151706828524619,
+      "ap_b": 0.8585462087624083,
+      "difference_a_minus_b": -0.04337552590994642,
+      "ci": [
+        -0.07012964874883106,
+        -0.017280278634130036
+      ],
+      "bootstrap_probability_a_gt_b": 0.0005,
       "n_clusters": 50
     }
   }

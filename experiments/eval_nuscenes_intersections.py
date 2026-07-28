@@ -923,7 +923,7 @@ def plot_discrimination(results: dict, fig_dir: Path):
     aps = [results[m]["ap"] for m in methods]
     aucs = [results[m]["auc"] for m in methods]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
 
     # AP
     bars = ax1.bar(
@@ -934,7 +934,13 @@ def plot_discrimination(results: dict, fig_dir: Path):
         linewidth=0.5,
     )
     ax1.set_xticks(range(len(methods)))
-    ax1.set_xticklabels(labels, fontsize=10)
+    ax1.set_xticklabels(
+        labels,
+        fontsize=9,
+        rotation=30,
+        ha="right",
+        rotation_mode="anchor",
+    )
     for bar, val in zip(bars, aps):
         ax1.text(
             bar.get_x() + bar.get_width() / 2,
@@ -960,7 +966,13 @@ def plot_discrimination(results: dict, fig_dir: Path):
         linewidth=0.5,
     )
     ax2.set_xticks(range(len(methods)))
-    ax2.set_xticklabels(labels, fontsize=10)
+    ax2.set_xticklabels(
+        labels,
+        fontsize=9,
+        rotation=30,
+        ha="right",
+        rotation_mode="anchor",
+    )
     for bar, val in zip(bars, aucs):
         ax2.text(
             bar.get_x() + bar.get_width() / 2,
@@ -982,7 +994,7 @@ def plot_discrimination(results: dict, fig_dir: Path):
         fontsize=14,
         fontweight="bold",
     )
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.02, 1, 0.96))
 
     path = fig_dir / "nuscenes_maneuver_discrimination.png"
     fig.savefig(path, dpi=150)

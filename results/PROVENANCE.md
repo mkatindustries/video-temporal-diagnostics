@@ -11,16 +11,18 @@ Shared configuration for every artifact below:
   `ea8dc2863c51be0a264bab82070e3e8836b02d51`; V-JEPA 2 `facebook/vjepa2-vitl-fpc64-256`
   snapshot `b3c1679b7c34d3255ef3547f27c7b226aefab26f`.
 - **Environment:** conda env `video_retrieval` (Python 3.11.15, torch 2.10.0+cu128,
-  transformers 5.6.0.dev0); SLURM account `dream`, qos `h200_comm_shared`, partition `h200`.
+  transformers 5.6.0.dev0); SLURM account `dream`, partition `h200`. The July 18--20
+  runs used qos `h200_comm_shared`; the July 28 control runs used qos `h200_dev`.
 
 | Artifact | Generating commit | SLURM job | Dataset version |
 |----------|-------------------|-----------|-----------------|
 | `vcdb/vcdb_scramble_multiseed.json` | `c2daec7` | `9634576_0` | VCDB core_dataset |
 | `vcdb/raw_frame_scramble_results.json` | `c2daec7` | `9634576_1` | VCDB core_dataset |
-| `nuscenes/intersection_results.json` | `290619c` | `9636031` | nuScenes v1.0-trainval |
-| `nuscenes/cluster_bootstrap_results.json` | `290619c` | `9636031` | nuScenes v1.0-trainval |
+| `nuscenes/intersection_results.json` | `f1f4a7c` | `9910773` | nuScenes v1.0-trainval |
+| `nuscenes/cluster_bootstrap_results.json` | `f1f4a7c` | `9910773` | nuScenes v1.0-trainval |
 | `hdd/bof_dtw_directed_rerank_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
-| `hdd/cluster_bootstrap_results.json` | `290619c` | `9636095` | HDD release_2019_07_08 |
+| `hdd/encoder_seq_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
+| `hdd/cluster_bootstrap_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `13250dd` | `9674479` | nuScenes v1.0-trainval |
@@ -31,6 +33,14 @@ Notes:
 - nuScenes and HDD were **reruns** at `290619c` after the int64 JSON-serialization fix
   (`7e67fe7`) and the HDD feature-cache-reuse fix (`290619c`). Their original runs
   (`9634578`, `9634577`) failed and are superseded.
+- Jobs 9910735 (HDD) and 9910773 (nuScenes), generated from `f1f4a7c`, added shuffled-DTW
+  and order-free assignment controls. Both jobs passed all 24 selected CPU/CUDA tests and
+  exited successfully. Encoder-sequence DTW minus shuffled DTW is +0.0360
+  [−0.0006, 0.0539] on HDD and +0.0603 [0.0234, 0.0939] on nuScenes. Temporal-residual
+  DTW minus shuffled DTW is +0.0288 [−0.0075, 0.0426] on HDD and +0.0286
+  [−0.0145, 0.0638] on nuScenes. DTW does not significantly outperform assignment in any
+  paired contrast; nuScenes temporal-residual assignment exceeds DTW by 0.0434
+  [0.0173, 0.0701].
 - VCDB (multiseed + raw) and EPIC ran cleanly at the original submission commit `c2daec7`.
 - `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
   DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines match

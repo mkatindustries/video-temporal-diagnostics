@@ -1,0 +1,25 @@
+{
+  "bot_cosine": {
+    "ap": 0.8245766194217132
+  },
+  "encoder_seq_dtw": {
+    "ap": 0.9415774012808162
+  },
+  "encoder_seq_dtw_shuffled": {
+    "ap": 0.9055964248220819
+  },
+  "encoder_seq_assignment": {
+    "ap": 0.944550496862177
+  },
+  "temporal_residual_dtw": {
+    "ap": 0.9562205981988992
+  },
+  "temporal_residual_dtw_shuffled": {
+    "ap": 0.9274208897797533
+  },
+  "temporal_residual_assignment": {
+    "ap": 0.9561262307748893
+  },
+  "n_pairs": 97731,
+  "n_segments": 1687
+}

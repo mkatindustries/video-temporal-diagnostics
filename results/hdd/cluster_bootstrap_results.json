@@ -28,6 +28,34 @@
       "cluster_width": 0.0967482527466178,
       "width_ratio": 30.771179231626775
     },
+    "encoder_seq_dtw_shuffled": {
+      "ap": 0.9055964248220819,
+      "pair_ci": [
+        0.9035369439697586,
+        0.9076249529943453
+      ],
+      "pair_width": 0.004088009024586725,
+      "cluster_ci": [
+        0.8462646436088808,
+        0.9234226283247774
+      ],
+      "cluster_width": 0.07715798471589663,
+      "width_ratio": 18.874220739690482
+    },
+    "encoder_seq_assignment": {
+      "ap": 0.944550496862177,
+      "pair_ci": [
+        0.943097177147924,
+        0.9461302025634449
+      ],
+      "pair_width": 0.0030330254155209735,
+      "cluster_ci": [
+        0.8616558485782932,
+        0.973309461927217
+      ],
+      "cluster_width": 0.11165361334892376,
+      "width_ratio": 36.81262042103441
+    },
     "temporal_residual_dtw": {
       "ap": 0.9562205981988992,
       "pair_ci": [
@@ -41,6 +69,34 @@
       ],
       "cluster_width": 0.0879897579508554,
       "width_ratio": 31.972615164911343
+    },
+    "temporal_residual_dtw_shuffled": {
+      "ap": 0.9274208897797533,
+      "pair_ci": [
+        0.9257369975281402,
+        0.929173260483458
+      ],
+      "pair_width": 0.003436262955317848,
+      "cluster_ci": [
+        0.8809909627098751,
+        0.9405904677478106
+      ],
+      "cluster_width": 0.05959950503793554,
+      "width_ratio": 17.344279472472063
+    },
+    "temporal_residual_assignment": {
+      "ap": 0.9561262307748893,
+      "pair_ci": [
+        0.9548510847890604,
+        0.9575491858458931
+      ],
+      "pair_width": 0.002698101056832658,
+      "cluster_ci": [
+        0.8816603394664645,
+        0.9787262331069104
+      ],
+      "cluster_width": 0.09706589364044593,
+      "width_ratio": 35.97563308262185
     }
   },
   "paired_differences": {
@@ -53,6 +109,28 @@
         0.12741220338121872
       ],
       "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 50
+    },
+    "encoder_seq_dtw_minus_encoder_seq_dtw_shuffled": {
+      "ap_a": 0.9415774012808162,
+      "ap_b": 0.9055964248220819,
+      "difference_a_minus_b": 0.035980976458734326,
+      "ci": [
+        -0.0005870281923251887,
+        0.053851017436985726
+      ],
+      "bootstrap_probability_a_gt_b": 0.972,
+      "n_clusters": 50
+    },
+    "encoder_seq_dtw_minus_encoder_seq_assignment": {
+      "ap_a": 0.9415774012808162,
+      "ap_b": 0.944550496862177,
+      "difference_a_minus_b": -0.0029730955813607185,
+      "ci": [
+        -0.007729578432549769,
+        0.01016008148022233
+      ],
+      "bootstrap_probability_a_gt_b": 0.283,
       "n_clusters": 50
     },
     "temporal_residual_dtw_minus_encoder_seq_dtw": {
@@ -75,6 +153,28 @@
         0.14859960700347133
       ],
       "bootstrap_probability_a_gt_b": 1.0,
+      "n_clusters": 50
+    },
+    "temporal_residual_dtw_minus_temporal_residual_dtw_shuffled": {
+      "ap_a": 0.9562205981988992,
+      "ap_b": 0.9274208897797533,
+      "difference_a_minus_b": 0.02879970841914581,
+      "ci": [
+        -0.0075402492498048476,
+        0.04263393559605943
+      ],
+      "bootstrap_probability_a_gt_b": 0.9505,
+      "n_clusters": 50
+    },
+    "temporal_residual_dtw_minus_temporal_residual_assignment": {
+      "ap_a": 0.9562205981988992,
+      "ap_b": 0.9561262307748893,
+      "difference_a_minus_b": 9.436742400981135e-05,
+      "ci": [
+        -0.00616586040385915,
+        0.008742716292936551
+      ],
+      "bootstrap_probability_a_gt_b": 0.4125,
       "n_clusters": 50
     }
   }
