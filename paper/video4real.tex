@@ -3,15 +3,18 @@
 % workshop proceedings: https://sites.google.com/utwente.nl/video4real/home
 % Uses the vendored ECCV 2026 template pinned in paper/eccv2026/PINNED.txt
 % (da8c09c40239d5665757527e77388f4716a6564a).
-% Verified with TeX Live 2025 on 2026-07-20: eight PDF pages; references
-% begin on PDF page 7, within the seven-page limit excluding references.
+% Verified with TeX Live 2025 on 2026-07-27: seven PDF pages; references
+% begin on PDF page 6, within the seven-page limit excluding references.
 %
 % Build from the repository root with `make video4real`.
 % Submission ID 12. The `review' option anonymizes
 % authors/institute/running heads automatically (double-blind).
 \documentclass[runningheads]{llncs}
 
-\usepackage[review,year=2026,ID=12]{eccv} % double-blind review version
+% Use the pinned package even if a local shadow copy exists beside this source.
+\usepackage{silence}
+\WarningFilter{latex}{You have requested package}
+\usepackage[review,year=2026,ID=12]{eccv2026/eccv} % double-blind review version
 \usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -23,7 +26,7 @@
 % HDD global paired encoder-seq-DTW minus BoT CI (job 9654434, verbatim from JSON).
 \newcommand{\hddGlobalDtwBot}{$-0.079$ $[-0.106, -0.062]$}
 
-\title{When Conditional Temporal Discrimination Does Not Transfer to Global Video Retrieval}
+\title{When Conditional Sequence Matching Does Not Transfer to Global Video Retrieval}
 
 % Anonymized automatically by the eccv `review' option; the placeholders below are
 % required by llncs but overridden in the review build.
@@ -34,47 +37,33 @@
 \maketitle
 
 \begin{abstract}
-Scalable video retrieval favors global descriptors that pool frame features and are largely
-insensitive to motion direction: two traversals of the same road in opposite directions, or left
-versus right turns at the same intersection, can receive similar scores. Sequence comparators such
-as dynamic time warping (DTW) over per-frame features \emph{detect conditional maneuver
-discrimination}---telling such cases apart \emph{within} a known location. We ask whether that
-advantage transfers across intersections and observe the same failure on two driving
-datasets. V-JEPA~2 encoder-sequence DTW clearly beats a bag-of-tokens (BoT) cosine baseline on
-conditional pooled-pair discrimination (Honda HDD $0.942$ vs.\ $0.825$ AP; nuScenes $0.867$ vs.\
-$0.791$). A shuffled-order control shows this sequence-based gain is attributable to temporal order
-specifically only for nuScenes encoder-sequence DTW, not for HDD or for temporal-residual DTW on
-either dataset; an order-free assignment control matched or exceeded DTW in every evaluated
-comparison, but the paired interval excluded zero only for nuScenes residual features. The
-encoder-sequence-DTW gain nonetheless \emph{underperforms} pooling over the full evaluation gallery
-(HDD $0.177$ vs.\ $0.256$
-mAP; nuScenes $0.141$ vs.\ $0.315$). Temporal-residual DTW, the conditional HDD winner
-($0.956$ AP), is weaker still globally ($0.164$ HDD; $0.122$ nuScenes mAP). Across all six top-1 rankings, at least $98.9\%$ of errors
-retrieve the wrong intersection rather than the wrong maneuver at the correct one. A
-BoT$\to$encoder-sequence-DTW cascade lowers AP at every evaluated $k$, and a
-leakage-safe held-out BoT/encoder-sequence fusion shows no detected gain on HDD ($+0.001$,
-$95\%$ CI $[-0.003, 0.004]$; $\alpha^\star{=}0.95$) and collapses exactly onto BoT on nuScenes
-($\alpha^\star{=}1.0$). A second, orthogonal failure concerns the interface: temporal evidence can
-be present in multimodal LLMs (an integrity prompt on forward/reverse clips reaches
-$0.845$--$0.879$ balanced accuracy) yet direct direction prompts sit near chance and pooled readouts
-are empirically near-invariant, so standard prompting and pooling fail to expose it reliably. For
-these datasets, scores, and a linear fusion rule, conditional temporal sensitivity is useful yet
-insufficient for global retrieval; upgrading to a multimodal model also does not by itself resolve
-the readout problem. We release the diagnostics and evaluation protocol.
-\keywords{Video retrieval \and Temporal sensitivity \and Evaluation \and Place recognition}
+Scalable video retrieval favors pooled descriptors, but pooling can blur motion direction.
+Sequence comparators such as dynamic time warping (DTW) over per-frame features can distinguish
+maneuvers \emph{within} a known location. We ask whether this conditional advantage transfers
+across locations. Under a matched query-wise protocol, V-JEPA~2 encoder-sequence DTW beats a
+bag-of-tokens (BoT) cosine baseline within intersections (Honda HDD $0.955$ vs.\ $0.923$ mAP;
+nuScenes $0.916$ vs.\ $0.856$), yet loses over the full evaluation gallery (HDD $0.177$ vs.\
+$0.256$; nuScenes $0.141$ vs.\ $0.315$). Separate pooled-pair controls do not support a general
+order-specific explanation: intact DTW detectably beats shuffled DTW only for nuScenes encoder
+features; order-free assignment differs detectably only once, improving nuScenes residual AP.
+Across all six top-1 rankings, at least $98.9\%$ of errors come from the wrong intersection.
+A BoT$\to$DTW cascade lowers AP at
+every evaluated $k$; leakage-safe fusion shows no detected gain on HDD ($+0.001$, $95\%$ CI
+$[-0.003, 0.004]$) and equals BoT on nuScenes. For these datasets, scores, and a linear fusion rule,
+fine-grained sequence matching is useful conditionally but insufficient for global retrieval. We
+release the diagnostics and evaluation protocol.
+\keywords{Video retrieval \and Sequence matching \and Evaluation \and Place recognition}
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
 Video-retrieval systems that scale to large galleries typically represent a clip by a single pooled
-descriptor and rank by cosine similarity. Such pooling can be insensitive to order, so reversing a
-clip or comparing opposite turns at one intersection can change little. This is exact for pooled
-independent-frame features but only empirical for contextual video tokens. A natural remedy compares per-frame
-feature \emph{sequences} with a comparator such as dynamic time
-warping (DTW)~\cite{sakoe1978dtw}, which is markedly stronger on conditional discrimination; we
-return in \cref{sec:retrieval} to whether that strength is attributable to temporal order
-specifically or to finer per-frame comparison. Yet its full-gallery failures are overwhelmingly wrong-location retrievals
-(\cref{fig:error_composition}).
+descriptor and rank by cosine similarity. Such pooling can be insensitive to order: averaging
+independent-frame features is exactly invariant, whereas contextual tokens may encode temporal
+context before pooling. A natural remedy compares
+per-frame feature \emph{sequences} with DTW~\cite{sakoe1978dtw}; we test whether its conditional
+advantage comes from intact order or finer per-frame matching. Its full-gallery failures are
+overwhelmingly wrong-location retrievals (\cref{fig:error_composition}).
 
 \begin{figure}[t!]
   \centering
@@ -86,23 +75,17 @@ specifically or to finer per-frame comparison. Yet its full-gallery failures are
   \label{fig:error_composition}
 \end{figure}
 
-We test whether that conditional strength matters for practice, and report two connected failures.
-\textbf{(i) Retrieval.} On directed retrieval over the full evaluation galleries of Honda HDD~\cite{honda_hdd} and
-nuScenes~\cite{nuscenes}, both tested order-aware comparators lose \emph{globally}, including the
-temporal residual that wins conditionally on HDD; a fixed BoT$\to$encoder-sequence-DTW cascade degrades accuracy at every evaluated operating point; and a
-cross-validated linear fusion of the BoT and encoder-sequence scores assigns essentially all weight
-to appearance. \textbf{(ii) Interface.} Multimodal LLMs (MLLMs) do carry recoverable temporal
-evidence, but standard direct prompts and pooled embeddings do not expose it, so ``use a bigger
-multimodal model'' does not resolve the problem either. Our contributions are:
+We test whether that conditional strength matters for directed retrieval over the full evaluation
+galleries of Honda HDD~\cite{honda_hdd} and nuScenes~\cite{nuscenes}. Both sequence comparators lose
+globally; a fixed BoT$\to$encoder-sequence-DTW cascade degrades accuracy; and cross-validated score
+fusion assigns essentially all weight to appearance. Our contributions are:
 \begin{itemize}
-  \item A directed, query-wise evaluation-gallery protocol with intersection-cluster bootstrap
-  uncertainty, distinguishing \emph{conditional pooled-pair} discrimination from \emph{global}
-  retrieval, evaluated on two driving datasets.
-  \item Evidence that both sequence comparators are strong conditionally yet underperform globally,
-  and that encoder-sequence reranking and held-out fusion do not recover the gap.
-  \item A scoped MLLM readout analysis showing prompt- and pooling-dependent exposure of temporal
-  evidence, and that a temporally adapted MLLM with single-vector cosine remains weak on driving
-  conditional discrimination.
+  \item A matched query-wise comparison of local and full galleries, with cluster-bootstrap
+  uncertainty, on two driving datasets.
+  \item Evidence that both sequence comparators improve conditionally yet underperform globally,
+  with error decomposition, reranking, and held-out fusion localizing the failure.
+  \item Pooled-pair shuffled-order and assignment controls separating intact-order benefits from
+  finer per-frame matching.
 \end{itemize}
 Anonymous code and evaluation artifacts are available online.\footnote{\url{https://anonymous.4open.science/r/video-temporal-diagnostics-F450}}
 Our claims are scoped to these datasets, representations, comparators, and the linear fusion
@@ -111,7 +94,7 @@ protocol, not video models in general.
 \section{Diagnostics and Protocols}
 \label{sec:protocols}
 \textbf{Representations and comparators.} V-JEPA~2~\cite{vjepa2} BoT mean-pools contextual tokens
-and is empirically near-invariant, unlike exactly invariant pooling of independent-frame features.
+and therefore is not guaranteed to share the exact order invariance of pooled independent-frame features.
 We compare it with V-JEPA~2 encoder-sequence DTW and temporal-residual DTW. V-JEPA~2 ingests $64$
 frames as $32\times16\times16$ spatiotemporal patches ($D{=}1024$); the encoder sequence
 spatially averages patches per temporal position to a $(32, D)$ trajectory, the residual averages
@@ -130,12 +113,14 @@ on GPS position ($\epsilon{\approx}30$\,m; min.\ samples $3$ for HDD, $2$ for nu
 intersection is retained if it contains both left and right turns. A candidate is \emph{relevant} to a query if it shares the
 query's intersection cluster \emph{and} maneuver label; out-of-cluster candidates remain negatives.
 A segment is an eligible query if it has at least one relevant gallery item. HDD yields $1{,}687$
-segments in the $50$ largest mixed clusters; nuScenes (v1.0-trainval) yields $264$ segments from
-the $50$ largest mixed clusters, with $222$ eligible queries drawn from $40$ clusters.
+segments and $1{,}673$ eligible queries in the $50$ largest mixed clusters; nuScenes
+(v1.0-trainval) yields $264$ segments from the $50$ largest mixed clusters, with $222$ eligible
+queries drawn from $40$ clusters.
 
-\textbf{Directed retrieval and fusion.} Each eligible segment queries every other retained segment
-(the full \emph{evaluation} gallery, not the source dataset). We report query-macro mAP and
-mean reciprocal rank (MRR). We test (i) a cascade that reranks the BoT top-$k$ with
+\textbf{Directed retrieval and fusion.} Each eligible segment queries either the other retained
+segments at its intersection (conditional retrieval) or every other retained segment (global
+retrieval). Both use the same eligible queries and report query-macro mAP; global retrieval also
+reports mean reciprocal rank (MRR). We test (i) a cascade that reranks the BoT top-$k$ with
 encoder-sequence DTW, and (ii) a per-query linear fusion of the same two scores,
 $\alpha\,z(\text{BoT}) + (1{-}\alpha)\,z(-d_\mathrm{enc})$, over the valid gallery, where
 $d_\mathrm{enc}$ is the encoder-sequence DTW distance.
@@ -146,36 +131,27 @@ ties keep a single maximizing endpoint, else the middle maximizing grid point. T
 $\alpha$ is then applied to the held-out queries against the \emph{full} gallery, so no query
 informs its own weight.
 
-\textbf{Uncertainty.} Conditional results are pooled-pair AP; gallery results are query-macro means.
-For both, $95\%$ intervals use $2000$ intersection-cluster bootstrap resamples. We report
-\emph{marginal} intervals per method and \emph{paired} difference intervals for named contrasts
-separately; paired intervals are never attached to a single method's estimate. Fusion intervals
-bootstrap fixed out-of-fold query metrics rather than refitting $\alpha$ in every resample. We do
-not interpret the fraction of resamples favoring one method as a $p$-value.
+\textbf{Controls and uncertainty.} Primary conditional and global results macro-average per-query
+AP over the same eligible query set. Shuffled-DTW and assignment controls instead use a separate
+pooled unordered-pair AP protocol. All $95\%$ intervals use $2000$ intersection-cluster bootstrap
+resamples. We report marginal method intervals and paired difference intervals separately; fusion
+intervals bootstrap fixed out-of-fold query metrics rather than refitting $\alpha$ per resample.
 
 \section{Retrieval: Conditional Gains Reverse Globally}
 \label{sec:retrieval}
-\textbf{Conditional discrimination favors sequence comparison.} \cref{tab:reversal} (top) shows
-temporal-residual DTW has the highest conditional pooled-pair AP on HDD ($0.956$), while
-encoder-sequence DTW leads on nuScenes ($0.867$). Paired encoder-sequence gains over BoT exclude
-zero: $+0.117$ $[0.044, 0.127]$ (HDD) and $+0.075$ $[0.028, 0.128]$ (nuScenes).
+\textbf{Conditional retrieval favors sequence comparison.} Restricting each query to its
+intersection, encoder-sequence DTW reaches mAP $0.955$ versus BoT's $0.923$ on HDD and $0.916$
+versus $0.856$ on nuScenes (\cref{tab:reversal}, top). Paired gains exclude zero: $+0.032$
+$[0.016, 0.042]$ and $+0.060$ $[0.028, 0.093]$, respectively.
 
-\textbf{The sequence-based gain is not consistently attributable to temporal order.} A
-shuffled-DTW control---identical cost, normalization, and warp tolerance to
-encoder-sequence/temporal-residual DTW, with each sequence in the pair randomly permuted in turn
-and the two one-sided distances averaged (10 independently-seeded draws)---isolates an
-order-specific gain from per-frame granularity. Encoder-sequence DTW's order-specific gain is
-established on nuScenes ($+0.060$ AP, $95\%$ paired cluster-bootstrap CI $[0.023, 0.094]$), but not
-on HDD (CI $[-0.001, 0.054]$, crossing zero); temporal-residual DTW's order-specific gain is not
-established on either dataset (HDD CI $[-0.008, 0.043]$; nuScenes CI $[-0.015, 0.064]$). A second,
-rigid one-to-one assignment control---same cost and normalization, but a bijective match with no
-monotonicity constraint, one-to-many warping, or endpoint anchoring---matched or exceeded DTW in
-every evaluated comparison, but the paired interval excluded zero only for nuScenes residual
-features ($+0.043$, CI $[0.017, 0.070]$, favoring assignment). The sequence-based conditional edge
-over BoT above is real; that temporal order specifically, rather than finer per-frame comparison,
-drives it is established only for encoder-sequence DTW on nuScenes, where short segments are padded
-by tiling sparse $2$\,Hz keyframes to the fixed $64$-frame input, a repetition that could itself
-dampen the shuffle control's sensitivity; we treat this one positive result as provisional.
+\textbf{Intact order is not consistently beneficial under pooled-pair AP.} In this separate control
+protocol, shuffled DTW permutes each endpoint in turn and averages the two one-sided distances over
+10 draws. Intact encoder-sequence DTW exceeds this control detectably only on nuScenes ($+0.060$ AP,
+$95\%$ CI $[0.023, 0.094]$); its HDD interval crosses zero ($[-0.001, 0.054]$), as do both residual
+DTW intervals. Order-free one-to-one assignment, which also removes one-to-many warping and endpoint
+anchoring, has paired intervals spanning zero in three comparisons and improves nuScenes residual
+features ($+0.043$ $[0.017, 0.070]$). The nuScenes contrast is provisional because tiling sparse
+$2$\,Hz keyframes to 64 frames introduces artificial repetition whose effect is unknown.
 
 \textbf{The ranking reverses across the evaluation gallery.} Under directed gallery retrieval
 (\cref{tab:reversal}, middle) both sequence scores lose in mAP and MRR: BoT reaches mAP $0.256$ /
@@ -202,8 +178,8 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
 
 \begin{table}[t]
   \centering
-  \caption{Conditional pooled-pair discrimination vs.\ global query-wise retrieval (V-JEPA~2).
-  Top: conditional pooled-pair AP (marginal $95\%$ cluster CI). Middle: evaluation-gallery
+  \caption{Matched conditional vs.\ global query-wise retrieval (V-JEPA~2).
+  Top: within-intersection query-macro mAP (marginal $95\%$ cluster CI). Middle: evaluation-gallery
   mAP / MRR (marginal CI on mAP); held-out BoT/encoder-sequence fusion lists $\alpha^\star$.
   Bottom: \emph{paired} cluster-bootstrap difference intervals, reported separately from single
   methods.}
@@ -214,10 +190,10 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
     \toprule
      & & \textbf{Honda HDD} & \textbf{nuScenes} \\
     \midrule
-    \multicolumn{4}{l}{\emph{Conditional pooled-pair AP} (marginal $95\%$ CI)} \\
-    & BoT (cosine)          & $0.825$ $[0.767, 0.891]$ & $0.791$ $[0.729, 0.861]$ \\
-    & Encoder-seq DTW       & $0.942$ $[0.869, 0.966]$ & $0.867$ $[0.832, 0.906]$ \\
-    & Temporal-residual DTW & $0.956$ $[0.890, 0.978]$ & $0.815$ $[0.782, 0.856]$ \\
+    \multicolumn{4}{l}{\emph{Conditional within-intersection retrieval}, mAP $[95\%$ CI$]$} \\
+    & BoT (cosine)          & $0.923$ $[0.900, 0.948]$ & $0.856$ $[0.826, 0.896]$ \\
+    & Encoder-seq DTW       & $0.955$ $[0.937, 0.971]$ & $0.916$ $[0.889, 0.948]$ \\
+    & Temporal-residual DTW & $0.949$ $[0.931, 0.965]$ & $0.891$ $[0.861, 0.925]$ \\
     \midrule
     \multicolumn{4}{l}{\emph{Global query-wise retrieval}, mAP $[95\%$ CI$]$ / MRR} \\
     & BoT (cosine)          & $0.256$ $[0.218, 0.288]$ / $0.766$ & $0.315$ $[0.254, 0.395]$ / $0.554$ \\
@@ -227,7 +203,7 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
     & \quad selected $\alpha^\star$ & $0.95$ (all $50$ folds) & $1.00$ (all $40$ folds) \\
     \midrule
     \multicolumn{4}{l}{\emph{Paired difference} (cluster-bootstrap, $95\%$ CI)} \\
-    & Enc-seq DTW $-$ BoT (conditional) & $+0.117$ $[0.044, 0.127]$ & $+0.075$ $[0.028, 0.128]$ \\
+    & Enc-seq DTW $-$ BoT (conditional) & $+0.032$ $[0.016, 0.042]$ & $+0.060$ $[0.028, 0.093]$ \\
     & Enc-seq DTW $-$ BoT (global)      & \hddGlobalDtwBot{}       & $-0.175$ $[-0.245, -0.117]$ \\
     & Residual DTW $-$ BoT (global)     & $-0.091$ $[-0.116, -0.077]$ & $-0.193$ $[-0.270, -0.135]$ \\
     & Fusion $-$ BoT (global)           & $+0.001$ $[-0.003, 0.004]$ & $+0.000$ $[0.000, 0.000]$ \\
@@ -244,102 +220,40 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
   \label{fig:cascade}
 \end{figure}
 
-\section{Interface: Temporal Evidence Exists but Readouts Hide It}
-\label{sec:mllm}
-The retrieval failure above uses self-supervised video features. A natural question is whether
-multimodal LLMs, with stronger semantics, expose the temporal signal instead. They do not do so
-reliably, for reasons of \emph{prompt} and \emph{readout} rather than absence of evidence
-(\cref{fig:vlm}). On EPIC-Kitchens~\cite{epickitchens} forward/reverse classification, three direct
-prompts leave Gemma-4~\cite{gemma4} ($0.538$), LLaVA-Video~\cite{llavavideo} ($0.503$), and
-Qwen3-VL~\cite{qwen3vl} ($0.508$) near chance in mean balanced accuracy. Yet an
-intact-vs-tampered \emph{integrity} prompt on the same
-clips reaches $0.845$ (Gemma-4) and $0.879$ (Qwen3-VL); LLaVA-Video degenerates to constant output.
-At the embedding level, pooled vision/LLM readouts change little under reversal (reversal score
-$s_\mathrm{rev}\!\approx\!0.998$--$1.000$ under cosine), while per-frame sequence readouts respond to
-reversal on their own DTW scale ($s_\mathrm{rev}\!\approx\!0.49$--$0.54$). The Qwen vision values
-are approximate because its dynamic-resolution 3D token merge prevents exact frame grouping.
-
-Crucially, these MLLM readouts are also weak at driving conditional discrimination relative to
-V-JEPA~2 (\cref{tab:readout}), and a temporally adapted MLLM does not close the gap: TARA~\cite{tara},
-a 7B model trained with chiral negatives, reaches only $0.547$ conditional AP on HDD under
-single-vector cosine. We therefore make the narrow claim that upgrading to a multimodal model does
-not by itself expose the temporal signal; we do \emph{not} claim MLLMs reproduce the
-conditional-to-global retrieval reversal, which would require an evaluation-gallery MLLM retrieval
-experiment we do not run here.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{v4r_vlm.png}
-  \caption{MLLM interface dependence. Left: EPIC forward/reverse balanced accuracy under a direct
-  direction prompt vs.\ an integrity prompt (LLaVA integrity is degenerate). Right: reversal score
-  $s_\mathrm{rev}$ for pooled (cosine) vs.\ per-frame sequence (DTW) readouts---comparator-specific
-  scales, not cross-comparable. Qwen vision values are approximate because of 3D token merging.}
-  \label{fig:vlm}
-\end{figure}
-
-\begin{table}[t]
-  \centering
-  \caption{Conditional pooled-pair AP for MLLM readouts (vision pooled / vision per-frame sequence,
-  DTW / pooled LLM hidden state) vs.\ V-JEPA~2, on HDD and nuScenes. MLLM readouts trail the
-  self-supervised video features; these are conditional-pair results, not gallery retrieval.}
-  \label{tab:readout}
-  \small
-  \begin{tabular}{lcc}
-    \toprule
-    \textbf{Readout} & \textbf{HDD AP} & \textbf{nuScenes AP} \\
-    \midrule
-    Gemma-4 \; pooled / seq / LLM  & $0.521$ / $0.553$ / $0.472$ & $0.662$ / $0.469$ / $0.569$ \\
-    LLaVA \; pooled / seq / LLM    & $0.514$ / $0.545$ / $0.512$ & $0.624$ / $0.470$ / $0.652$ \\
-    Qwen3-VL \; pooled / seq / LLM & $0.421$ / $0.468$ / $0.518$ & $0.464$ / $0.517$ / $0.630$ \\
-    \midrule
-    V-JEPA~2 \; BoT / encoder-seq DTW & $0.825$ / $0.942$ & $0.791$ / $0.867$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 \section{Related Work}
 \label{sec:related}
 Global video descriptors and pooled matching underpin scalable near-duplicate and event
 retrieval~\cite{faiss}, while sequence-alignment comparators such as DTW, Drop-DTW, and temporal
 max-similarity capture fine-grained order~\cite{sakoe1978dtw,dropdtw,kordopatis2019visil}. Modern
-retrieval is not limited to single-vector pooling: multi-vector, late-interaction, and
-instruction-tuned multimodal embedding models~\cite{qwen3vlembed} retain finer structure. Our
-analysis therefore targets the pooled global-descriptor regime specifically, with the comparator
-axis (DTW, Chamfer) instantiating the sequence-matching alternative. Our location-vs-order tension
-is closely related to \emph{visual place recognition} (VPR), where global aggregation such as
+multi-vector and late-interaction models~\cite{qwen3vlembed} retain finer structure. Our claims
+concern pooled global descriptors and the tested DTW variants. The tension between location and
+order is closely related to \emph{visual place recognition} (VPR), where global aggregation such as
 NetVLAD~\cite{netvlad} enables scalable place matching, and \emph{sequence}-based localization such
 as SeqSLAM~\cite{seqslam} and learned sequence descriptors~\cite{seqnet} exploit temporal order
 along a route. Our result is a caution for that line: an order-aware sequence score that helps
 \emph{within} a place can hurt \emph{across} places if it is not itself place-discriminative.
-Analyses of temporal understanding in video and multimodal models largely evaluate conditional or
-classification settings; recent theory also bounds what a fixed-dimensional embedding ranking can
-express~\cite{weller2025limits}, consistent with our finding that a temporal score appended to an
-appearance ranking need not improve it. Temporal-bias benchmarks and analyses similarly show that
-video models can rely on static evidence or fail to expose encoded temporal information under a
-particular prompt or readout~\cite{lei2022singleframe,tempcompass,temporaltransfer,tracingaot}.
+Temporal analyses commonly use conditional or classification settings
+~\cite{lei2022singleframe,tempcompass,temporaltransfer,tracingaot}; our matched galleries expose the
+cost of adding location search. Recent theory also bounds what fixed-dimensional embedding rankings
+can express~\cite{weller2025limits}, consistent with a temporal score failing to improve an
+appearance ranking.
 
 \section{Discussion and Conclusion}
 \label{sec:conclusion}
-Conditional maneuver discrimination and cross-intersection retrieval measure different capabilities. The
-sequence comparators can separate left from right turns at a known intersection yet provide too little
-location discrimination to rank the evaluation gallery well. The top-1 decomposition localizes
-the observed loss to wrong-intersection retrieval; neither a fixed reranking stage nor a
-cross-validated linear blend of the two scores repairs this here. In parallel, multimodal LLMs can hold recoverable
-temporal evidence that standard prompts and pooled readouts fail to surface. Recovering global
-temporal retrieval therefore requires a temporal representation that is itself
-location-discriminative, and an interface that exposes order rather than pooling it away---not
-merely a better rule over existing scores or a larger model.
+Within-intersection and cross-intersection retrieval measure different capabilities. Sequence
+comparators improve conditional matching yet provide too little location discrimination to rank the
+evaluation gallery well. The top-1 decomposition localizes the loss to wrong-intersection retrieval;
+neither fixed reranking nor a cross-validated linear blend repairs it here. Global sequence retrieval
+therefore needs a fine-grained representation that is itself location-discriminative.
 
-\textbf{Deployment and limitations.} BoT yields one descriptor per clip and supports indexed
-nearest-neighbor search; evaluating the retained gallery with DTW is not directly indexable and is
-quadratic in sequence length. The cheaper BoT-first encoder-sequence cascade bounds DTW work but reduces accuracy here, so temporal
-comparison adds cost without a measured retrieval gain. The retrieval study covers two driving
-datasets, their $50$ largest mixed-direction clusters, one backbone, and one linear fusion family
-on a $0.05$ grid. The MLLM study uses
-conditional pair and reversal probes, not global MLLM retrieval, and some VLM results are
-transcribed from experiment artifacts not included in the compact result bundle. These results
-establish replicated and interface-dependent failure cases, not that temporal retrieval or nonlinear
-fusion cannot succeed. We release the diagnostics to support broader tests.
+\textbf{Deployment and limitations.} BoT supports indexed search; retained-gallery DTW is not
+directly indexable and is quadratic in sequence length. The BoT-first cascade bounds DTW work but
+reduces accuracy here. The study covers two driving datasets, their $50$ largest mixed-direction
+clusters, one backbone, tested DTW variants, and one linear fusion family on a $0.05$ grid.
+Per-sequence min--max normalization may itself discard location evidence. Moreover, nuScenes tiles
+sparse keyframes to a fixed input length, so its intact-vs-shuffled contrast remains provisional.
+These are scoped failure cases, not evidence that sequence retrieval or nonlinear fusion cannot
+succeed. We release the diagnostics to support broader tests.
 
 \FloatBarrier
 
