@@ -116,7 +116,7 @@ where $\alpha$ follows the DTW $\alpha$ schedule defined below. Raw $s_\text{rev
 
 \section{Experiments and Results}
 
-\textbf{Evaluation protocols.} We report average precision (AP; area under the precision--recall curve) and, where applicable, area under the ROC curve (AUC). Except for the explicitly identified reranking experiment, these are pooled pair-classification diagnostics, not standard query-wise retrieval metrics. \emph{VCDB}: 528 videos; 5{,}585 positive pairs from annotations, negatives sampled 1:1 with fixed seed (sensitivity analysis across 1:1, 1:5, and all-pairs in Appendix~\ref{sec:neg_sampling}). \emph{HDD}: all $\binom{n}{2}$ pairs within each GPS-clustered intersection (DBSCAN density clustering, $\epsilon\!\approx\!30$\,m); positive = same maneuver; 50 mixed clusters, 1{,}687 maneuvers. \emph{nuScenes}: same protocol on ego\_pose; CAN-bus (Controller Area Network) turn labels; 264 segments, 950 pairs. \emph{EPIC s\textsubscript{rev}}: per-sequence self-comparison on 500 sequences; bootstrap 95\% CIs (1{,}000 resamples). \emph{Nymeria}: 100 egocentric sessions, 8{,}780 segments; positive = same activity same room; all $\binom{n}{2}$ pairs (394{,}210). \emph{MUVR News}: 9{,}958 videos, 74 topics, 27{,}453 positive pairs. \emph{SSv2}: 400 clips across chiral (mirror-direction) template pairs---e.g., ``pushing left to right'' vs.\ ``pushing right to left''---50 per template; within-pair pairwise evaluation where positive = same template and negative = chiral twin.
+\textbf{Evaluation protocols.} We report average precision (AP; area under the precision--recall curve) and, where applicable, area under the ROC curve (AUC). Except for the explicitly identified reranking experiment, these are pooled pair-classification diagnostics, not standard query-wise retrieval metrics. \emph{VCDB}: 528 videos; 5{,}585 positive pairs from annotations, negatives sampled 1:1 with fixed seed (sensitivity analysis across 1:1, 1:5, and all-pairs in Appendix~\ref{sec:neg_sampling}). \emph{HDD}: all $\binom{n}{2}$ pairs within each GPS-clustered intersection (DBSCAN density clustering, $\epsilon\!\approx\!30$\,m); positive = same maneuver; 50 mixed clusters, 1{,}687 maneuvers. \emph{nuScenes}: the same protocol with DBSCAN run independently within each map's local ego\_pose coordinate frame; CAN-bus (Controller Area Network) turn labels; 244 segments, 824 pairs. \emph{EPIC s\textsubscript{rev}}: per-sequence self-comparison on 500 sequences; bootstrap 95\% CIs (1{,}000 resamples). \emph{Nymeria}: 100 egocentric sessions, 8{,}780 segments; positive = same activity same room; all $\binom{n}{2}$ pairs (394{,}210). \emph{MUVR News}: 9{,}958 videos, 74 topics, 27{,}453 positive pairs. \emph{SSv2}: 400 clips across chiral (mirror-direction) template pairs---e.g., ``pushing left to right'' vs.\ ``pushing right to left''---50 per template; within-pair pairwise evaluation where positive = same template and negative = chiral twin.
 
 \subsection{VCDB Reversal Diagnostics}
 
@@ -227,9 +227,9 @@ We fix the backbone and pair set on HDD and sweep context padding $c \in \{1.0, 
 \subsubsection{Cross-Dataset Validation: nuScenes}
 \label{sec:nuscenes}
 
-To test whether the ranking transfers, we evaluate on nuScenes~\cite{nuscenes}. Turn labels come from CAN bus, and intersections are clustered via DBSCAN ($\epsilon\!=\!30$m), yielding 264 segments across 50 mixed-direction clusters (950 pairs).
+To test whether the ranking transfers, we evaluate on nuScenes~\cite{nuscenes}. Turn labels come from CAN bus, and DBSCAN ($\epsilon\!=\!30$m) runs independently within each map's local coordinate frame, yielding 244 segments across 50 mixed-direction clusters (824 pairs).
 
-V-JEPA~2 encoder-sequence DTW reaches AP\,=\,0.867, ahead of the temporal residual (0.815) and BoT (0.791), while DINOv3 methods are at $\leq$0.623. Paired intersection-cluster bootstrap differences support encoder-sequence DTW over BoT ($+0.075$ [0.029, 0.128]) and over the residual ($+0.052$ [0.036, 0.064]). The residual--BoT contrast is less certain ($+0.024$ [$-0.031$, 0.090]). Differences in native sampling are one possible explanation, not an identified cause.
+V-JEPA~2 encoder-sequence DTW reaches AP\,=\,0.863, ahead of the temporal residual (0.811) and BoT (0.781), while DINOv3 methods are at $\leq$0.614. Paired intersection-cluster bootstrap differences support encoder-sequence DTW over BoT ($+0.082$ [0.028, 0.140]) and over the residual ($+0.052$ [0.033, 0.066]). The residual--BoT contrast is less certain ($+0.030$ [$-0.036$, 0.101]). Differences in native sampling are one possible explanation, not an identified cause.
 
 \subsubsection{Cross-Domain Validation: Something-Something V2}
 \label{sec:ssv2}
@@ -530,21 +530,21 @@ This appendix consolidates per-method, per-benchmark AP and $s_\text{rev}$ value
 
 \begin{table}[h]
 \centering
-\caption{Dedicated encoders across all tasks (VCDB: 5{,}585 pairs; HDD: 1{,}687 maneuvers; nuScenes: 950 pairs; SSv2: 400 chiral-pair clips; EPIC: 500 sequences). Nymeria and MUVR scene-matching results replicate the VCDB finding and are in Appendix~\ref{sec:scene_matching}. 95\% bootstrap CIs in Appendix~\ref{sec:bootstrap_cis}.}
+\caption{Dedicated encoders across all tasks (VCDB: 5{,}585 pairs; HDD: 1{,}687 maneuvers; nuScenes: 824 pairs; SSv2: 400 chiral-pair clips; EPIC: 500 sequences). Nymeria and MUVR scene-matching results replicate the VCDB finding and are in Appendix~\ref{sec:scene_matching}. 95\% bootstrap CIs in Appendix~\ref{sec:bootstrap_cis}.}
 \label{tab:summary_encoders}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Method} & \textbf{VCDB (AP$\uparrow$)} & \textbf{HDD (AP$\uparrow$)} & \textbf{nuScenes (AP$\uparrow$)} & \textbf{SSv2 (AP$\uparrow$)} & \textbf{EPIC $s_\text{rev}$} \\
 \midrule
-DINOv3 BoF & 0.979 & 0.530 & 0.613 & 0.500 & 1.000 \\
-DINOv3 Chamfer & \textbf{0.989} & 0.559 & 0.612 & 0.500 & 0.9999 \\
-DINOv3 Temporal Deriv. & 0.775 & 0.498 & 0.623 & 0.503 & 0.500 \\
-DINOv3 Attn.\ Trajectory & 0.700 & 0.507 & 0.584 & \textbf{0.720} & \textbf{0.192} \\
-V-JEPA 2 BoT & 0.838 & 0.825 & 0.791 & 0.555 & 0.984 \\
-V-JEPA 2 Encoder-Seq DTW & --- & 0.942 & \textbf{0.867} & --- & --- \\
-V-JEPA 2 Temporal Res. & 0.698 & \textbf{0.956} & 0.815 & 0.556 & 0.0033 \\
-ViCLIP (InternVid-10M) & 0.907 & 0.542 & 0.618 & --- & 0.996 \\
+DINOv3 BoF & 0.979 & 0.530 & 0.584 & 0.500 & 1.000 \\
+DINOv3 Chamfer & \textbf{0.989} & 0.559 & 0.589 & 0.500 & 0.9999 \\
+DINOv3 Temporal Deriv. & 0.775 & 0.498 & 0.614 & 0.503 & 0.500 \\
+DINOv3 Attn.\ Trajectory & 0.700 & 0.507 & 0.567 & \textbf{0.720} & \textbf{0.192} \\
+V-JEPA 2 BoT & 0.838 & 0.825 & 0.781 & 0.555 & 0.984 \\
+V-JEPA 2 Encoder-Seq DTW & --- & 0.942 & \textbf{0.863} & --- & --- \\
+V-JEPA 2 Temporal Res. & 0.698 & \textbf{0.956} & 0.811 & 0.556 & 0.0033 \\
+ViCLIP (InternVid-10M) & 0.907 & 0.542 & --- & --- & 0.996 \\
 X-CLIP (16-frame) & 0.960 & --- & --- & --- & 0.980 \\
 TARA (chiral, cosine) & --- & 0.547 & --- & --- & 0.955 \\
 PL-Stitch BoF & --- & 0.478 & --- & --- & 1.000 \\
@@ -554,7 +554,7 @@ Optical Flow (RAFT) DTW & --- & 0.478 & --- & --- & --- \\
 \end{tabular}
 }
 \begin{flushleft}
-\small --- = not evaluated. VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $s_\text{rev}$ values from cosine and DTW are not cross-comparable; V-JEPA~2 BoT uses cosine and its residual uses sequence DTW.
+\small --- = not evaluated; the superseded nuScenes ViCLIP result was removed pending a location-aware rerun. VCDB AP depends on negative seed ($\pm$0.06; Appendix~\ref{sec:neg_sampling}). $s_\text{rev}$ values from cosine and DTW are not cross-comparable; V-JEPA~2 BoT uses cosine and its residual uses sequence DTW.
 \end{flushleft}
 \end{table}
 
@@ -568,24 +568,24 @@ Optical Flow (RAFT) DTW & --- & 0.478 & --- & --- & --- \\
 \textbf{Method} & \textbf{VCDB (AP$\uparrow$)} & \textbf{HDD (AP$\uparrow$)} & \textbf{nuScenes (AP$\uparrow$)} & \textbf{EPIC $s_\text{rev}$} \\
 \midrule
 \multicolumn{5}{l}{\emph{Vision tower, pooled}} \\
-Gemma-4 (SigLIP) & 0.926 & 0.521 & 0.662 & 1.000$^\dagger$ \\
-LLaVA (CLIP) & 0.915 & 0.514 & 0.624 & 1.000$^\dagger$ \\
-Qwen3-VL (SigLIP) & 0.491 & 0.421 & 0.464 & 0.998$^\dagger$ \\
+Gemma-4 (SigLIP) & 0.926 & 0.521 & --- & 1.000$^\dagger$ \\
+LLaVA (CLIP) & 0.915 & 0.514 & --- & 1.000$^\dagger$ \\
+Qwen3-VL (SigLIP) & 0.491 & 0.421 & --- & 0.998$^\dagger$ \\
 \midrule
 \multicolumn{5}{l}{\emph{Vision tower, per-frame sequence (DTW)}} \\
-Gemma-4 (SigLIP) & 0.632 & 0.553 & 0.469 & 0.492 \\
-LLaVA (CLIP) & 0.637 & 0.545 & 0.470 & 0.495 \\
-Qwen3-VL (SigLIP) & 0.610 & 0.468 & 0.517 & 0.542 \\
+Gemma-4 (SigLIP) & 0.632 & 0.553 & --- & 0.492 \\
+LLaVA (CLIP) & 0.637 & 0.545 & --- & 0.495 \\
+Qwen3-VL (SigLIP) & 0.610 & 0.468 & --- & 0.542 \\
 \midrule
 \multicolumn{5}{l}{\emph{LLM backbone, pooled hidden state}} \\
-Gemma-4 & 0.838 & 0.472 & 0.569 & $\geq$0.998 \\
-LLaVA & 0.907 & 0.512 & 0.652 & $\geq$0.998 \\
-Qwen3-VL & 0.916 & 0.518 & 0.630 & $\geq$0.998 \\
+Gemma-4 & 0.838 & 0.472 & --- & $\geq$0.998 \\
+LLaVA & 0.907 & 0.512 & --- & $\geq$0.998 \\
+Qwen3-VL & 0.916 & 0.518 & --- & $\geq$0.998 \\
 \bottomrule
 \end{tabular}
 }
 \begin{flushleft}
-\small $^\dagger$Observed pooled cosine value, clamped to 1.000 where f32 precision exceeded one. Pooled and sequence rows use different comparators and numerical scales.
+\small $^\dagger$Observed pooled cosine value, clamped to 1.000 where f32 precision exceeded one. Pooled and sequence rows use different comparators and numerical scales. Superseded nuScenes VLM results were removed pending location-aware reruns.
 \end{flushleft}
 \end{table}
 
@@ -709,11 +709,11 @@ DINOv3 Attn.\ Trajectory & 0.700 & 0.408 & 0.225 \\
 \section{Bootstrap Confidence Intervals}
 \label{sec:bootstrap_cis}
 
-Table~\ref{tab:bootstrap} reports percentile intervals from resampling individual pairs (2{,}000 resamples, seed\,=\,42). Because pairs share clips and, for driving datasets, intersection clusters, these intervals do not have nominal 95\% coverage for independent experimental units and are retained only as descriptive resampling summaries. Degenerate samples fall back to the point estimate.
+Table~\ref{tab:bootstrap} reports percentile intervals from 2{,}000 resamples (seed\,=\,42). Corrected nuScenes rows resample intersection clusters; all other rows resample individual pairs and are retained only as descriptive summaries because pairs share clips and other experimental units. Degenerate samples fall back to the point estimate.
 
 \begin{table}[h]
 \centering
-\caption{Descriptive pair-resampling percentile intervals for AP. ``Width'' is interval high minus low; narrow values can reflect dependence among pairs rather than low scientific uncertainty.}
+\caption{Resampling intervals for AP. Rows use descriptive pair resampling except corrected nuScenes, which uses intersection-cluster resampling. ``Width'' is interval high minus low.}
 \label{tab:bootstrap}
 \begin{tabular}{llccc}
 \toprule
@@ -736,13 +736,13 @@ Table~\ref{tab:bootstrap} reports percentile intervals from resampling individua
  & DINOv3 Temporal Deriv.   & 0.498 & [0.494, 0.503] & 0.009 \\
 \midrule
 \multirow{7}{*}{nuScenes}
- & V-JEPA 2 Encoder-Seq DTW & 0.867 & [0.842, 0.890] & 0.048 \\
- & V-JEPA 2 Temporal Res.   & 0.815 & [0.785, 0.844] & 0.059 \\
- & V-JEPA 2 BoT             & 0.791 & [0.761, 0.820] & 0.059 \\
- & DINOv3 Temporal Deriv.   & 0.623 & [0.580, 0.665] & 0.085 \\
- & DINOv3 BoF               & 0.613 & [0.570, 0.658] & 0.088 \\
- & DINOv3 Chamfer           & 0.612 & [0.570, 0.659] & 0.089 \\
- & DINOv3 Attn.\ Trajectory & 0.584 & [0.540, 0.634] & 0.094 \\
+ & V-JEPA 2 Encoder-Seq DTW & 0.863 & [0.826, 0.906] & 0.080 \\
+ & V-JEPA 2 Temporal Res.   & 0.811 & [0.773, 0.862] & 0.090 \\
+ & V-JEPA 2 BoT             & 0.781 & [0.718, 0.849] & 0.130 \\
+ & DINOv3 Temporal Deriv.   & 0.614 & [0.544, 0.709] & 0.166 \\
+ & DINOv3 BoF               & 0.584 & [0.536, 0.641] & 0.105 \\
+ & DINOv3 Chamfer           & 0.589 & [0.540, 0.645] & 0.105 \\
+ & DINOv3 Attn.\ Trajectory & 0.567 & [0.510, 0.647] & 0.136 \\
 \midrule
 \multirow{6}{*}{Nymeria}
  & DINOv3 BoF               & 0.485 & [0.482, 0.489] & 0.007 \\
@@ -762,7 +762,7 @@ Table~\ref{tab:bootstrap} reports percentile intervals from resampling individua
 \bottomrule
 \end{tabular}
 \begin{flushleft}
-\small Pair-level intervals are especially narrow on HDD and Nymeria because many pairs reuse the same clips. On HDD, resampling intersection clusters instead widens the V-JEPA~2 temporal-residual interval from [0.955,\,0.958] to [0.890,\,0.978]. Marginal intervals do not test method differences; paired intersection-cluster contrasts for HDD and nuScenes are in Table~\ref{tab:paired_bootstrap}. Analogous independent-unit definitions are needed for VCDB, Nymeria, MUVR, and SSv2 before inferential claims.
+\small Pair-level intervals are especially narrow on HDD and Nymeria because many pairs reuse the same clips. On HDD, resampling intersection clusters instead widens the V-JEPA~2 temporal-residual interval from [0.955,\,0.958] to [0.890,\,0.978]. The corrected nuScenes rows already use cluster resampling. Marginal intervals do not test method differences; paired intersection-cluster contrasts for HDD and nuScenes are in Table~\ref{tab:paired_bootstrap}. Analogous independent-unit definitions are needed for VCDB, Nymeria, MUVR, and SSv2 before inferential claims.
 \end{flushleft}
 \end{table}
 
@@ -778,9 +778,9 @@ HDD & Encoder-Seq DTW $-$ BoT & +0.117 & [0.044, 0.127] \\
 HDD & Temporal Residual $-$ Encoder-Seq DTW & +0.015 & [0.0004, 0.034] \\
 HDD & Temporal Residual $-$ BoT & +0.132 & [0.048, 0.149] \\
 \midrule
-nuScenes & Encoder-Seq DTW $-$ BoT & +0.075 & [0.029, 0.128] \\
-nuScenes & Encoder-Seq DTW $-$ Temporal Residual & +0.052 & [0.036, 0.064] \\
-nuScenes & Temporal Residual $-$ BoT & +0.024 & [$-0.031$, 0.090] \\
+nuScenes & Encoder-Seq DTW $-$ BoT & +0.082 & [0.028, 0.140] \\
+nuScenes & Encoder-Seq DTW $-$ Temporal Residual & +0.052 & [0.033, 0.066] \\
+nuScenes & Temporal Residual $-$ BoT & +0.030 & [$-0.036$, 0.101] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -833,12 +833,12 @@ For each query, the corrected gallery contains every other cached segment. Relev
 \section{nuScenes Cross-Dataset Visualization}
 \label{sec:nuscenes_figure}
 
-Figure~\ref{fig:nuscenes_maneuver} visualizes the nuScenes maneuver-discrimination results reported in Section~\ref{sec:nuscenes}. Encoder-sequence DTW (AP\,=\,0.867) leads, followed by the temporal residual (AP\,=\,0.815) and BoT (AP\,=\,0.791), with DINOv3 methods below 0.625. Paired cluster contrasts support encoder-sequence DTW over both alternatives; the residual--BoT interval includes zero (Table~\ref{tab:paired_bootstrap}).
+Figure~\ref{fig:nuscenes_maneuver} visualizes the corrected nuScenes maneuver-discrimination results reported in Section~\ref{sec:nuscenes}. Among the three primary V-JEPA~2 comparators, encoder-sequence DTW (AP\,=\,0.863) leads the temporal residual (0.811) and BoT (0.781), while the order-free encoder assignment control reaches 0.875. DINOv3 methods remain below 0.615. Paired cluster contrasts support encoder-sequence DTW over both primary alternatives; the residual--BoT interval includes zero (Table~\ref{tab:paired_bootstrap}).
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\textwidth]{../figures/nuscenes_maneuver_discrimination.png}
-    \caption{nuScenes pair diagnostic (264 segments, 950 pairs, 50 intersection clusters). V-JEPA~2 encoder-sequence DTW has the largest AP (0.867); paired cluster contrasts are in Table~\ref{tab:paired_bootstrap}.}
+    \caption{Location-aware nuScenes pair diagnostic (244 segments, 824 pairs, 50 intersection clusters). Encoder-sequence DTW leads the three primary V-JEPA~2 comparators (AP 0.863), while order-free encoder assignment reaches 0.875; paired primary-method contrasts are in Table~\ref{tab:paired_bootstrap}.}
     \label{fig:nuscenes_maneuver}
 \end{figure}
 

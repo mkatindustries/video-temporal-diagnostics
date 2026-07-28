@@ -2,8 +2,8 @@
 """nuScenes Intersection Clustering + Maneuver Discrimination Experiment.
 
 Cross-dataset validation of the HDD maneuver discrimination result.
-HDD showed V-JEPA 2 temporal residual dominates for distinguishing left vs
-right turns at the same intersection (AP=0.968). This script tests whether
+HDD showed strong V-JEPA 2 temporal-residual discrimination between left and
+right turns at the same intersection (pooled-pair AP=0.956). This script tests whether
 that finding generalizes to nuScenes — a different vehicle, different cameras,
 different driving environment (Singapore/Boston vs Bay Area).
 
@@ -11,10 +11,10 @@ Pipeline:
 1. Load nuScenes metadata (scene → sample → sample_data → ego_pose)
 2. Load CAN bus pose + steering for each scene
 3. Segment scenes by maneuver (steering angle + yaw rate → left/right/straight)
-4. Cluster segments by ego_pose midpoint (DBSCAN, eps=30m)
+4. Cluster segments by ego_pose midpoint within each map (DBSCAN, eps=30m)
 5. Filter for mixed clusters (left + right turns at same location)
 6. Extract DINOv3 + V-JEPA 2 features from CAM_FRONT keyframes
-7. Compute pairwise similarities (6 methods)
+7. Compute pairwise similarities (11 methods, including order controls)
 8. Evaluate: AP/AUC for same vs different maneuver discrimination
 
 Usage:

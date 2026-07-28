@@ -20,24 +20,25 @@ pip install -e '.[vlm]'      # VLM experiment support (transformers, accelerate,
 
 **Model weights:** HuggingFace IDs: `facebook/dinov3-vitl16-pretrain-lvd1689m`, `facebook/vjepa2-vitl-fpc64-256`, `Qwen/Qwen3-VL-8B-Instruct`, `google/gemma-4-31B-it`, `llava-hf/LLaVA-Video-7B-Qwen2-hf`. Pass `--model-path` to experiment scripts if weights are pre-downloaded to a local path. Claude Opus 4.6 and Gemini 3.1 Pro are API-only (see experiments 32--33).
 
-**Job telemetry (corrected rerun + fusion runs, 2026-07-18/19).** SLURM accounting for the runs
-behind the tracked corrected results (`sacct`; single H200 GPU each). This documents these runs
-only and does not by itself justify a "Yes" compute-checklist answer, since the older pre-rerun
-experiments lack complete telemetry.
+**Job telemetry (corrected rerun + fusion runs, 2026-07-18 through 2026-07-28).** SLURM
+accounting for the runs behind the tracked corrected results (`sacct`; single H200 GPU each).
+This documents these runs only and does not by itself justify a "Yes" compute-checklist answer,
+since some runs lack complete telemetry.
 
 | Job | Experiment | Elapsed | MaxRSS (GiB) | Alloc |
 |-----|-----------|---------|--------------|-------|
 | 9634576_0 | VCDB scramble multiseed | 00:15:25 | 10.6 | 8 cpu / 1 gpu / 64G |
 | 9634576_1 | VCDB raw-frame scramble | 02:28:27 | 8.8 | 8 cpu / 1 gpu / 64G |
-| 9636031 | nuScenes intersections (rerun) | 00:02:17 | 8.2 | 10 cpu / 1 gpu / 96G |
+| 9937532 | nuScenes location-aware intersections + controls | not recorded | not recorded | 10 cpu / 1 gpu / 96G |
 | 9636095 | HDD encoder-seq + directed rerank (rerun) | 00:31:29 | 5.2 | 12 cpu / 1 gpu / 96G |
 | 9634579 | EPIC temporal-order | 05:15:52 | 17.4 | 8 cpu / 1 gpu / 64G |
 | 9641251 | HDD held-out fusion (initial) | 00:19:28 | 1.7 | 12 cpu / 1 gpu / 96G |
 | 9654434 | HDD held-out fusion + global DTW−BoT contrast | 00:20:24 | 7.6 | 12 cpu / 1 gpu / 96G |
-| 9645008 | nuScenes directed retrieval + fusion | 00:01:54 | 6.2 | 10 cpu / 1 gpu / 96G |
+| 9937533 | nuScenes location-aware directed retrieval + fusion | not recorded | not recorded | 10 cpu / 1 gpu / 96G |
 
-All jobs completed with exit code 0. Reruns 9636031/9636095 supersede failed originals
-9634578/9634577 (int64 JSON-serialization bug, fixed in commit 7e67fe7).
+All listed jobs completed with exit code 0. Jobs 9937532/9937533 supersede all earlier nuScenes
+runs after the location-aware clustering and stale-cache fixes. HDD rerun 9636095 supersedes failed
+original 9634577 (int64 JSON-serialization bug, fixed in commit 7e67fe7).
 
 ## Table and Figure Reference Map
 
@@ -176,14 +177,14 @@ python experiments/eval_nuscenes_fusion.py \
 ```
 
 **Output:** `results/nuscenes/fusion_results.json` and the reusable, untracked
-`<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`. The compact result is
-tracked at `results/nuscenes/fusion_results.json` (latest job 9674479). The evaluation uses 264 segments
-from 50 clusters, with 222 eligible queries from 40 clusters. It replicates the reversal: global
-BoT mAP 0.315 [0.254, 0.395] vs encoder-sequence DTW 0.141 [0.106, 0.183] (paired DTW − BoT
-−0.1745 [−0.245, −0.117]); the cascade lowers AP at every evaluated k; and fusion selects
-`alpha=1.0` in all 40 folds, so the fused ranking is exactly identical to BoT (difference 0).
-Temporal-residual DTW is weaker still at mAP 0.122 [0.090, 0.161], with a paired difference
-from BoT of -0.193 [-0.270, -0.135].
+`<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`. The location-aware result
+is tracked at `results/nuscenes/fusion_results.json` (job 9937533). It uses 244 segments from 50
+retained mixed-direction clusters, with 197 eligible queries from 37 clusters. It replicates the
+reversal: global BoT mAP 0.333 [0.271, 0.413] vs encoder-sequence DTW 0.159 [0.122, 0.204]
+(paired DTW − BoT −0.173 [−0.240, −0.118]); the cascade lowers AP at every evaluated k; and fusion
+selects `alpha=1.0` in all 37 folds, so the fused ranking is exactly identical to BoT (difference 0).
+Temporal-residual DTW is weaker still at mAP 0.136 [0.102, 0.177], with a paired difference from
+BoT of -0.196 [-0.271, -0.136].
 
 ### 7. FPS Downsample Sweep (Honda HDD) — Appendix A
 

@@ -1,33 +1,37 @@
-"""Regenerate nuScenes maneuver discrimination bar chart.
+"""Regenerate the nuScenes maneuver-discrimination bar chart from results.
 
-Uses the same matplotlib Set1 palette as plot_vcdb_reversal.py so that
-shared methods share colors across figures. Rotates x-axis labels so
-multi-word names (Bag of Tokens, Encoder-Seq DTW, Temporal Res.) no
-longer collide.
+Reads the tracked, location-aware result JSON rather than transcribing values.
 """
 
+import json
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: E402
 
 project_root = Path(__file__).parent.parent
 fig_dir = project_root / "figures"
 
-set1 = plt.get_cmap("Set1").colors  # pyrefly: ignore [missing-attribute]
-
-# (label, AP, AUC, color)
-# Colors mirror plot_vcdb_reversal.py; Encoder-Seq DTW uses set1[7] (pink)
-# since it does not appear in VCDB reversal.
+results = json.loads((project_root / "results/nuscenes/intersection_results.json").read_text())
+method_specs = [
+    ("bag_of_frames", "Bag of Frames", "#e74c3c"),
+    ("chamfer", "Chamfer", "#1abc9c"),
+    ("temporal_derivative", "Temporal Derivative", "#2ecc71"),
+    ("attention_trajectory", "Attention Trajectory", "#3498db"),
+    ("vjepa2_bag_of_tokens", "V-JEPA 2 Bag of Tokens", "#9b59b6"),
+    ("vjepa2_encoder_seq_dtw", "V-JEPA 2 Enc-Seq DTW", "#8e44ad"),
+    ("vjepa2_encoder_seq_dtw_shuffled", "V-JEPA 2 Shuffled Enc.", "#34495e"),
+    ("vjepa2_encoder_seq_assignment", "V-JEPA 2 Enc. Assignment", "#16a085"),
+    ("vjepa2_temporal_residual", "V-JEPA 2 Temporal Res.", "#f39c12"),
+    ("vjepa2_temporal_residual_shuffled", "V-JEPA 2 Shuffled Res.", "#7f8c8d"),
+    ("vjepa2_temporal_residual_assignment", "V-JEPA 2 Res. Assignment", "#c0392b"),
+]
 methods = [
-    ("Bag of Frames",          0.613, 0.589, set1[0]),
-    ("Chamfer",                0.612, 0.595, set1[1]),
-    ("Temporal Derivative",    0.623, 0.574, set1[2]),
-    ("Attention Trajectory",   0.584, 0.568, set1[3]),
-    ("V-JEPA 2 Bag of Tokens", 0.791, 0.741, set1[4]),
-    ("V-JEPA 2 Enc-Seq DTW",   0.867, 0.840, set1[7]),
-    ("V-JEPA 2 Temporal Res.", 0.815, 0.775, set1[6]),
+    (label, results[key]["ap"], results[key]["auc"], color)
+    for key, label, color in method_specs
+    if key in results
 ]
 
 labels = [m[0] for m in methods]

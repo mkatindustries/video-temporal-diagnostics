@@ -11,8 +11,7 @@ Shared configuration for every artifact below:
   `ea8dc2863c51be0a264bab82070e3e8836b02d51`; V-JEPA 2 `facebook/vjepa2-vitl-fpc64-256`
   snapshot `b3c1679b7c34d3255ef3547f27c7b226aefab26f`.
 - **Environment:** conda env `video_retrieval` (Python 3.11.15, torch 2.10.0+cu128,
-  transformers 5.6.0.dev0); SLURM account `dream`, partition `h200`. The July 18--20
-  runs used qos `h200_comm_shared`; the July 28 control runs used qos `h200_dev`.
+  transformers 5.6.0.dev0); GPU jobs used one H200-class accelerator unless noted otherwise.
 
 | Artifact | Generating commit | SLURM job | Dataset version |
 |----------|-------------------|-----------|-----------------|
@@ -26,7 +25,7 @@ Shared configuration for every artifact below:
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
-| `hdd/conditional_querywise_results.json` | this commit | local CPU, 2026-07-27 | HDD release_2019_07_08 |
+| `hdd/conditional_querywise_results.json` | `9236c63` | local CPU, 2026-07-27 | HDD release_2019_07_08 |
 | `nuscenes/conditional_querywise_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
 
 Notes:

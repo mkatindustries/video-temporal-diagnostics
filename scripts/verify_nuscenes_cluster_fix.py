@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Verify the location-aware DBSCAN fix in eval_nuscenes_intersections.py.
 
-scripts/audit_nuscenes_cluster_locations.py proved the *old* clustering (no
-location awareness) mixes cities in 10/50 retained clusters. This script runs
+An audit of the superseded clustering (without location awareness) proved that
+it mixed cities in 10/50 retained clusters. This script runs
 the *fixed* clustering (cluster_intersections(..., locations=...)) over the
 same segments and reports the resulting cluster/segment counts plus a purity
 check, so you can see the new scale before committing to a full GPU rerun.

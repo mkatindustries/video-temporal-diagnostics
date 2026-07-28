@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Metadata-only audit: does any nuScenes intersection cluster mix scenes from
-different maps (cities)?
+"""Metadata-only audit of the location-aware nuScenes intersection clusters.
 
-experiments/eval_nuscenes_intersections.py clusters maneuver segments by raw
-ego-pose (x, y) via DBSCAN, without ever loading log.json's `location` field.
 nuScenes ego-pose coordinates are in a per-map local frame (boston-seaport vs.
 the three singapore-* maps), so numerically close (x, y) values do not imply
-the same real-world intersection across maps. This script reuses the exact
-same segmentation/clustering call as the real run (same eps, min_samples,
-min_duration) so it checks the same clusters behind the Video4Real headline
-results, then reports how many scene locations appear in each cluster.
+the same real-world intersection across maps. The evaluator therefore runs
+DBSCAN independently within each map. This script reuses that exact current
+segmentation/clustering path (same location keys, eps, min_samples, and
+min_duration), checks the Video4Real run counts, and reports cluster purity.
 
 No feature extraction, no GPU: the nuScenes metadata tables loaded by the
 evaluator (scene, log, sample, sample_data, ego_pose, sensor, and
@@ -23,7 +20,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -35,13 +31,14 @@ from eval_nuscenes_intersections import (  # noqa: E402
     filter_mixed_clusters,
     load_can_bus,
     load_nuscenes_metadata,
+    load_scene_locations,
     segment_maneuvers,
 )
 
 PAPER_VERSION = "v1.0-trainval"
 PAPER_MAX_CLUSTERS = 50
 PAPER_MIN_SEGMENT_DURATION = 2.0
-PAPER_N_SEGMENTS = 264
+PAPER_N_SEGMENTS = 244
 
 
 def main() -> int:
@@ -63,14 +60,7 @@ def main() -> int:
 
     data_dir = args.nuscenes_dir
     metadata = load_nuscenes_metadata(data_dir, args.version)
-
-    with open(data_dir / args.version / "log.json") as f:
-        logs = json.load(f)
-    log_location = {log["token"]: log["location"] for log in logs}
-    scene_location = {
-        scene["name"]: log_location.get(scene["log_token"])
-        for scene in metadata.scenes
-    }
+    scene_location = load_scene_locations(data_dir, args.version, metadata.scenes)
 
     can_dir = data_dir / "can_bus" / "can_bus"
     all_segments = []
@@ -95,8 +85,14 @@ def main() -> int:
         print("VERDICT: ERROR -- no maneuver segments found; check the data and version.")
         return 2
 
-    # Same clustering call as experiments/eval_nuscenes_intersections.py main().
-    clusters = cluster_intersections(all_segments, eps=30.0, min_samples=2)
+    # Same location-aware clustering call as eval_nuscenes_intersections.py main().
+    segment_locations = [scene_location[segment.scene_name] for segment in all_segments]
+    clusters = cluster_intersections(
+        all_segments,
+        eps=30.0,
+        min_samples=2,
+        locations=segment_locations,
+    )
     mixed = filter_mixed_clusters(clusters, max_clusters=args.max_clusters)
     if not mixed:
         print("VERDICT: ERROR -- reconstruction produced no mixed clusters.")
@@ -141,7 +137,7 @@ def main() -> int:
         return 2
 
     print(
-        f"Reconstructed {len(mixed)} mixed clusters with "
+        f"Reconstructed {len(mixed)} mixed-direction clusters with "
         f"{len(selected_segments)} segments (top {args.max_clusters} by size).\n"
     )
     n_bad = 0
@@ -155,9 +151,8 @@ def main() -> int:
     print(f"\n{n_bad}/{len(mixed)} clusters mix more than one map/location.")
     if n_bad:
         print(
-            "VERDICT: FAIL -- the reported nuScenes clusters conflate different "
-            "real-world locations. 'Same cluster' does not mean 'same intersection' "
-            "until re-clustered per-location."
+            "VERDICT: FAIL -- the current location-aware reconstruction still "
+            "conflates different real-world locations."
         )
         return 1
     else:
