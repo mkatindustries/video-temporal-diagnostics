@@ -941,6 +941,7 @@ def run_nuscenes(args):
         get_scene_keyframes,
         load_can_bus,
         load_nuscenes_metadata,
+        load_scene_locations,
         ManeuverSegment as NuScenesManeuverSegment,
         segment_maneuvers,
     )
@@ -965,6 +966,7 @@ def run_nuscenes(args):
     # ------------------------------------------------------------------
     print("\nStep 1: Loading nuScenes metadata...")
     metadata = load_nuscenes_metadata(data_dir, version)
+    scene_location = load_scene_locations(data_dir, version, metadata.scenes)
 
     # ------------------------------------------------------------------
     # Step 2: Segment maneuvers from CAN bus
@@ -1018,8 +1020,11 @@ def run_nuscenes(args):
     # ------------------------------------------------------------------
     # Step 3: Cluster intersections
     # ------------------------------------------------------------------
-    print(f"\nStep 3: Clustering intersections (DBSCAN eps=30m)...")
-    clusters = nuscenes_cluster_intersections(all_segments, eps=30.0, min_samples=2)
+    print(f"\nStep 3: Clustering intersections (DBSCAN eps=30m, per-location)...")
+    segment_locations = [scene_location[seg.scene_name] for seg in all_segments]
+    clusters = nuscenes_cluster_intersections(
+        all_segments, eps=30.0, min_samples=2, locations=segment_locations
+    )
     print(f"  Total clusters: {len(clusters)}")
 
     # ------------------------------------------------------------------

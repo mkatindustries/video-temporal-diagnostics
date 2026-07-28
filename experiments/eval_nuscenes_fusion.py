@@ -43,6 +43,7 @@ from eval_nuscenes_intersections import (
     filter_mixed_clusters,
     load_can_bus,
     load_nuscenes_metadata,
+    load_scene_locations,
     segment_maneuvers,
 )
 from tqdm import tqdm
@@ -74,6 +75,7 @@ def build_eval_segments(
     the cached feature key i.
     """
     metadata = load_nuscenes_metadata(data_dir, version)
+    scene_location = load_scene_locations(data_dir, version, metadata.scenes)
     can_dir = data_dir / "can_bus" / "can_bus"
 
     all_segments: list[ManeuverSegment] = []
@@ -95,8 +97,15 @@ def build_eval_segments(
             )
         )
 
+    # Must match eval_nuscenes_intersections.main()'s clustering call exactly
+    # (including per-location grouping) so feature-cache index i still refers
+    # to the same segment here as it did when the cache was built.
+    segment_locations = [scene_location[seg.scene_name] for seg in all_segments]
     clusters = cluster_intersections(
-        all_segments, eps=DBSCAN_EPS_M, min_samples=DBSCAN_MIN_SAMPLES
+        all_segments,
+        eps=DBSCAN_EPS_M,
+        min_samples=DBSCAN_MIN_SAMPLES,
+        locations=segment_locations,
     )
     mixed = filter_mixed_clusters(clusters, max_clusters=max_clusters)
 

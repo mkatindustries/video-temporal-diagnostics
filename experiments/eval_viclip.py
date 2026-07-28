@@ -489,11 +489,13 @@ def eval_nuscenes(model, nuscenes_dir: Path, device: torch.device, version: str 
         get_scene_keyframes,
         load_can_bus,
         load_nuscenes_metadata,
+        load_scene_locations,
         segment_maneuvers,
     )
 
     print(f"  Loading nuScenes metadata (version={version})...")
     metadata = load_nuscenes_metadata(nuscenes_dir, version)
+    scene_location = load_scene_locations(nuscenes_dir, version, metadata.scenes)
 
     all_segments: list = []
     scene_keyframes: dict = {}
@@ -509,7 +511,8 @@ def eval_nuscenes(model, nuscenes_dir: Path, device: torch.device, version: str 
         if kfs:
             scene_keyframes[scene_name] = kfs
 
-    clusters = nuscenes_cluster(all_segments, eps=30.0, min_samples=2)
+    segment_locations = [scene_location[seg.scene_name] for seg in all_segments]
+    clusters = nuscenes_cluster(all_segments, eps=30.0, min_samples=2, locations=segment_locations)
     mixed = nuscenes_filter(clusters, max_clusters=50)
 
     eval_segments: list = []

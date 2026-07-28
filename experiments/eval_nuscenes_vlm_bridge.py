@@ -436,10 +436,25 @@ def _finalize_segment(
 # ---------------------------------------------------------------------------
 
 
+def load_scene_locations(data_dir: Path, version: str, scenes: list[dict]) -> dict[str, str]:
+    """Map scene name -> log.json `location` (e.g. "boston-seaport").
+
+    nuScenes ego-pose (x, y) is a per-map local frame: boston-seaport and the
+    three singapore-* maps do not share a coordinate system, and their local
+    ranges can numerically overlap. Clustering must never merge segments
+    across locations.
+    """
+    with open(data_dir / version / "log.json") as f:
+        logs = json.load(f)
+    log_location = {log["token"]: log["location"] for log in logs}
+    return {scene["name"]: log_location[scene["log_token"]] for scene in scenes}
+
+
 def cluster_intersections(
     segments: list[ManeuverSegment],
     eps: float = 30.0,
     min_samples: int = 2,
+    locations: list[str] | None = None,
 ) -> dict[int, list[ManeuverSegment]]:
     """Cluster maneuver segments by ego_pose location using DBSCAN.
 
@@ -447,19 +462,36 @@ def cluster_intersections(
         segments: All maneuver segments.
         eps: DBSCAN radius in meters.
         min_samples: Minimum cluster size (relaxed for mini split).
+        locations: Optional per-segment location key (e.g. nuScenes map
+            name), same length/order as ``segments``. When given, DBSCAN
+            runs independently within each location so a cluster can never
+            span two different maps/coordinate frames.
 
     Returns:
         Dict mapping cluster_id -> list of segments in that cluster.
     """
-    coords = np.array([[s.midpoint_x, s.midpoint_y] for s in segments])
-    clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="euclidean").fit(
-        coords
-    )
+    if locations is None:
+        locations = [""] * len(segments)
+    elif len(locations) != len(segments):
+        raise ValueError("locations must be the same length as segments")
 
     clusters: dict[int, list[ManeuverSegment]] = defaultdict(list)
-    for i, cid in enumerate(clustering.labels_):
-        if cid >= 0:
-            clusters[cid].append(segments[i])
+    next_cluster_id = 0
+    for loc in sorted(set(locations)):
+        loc_indices = [i for i, l in enumerate(locations) if l == loc]
+        loc_segments = [segments[i] for i in loc_indices]
+        coords = np.array([[s.midpoint_x, s.midpoint_y] for s in loc_segments])
+        clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="euclidean").fit(
+            coords
+        )
+        local_to_global: dict[int, int] = {}
+        for local_cid, seg in zip(clustering.labels_, loc_segments):
+            if local_cid < 0:
+                continue
+            if local_cid not in local_to_global:
+                local_to_global[local_cid] = next_cluster_id
+                next_cluster_id += 1
+            clusters[local_to_global[local_cid]].append(seg)
 
     return dict(clusters)
 
@@ -1449,14 +1481,18 @@ def main():
         print("\n  No maneuver segments found. Exiting.")
         return
 
+    scene_location = load_scene_locations(data_dir, args.version, metadata.scenes)
+    segment_locations = [scene_location[seg.scene_name] for seg in all_segments]
+
     # ------------------------------------------------------------------
     # Step 2: Cluster intersections
     # ------------------------------------------------------------------
-    print(f"\nStep 2: Clustering intersections (DBSCAN eps=30m)...")
+    print(f"\nStep 2: Clustering intersections (DBSCAN eps=30m, per-location)...")
     clusters = cluster_intersections(
         all_segments,
         eps=30.0,
         min_samples=2,
+        locations=segment_locations,
     )
     print(f"  Total clusters: {len(clusters)}")
 
