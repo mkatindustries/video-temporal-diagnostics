@@ -9,7 +9,7 @@
 #   BASE_DIR defaults to the shared checkpoint LPWM directory.
 set -euo pipefail
 
-BASE="${1:-/checkpoint/dream/arjangt/video_retrieval/datasets/lpwm}"
+BASE="${1:-/path/to/lpwm}"
 PANDA_TGZ="$BASE/panda_ds.tar.gz"
 SMB_ZIP="$BASE/smb_ep.zip"
 DEST="$BASE/extracted"

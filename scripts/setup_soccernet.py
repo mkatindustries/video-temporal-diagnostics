@@ -42,13 +42,11 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-DEFAULT_SN_DIR = Path(
-    "/checkpoint/dream/arjangt/video_retrieval/datasets/soccernet_v2_replay_grounding"
-)
+DEFAULT_SN_DIR = Path("/path/to/soccernet_v2_replay_grounding")
 # The confirmed SONAR2-PE *video* content-baseline checkpoint (recorded for
 # provenance; NOT the archived text-model hash). See the video plan.json.
 SONAR2PE = {
-    "model_path": "/checkpoint/dream/arjangt/sonar2-pe",
+    "model_path": "/path/to/sonar2-pe",
     "model_sha256": "90d02aa2188b70743a4f75efdb90afaa102633fa9d5a0769cd5f03232fe353e8",
     "protocol": "local_event_sonar2pe_sliding_2s_stride1_8frames",
     "window_s": 2,

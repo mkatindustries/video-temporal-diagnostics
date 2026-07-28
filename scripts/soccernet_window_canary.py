@@ -31,9 +31,7 @@ from pathlib import Path
 
 import numpy as np
 
-DEFAULT_SN_DIR = Path(
-    "/checkpoint/dream/arjangt/video_retrieval/datasets/soccernet_v2_replay_grounding"
-)
+DEFAULT_SN_DIR = Path("/path/to/soccernet_v2_replay_grounding")
 # Predeclared candidate windows around the anchor, (pre_s, post_s). Frozen set.
 CANDIDATE_WINDOWS = [(-1.0, 1.0), (-2.0, 2.0), (-3.0, 3.0), (-2.0, 4.0)]
 N_FRAMES = 8  # frames rendered per window (matches the SONAR2-PE 8-frame window)

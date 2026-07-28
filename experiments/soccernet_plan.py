@@ -44,7 +44,7 @@ MODEL_SPECS = {
     },
     "sonar2pe": {
         "name": "sonar2-pe",
-        "path": "/checkpoint/dream/arjangt/sonar2-pe",
+        "path": "/path/to/sonar2-pe",
         "recorded_sha256": "90d02aa2188b70743a4f75efdb90afaa102633fa9d5a0769cd5f03232fe353e8",
         "preprocessing": "SonarOmniPEImageProcessor._transform (resize 448, Normalize(0.5,0.5))",
         "dtype": "float16",
