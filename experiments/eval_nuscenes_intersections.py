@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from collections import defaultdict
@@ -67,6 +68,7 @@ VJEPA2_MODEL_NAME = "facebook/vjepa2-vitl-fpc64-256"
 VJEPA2_NUM_FRAMES = 64
 VJEPA2_T_PATCHES = 32  # 64 frames / tubelet_size 2
 VJEPA2_SPATIAL = 256  # 16h × 16w
+FEATURE_CACHE_FORMAT_VERSION = 2
 
 
 # ---------------------------------------------------------------------------
@@ -436,7 +438,7 @@ def cluster_intersections(
     clusters: dict[int, list[ManeuverSegment]] = defaultdict(list)
     next_cluster_id = 0
     for loc in sorted(set(locations)):
-        loc_indices = [i for i, l in enumerate(locations) if l == loc]
+        loc_indices = [i for i, location in enumerate(locations) if location == loc]
         loc_segments = [segments[i] for i in loc_indices]
         coords = np.array([[s.midpoint_x, s.midpoint_y] for s in loc_segments])
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="euclidean").fit(
@@ -468,6 +470,36 @@ def filter_mixed_clusters(
 
     sorted_clusters = sorted(mixed.items(), key=lambda x: len(x[1]), reverse=True)
     return dict(sorted_clusters[:max_clusters])
+
+
+def flatten_cluster_segments(
+    clusters: dict[int, list[ManeuverSegment]],
+) -> tuple[list[ManeuverSegment], dict[int, list[int]]]:
+    """Flatten clusters into the positional order used by feature caches."""
+    segments: list[ManeuverSegment] = []
+    cluster_to_indices: dict[int, list[int]] = defaultdict(list)
+    for cluster_id, cluster_segments in clusters.items():
+        for segment in cluster_segments:
+            cluster_to_indices[cluster_id].append(len(segments))
+            segments.append(segment)
+    return segments, dict(cluster_to_indices)
+
+
+def segment_order_fingerprint(segments: list[ManeuverSegment]) -> str:
+    """Hash the ordered segment identities that positional features refer to."""
+    identities = [
+        [
+            segment.scene_name,
+            int(segment.label),
+            float(segment.start_ts),
+            float(segment.end_ts),
+            float(segment.midpoint_x),
+            float(segment.midpoint_y),
+        ]
+        for segment in segments
+    ]
+    payload = json.dumps(identities, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -667,7 +699,11 @@ def extract_segment_features_vjepa2(
 # ---------------------------------------------------------------------------
 
 
-def save_feature_cache(features: dict, cache_path: Path) -> None:
+def save_feature_cache(
+    features: dict,
+    cache_path: Path,
+    segment_fingerprint: str,
+) -> None:
     """Save extracted features to disk as a .pt file."""
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cpu_features = {}
@@ -675,16 +711,34 @@ def save_feature_cache(features: dict, cache_path: Path) -> None:
         cpu_features[k] = {
             fk: fv.cpu() if isinstance(fv, torch.Tensor) else fv for fk, fv in v.items()
         }
-    torch.save(cpu_features, cache_path)
+    torch.save(
+        {
+            "format_version": FEATURE_CACHE_FORMAT_VERSION,
+            "segment_fingerprint": segment_fingerprint,
+            "features": cpu_features,
+        },
+        cache_path,
+    )
     print(f"  Cache saved to {cache_path}")
 
 
-def load_feature_cache(cache_path: Path) -> dict | None:
-    """Load cached features from disk, or return None if not found."""
+def load_feature_cache(
+    cache_path: Path,
+    expected_segment_fingerprint: str,
+) -> dict | None:
+    """Load a cache only when its ordered segment identity matches."""
     if not cache_path.exists():
         return None
     print(f"  Loading cache from {cache_path}")
-    return torch.load(cache_path, weights_only=False)
+    payload = torch.load(cache_path, weights_only=False)
+    if not isinstance(payload, dict) or (
+        payload.get("format_version") != FEATURE_CACHE_FORMAT_VERSION
+        or payload.get("segment_fingerprint") != expected_segment_fingerprint
+        or not isinstance(payload.get("features"), dict)
+    ):
+        print(f"  Ignoring stale/incompatible feature cache: {cache_path}")
+        return None
+    return payload["features"]
 
 
 # ---------------------------------------------------------------------------
@@ -1380,16 +1434,11 @@ def main():
         return
 
     # Build flat list of segments in qualifying clusters
-    eval_segments: list[ManeuverSegment] = []
-    cluster_to_indices: dict[int, list[int]] = defaultdict(list)
-    for cid, segs in mixed.items():
-        for seg in segs:
-            idx = len(eval_segments)
-            eval_segments.append(seg)
-            cluster_to_indices[cid].append(idx)
+    eval_segments, cluster_to_indices = flatten_cluster_segments(mixed)
 
     # Assign keyframes
     assign_keyframes_to_segments(eval_segments, scene_keyframes)
+    segment_fingerprint = segment_order_fingerprint(eval_segments)
 
     eval_label_counts: dict[int, int] = defaultdict(int)
     for seg in eval_segments:
@@ -1412,7 +1461,7 @@ def main():
     dinov3_cache_path = cache_dir / f"nuscenes_dinov3_{args.version}.pt"
     features = None
     if not args.no_cache:
-        features = load_feature_cache(dinov3_cache_path)
+        features = load_feature_cache(dinov3_cache_path, segment_fingerprint)
 
     if features is None:
         print("\nStep 5: Loading DINOv3 encoder...")
@@ -1434,7 +1483,7 @@ def main():
         print(f"  Feature extraction time: {t_feat:.1f}s")
 
         if not args.no_cache:
-            save_feature_cache(features, dinov3_cache_path)
+            save_feature_cache(features, dinov3_cache_path, segment_fingerprint)
 
         del encoder
         torch.cuda.empty_cache()
@@ -1448,7 +1497,7 @@ def main():
     if not args.skip_vjepa2:
         vjepa2_cache_path = cache_dir / f"nuscenes_vjepa2_{args.version}.pt"
         if not args.no_cache:
-            vjepa2_features = load_feature_cache(vjepa2_cache_path)
+            vjepa2_features = load_feature_cache(vjepa2_cache_path, segment_fingerprint)
 
         if vjepa2_features is None:
             print("\nStep 5b: Loading V-JEPA 2 model...")
@@ -1477,7 +1526,11 @@ def main():
             print(f"  V-JEPA 2 feature extraction time: {t_vjepa:.1f}s")
 
             if not args.no_cache:
-                save_feature_cache(vjepa2_features, vjepa2_cache_path)
+                save_feature_cache(
+                    vjepa2_features,
+                    vjepa2_cache_path,
+                    segment_fingerprint,
+                )
 
             del vjepa2_model, vjepa2_processor
             torch.cuda.empty_cache()

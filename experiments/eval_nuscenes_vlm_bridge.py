@@ -478,7 +478,7 @@ def cluster_intersections(
     clusters: dict[int, list[ManeuverSegment]] = defaultdict(list)
     next_cluster_id = 0
     for loc in sorted(set(locations)):
-        loc_indices = [i for i, l in enumerate(locations) if l == loc]
+        loc_indices = [i for i, location in enumerate(locations) if location == loc]
         loc_segments = [segments[i] for i in loc_indices]
         coords = np.array([[s.midpoint_x, s.midpoint_y] for s in loc_segments])
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="euclidean").fit(

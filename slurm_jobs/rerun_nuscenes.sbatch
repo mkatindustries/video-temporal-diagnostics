@@ -12,6 +12,7 @@ source "${SLURM_SUBMIT_DIR:?submit from the repository root}/slurm_jobs/common.s
 
 : "${NUSCENES_DIR:?Set NUSCENES_DIR to the nuScenes dataset root}"
 
+"$PYTHON" -m pytest tests/test_nuscenes_clustering.py -v
 "$PYTHON" -m pytest tests/test_dtw.py -k 'Shuffled or Assignment' -v
 
 "$PYTHON" experiments/eval_nuscenes_intersections.py \

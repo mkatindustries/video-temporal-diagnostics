@@ -10,17 +10,17 @@ to nuScenes to test whether HDD's conditional-versus-global reversal generalizes
 - leakage-safe leave-one-cluster-out score fusion, held-out clusters excluded
   from tuning queries and galleries, evaluated against the full evaluation gallery.
 
-Segments/clusters/labels are rebuilt with the exact parameters used to build the
-cached V-JEPA 2 features (version, max-clusters, min-segment-duration, DBSCAN
-eps=30 m / min_samples=2) so positional feature-cache indices stay aligned. No
-GPU feature extraction is performed; only full-gallery DTW is computed on GPU.
+Segments/clusters/labels are rebuilt with the exact parameters used to build the cached
+V-JEPA 2 features (version, max-clusters, min-segment-duration, DBSCAN eps=30 m /
+min_samples=2). The cache carries an ordered-segment fingerprint and is rejected if its
+positional indices do not match this rebuild. No GPU feature extraction is performed;
+only full-gallery DTW is computed on GPU.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-from collections import defaultdict
 from pathlib import Path
 from typing import cast
 
@@ -41,10 +41,13 @@ from eval_nuscenes_intersections import (
     ManeuverSegment,
     cluster_intersections,
     filter_mixed_clusters,
+    flatten_cluster_segments,
     load_can_bus,
+    load_feature_cache,
     load_nuscenes_metadata,
     load_scene_locations,
     segment_maneuvers,
+    segment_order_fingerprint,
 )
 from tqdm import tqdm
 
@@ -109,14 +112,7 @@ def build_eval_segments(
     )
     mixed = filter_mixed_clusters(clusters, max_clusters=max_clusters)
 
-    eval_segments: list[ManeuverSegment] = []
-    cluster_to_indices: dict[int, list[int]] = defaultdict(list)
-    for cid, segs in mixed.items():
-        for seg in segs:
-            idx = len(eval_segments)
-            eval_segments.append(seg)
-            cluster_to_indices[cid].append(idx)
-    return eval_segments, cluster_to_indices
+    return flatten_cluster_segments(mixed)
 
 
 def main() -> None:
@@ -192,20 +188,26 @@ def main() -> None:
             f"Feature cache not found at {feature_cache_path}; "
             "run eval_nuscenes_intersections.py (with V-JEPA 2) first"
         )
-    features: dict[int, dict] = torch.load(
-        feature_cache_path, map_location="cpu", weights_only=False
+    features = load_feature_cache(
+        feature_cache_path,
+        segment_order_fingerprint(eval_segments),
     )
+    if features is None:
+        raise ValueError(
+            f"Feature cache at {feature_cache_path} is stale or incompatible; "
+            "rerun eval_nuscenes_intersections.py first"
+        )
     if any("encoder_seq" not in v or "mean_emb" not in v for v in features.values()):
         raise ValueError("feature cache lacks mean_emb/encoder_seq required for BoT+DTW")
-    # filter_mixed_clusters sorts by size and takes the top max_clusters, so a smaller
-    # max_clusters yields a deterministic prefix whose indices still address the cache
-    # built at the full max_clusters. A rebuild larger than the cache means the params
-    # do not match the cache build.
-    if len(eval_segments) > len(features):
+    invalid_indices = [
+        index
+        for index in features
+        if not isinstance(index, int) or not 0 <= index < len(eval_segments)
+    ]
+    if invalid_indices:
         raise ValueError(
-            f"rebuilt {len(eval_segments)} segments but the feature cache has only "
-            f"{len(features)}; segment build is misaligned with the cache "
-            "(check --version/--max-clusters/--min-segment-duration)"
+            f"feature cache contains {len(invalid_indices)} index key(s) outside the "
+            f"rebuilt segment range [0, {len(eval_segments)})"
         )
 
     dense_to_segment = [idx for idx in range(len(eval_segments)) if idx in features]

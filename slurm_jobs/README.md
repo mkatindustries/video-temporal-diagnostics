@@ -1,7 +1,7 @@
 # Corrected Cluster Runs
 
-These are the exact jobs used for the validated 2026-07-18 rerun. Compact outputs and
-run provenance are tracked under `results/`; dataset-local caches and per-pair files are
+These are the submission scripts for the corrected cluster reruns. Compact outputs and run
+provenance are tracked under `results/`; dataset-local caches and per-pair files are
 intentionally excluded.
 
 Submit these jobs from the repository root after creating the log directory:
@@ -13,22 +13,30 @@ VCDB_DIR=/datasets/VCDB sbatch slurm_jobs/rerun_vcdb_scramble.sbatch
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_retrieval.sbatch
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_controls.sbatch
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
-NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes.sbatch
 EPIC_DIR=/datasets/EPIC_KITCHENS sbatch slurm_jobs/rerun_epic_residual.sbatch
 ```
 
-For the Video4Real error-composition result, rerun the two fusion jobs after the
-feature and distance caches exist. They write compact summaries directly to the
-tracked `results/` paths:
+The nuScenes fusion run consumes the feature cache produced by the temporal run, so submit
+it as an `afterok` dependency rather than starting both jobs concurrently:
+
+```bash
+nuscenes_job=$(NUSCENES_DIR=/datasets/nuScenes \
+  sbatch --parsable slurm_jobs/rerun_nuscenes.sbatch)
+NUSCENES_DIR=/datasets/nuScenes \
+  sbatch --dependency="afterok:${nuscenes_job}" slurm_jobs/rerun_nuscenes_fusion.sbatch
+```
+
+For the HDD Video4Real error-composition result, rerun its fusion job after the feature and
+distance caches exist. The nuScenes fusion job is already included in the dependency chain
+above. Both write compact summaries directly to the tracked `results/` paths:
 
 ```bash
 HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
-NUSCENES_DIR=/datasets/nuScenes sbatch slurm_jobs/rerun_nuscenes_fusion.sbatch
 ```
 
-The fusion jobs also evaluate full-gallery temporal-residual DTW. A validated legacy
+The fusion jobs also evaluate full-gallery temporal-residual DTW. A compatible
 BoT/encoder-DTW score cache is augmented in place, so only the missing residual matrix is
-computed. Do not set `--rebuild-dist-cache` unless the existing encoder-DTW matrix is stale.
+computed. Incompatible feature or score caches are rejected by their metadata checks.
 
 After both jobs finish, generate the figure on a CPU node and rebuild the paper:
 

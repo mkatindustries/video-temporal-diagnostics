@@ -10,9 +10,18 @@ their raw coordinates fall within eps of each other.
 import sys
 from pathlib import Path
 
+import torch
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
 
-from eval_nuscenes_intersections import ManeuverSegment, cluster_intersections  # noqa: E402
+from eval_nuscenes_intersections import (  # noqa: E402
+    ManeuverSegment,
+    cluster_intersections,
+    flatten_cluster_segments,
+    load_feature_cache,
+    save_feature_cache,
+    segment_order_fingerprint,
+)
 
 
 def _segment(scene_name: str, label: int, x: float, y: float) -> ManeuverSegment:
@@ -79,3 +88,48 @@ def test_locations_length_mismatch_raises():
     except ValueError:
         return
     raise AssertionError("expected ValueError for mismatched locations length")
+
+
+def test_flattened_segment_order_and_fingerprint_are_deterministic():
+    first = _segment("scene-a", 2, 0.0, 0.0)
+    second = _segment("scene-b", 3, 1.0, 1.0)
+    third = _segment("scene-c", 2, 2.0, 2.0)
+    segments, cluster_to_indices = flatten_cluster_segments(
+        {7: [first, second], 3: [third]}
+    )
+
+    assert segments == [first, second, third]
+    assert cluster_to_indices == {7: [0, 1], 3: [2]}
+    assert segment_order_fingerprint(segments) == segment_order_fingerprint(
+        [first, second, third]
+    )
+    assert segment_order_fingerprint(segments) != segment_order_fingerprint(
+        [second, first, third]
+    )
+
+
+def test_feature_cache_rejects_stale_segment_order(tmp_path):
+    segments = [
+        _segment("scene-a", 2, 0.0, 0.0),
+        _segment("scene-b", 3, 1.0, 1.0),
+    ]
+    fingerprint = segment_order_fingerprint(segments)
+    cache_path = tmp_path / "features.pt"
+    features = {0: {"mean_emb": torch.tensor([1.0])}}
+
+    save_feature_cache(features, cache_path, fingerprint)
+
+    loaded = load_feature_cache(cache_path, fingerprint)
+    assert loaded is not None
+    assert torch.equal(loaded[0]["mean_emb"], features[0]["mean_emb"])
+    assert load_feature_cache(
+        cache_path,
+        segment_order_fingerprint(list(reversed(segments))),
+    ) is None
+
+
+def test_feature_cache_rejects_legacy_positional_payload(tmp_path):
+    cache_path = tmp_path / "legacy.pt"
+    torch.save({0: {"mean_emb": torch.tensor([1.0])}}, cache_path)
+
+    assert load_feature_cache(cache_path, "expected-fingerprint") is None
