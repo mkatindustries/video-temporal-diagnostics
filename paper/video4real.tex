@@ -3,8 +3,8 @@
 % workshop proceedings: https://sites.google.com/utwente.nl/video4real/home
 % Uses the vendored ECCV 2026 template pinned in paper/eccv2026/PINNED.txt
 % (da8c09c40239d5665757527e77388f4716a6564a).
-% Verified with TeX Live 2025 on 2026-07-28: seven PDF pages; references
-% begin on PDF page 6, within the seven-page limit excluding references.
+% Last verified before the SoccerNet transfer-check insertion: seven PDF pages,
+% with references beginning on page 6. Rebuild and recheck pagination locally.
 %
 % Build from the repository root with `make video4real`.
 % Submission ID 12. The `review' option anonymizes
@@ -222,6 +222,15 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
   \label{fig:cascade}
 \end{figure}
 
+\textbf{Within-match transfer check.} Using a pre-test, canary-frozen 4\,s event window, on
+$6{,}277$ same-half replay queries from $100$ SoccerNet-v2 test matches~\cite{soccernetv2},
+encoder-sequence DTW gives match-macro MRR $0.155$
+versus $0.153$ for BoT (paired match-bootstrap $\Delta{=}+0.003$ $[-0.005, 0.010]$), so no gain is
+detected. Intact DTW exceeds its 10-permutation shuffled-DTW control by $+0.021$
+$[0.015, 0.028]$ but has no detected difference from order-free one-to-one assignment
+($+0.000$ $[-0.003, 0.004]$); temporal-residual DTW is below BoT ($-0.010$
+$[-0.018, -0.002]$). This tests event retrieval with same-match negatives, not cross-match search.
+
 \section{Related Work}
 \label{sec:related}
 Global video descriptors and pooled matching underpin scalable near-duplicate and event
@@ -242,7 +251,8 @@ appearance ranking.
 
 \section{Discussion and Conclusion}
 \label{sec:conclusion}
-Within-intersection and cross-intersection retrieval measure different capabilities. Sequence
+On the two driving tasks, within-intersection and cross-intersection retrieval measure different
+capabilities. Sequence
 comparators improve conditional matching yet provide too little location discrimination to rank the
 evaluation gallery well. The top-1 decomposition localizes the loss to wrong-intersection retrieval;
 neither fixed reranking nor a cross-validated linear blend repairs it here. Global sequence retrieval
@@ -258,7 +268,8 @@ retrieval; applying the matched-gallery protocol to MLLM readouts is future work
 \textbf{Deployment and limitations.} BoT supports indexed search; retained-gallery DTW is not
 directly indexable and is quadratic in sequence length. The BoT-first cascade bounds DTW work but
 reduces accuracy here. The study covers two driving datasets, their $50$ largest mixed-direction
-clusters, one backbone, tested DTW variants, and one linear fusion family on a $0.05$ grid.
+clusters, one backbone, tested DTW variants, and one linear fusion family on a $0.05$ grid;
+SoccerNet adds one within-match replay-grounding test split but does not test cross-match search.
 Per-sequence min--max normalization may itself discard location evidence. Moreover, nuScenes tiles
 sparse keyframes to a fixed input length, so its intact-vs-shuffled contrast remains provisional.
 These are scoped failure cases, not evidence that sequence retrieval or nonlinear fusion cannot
