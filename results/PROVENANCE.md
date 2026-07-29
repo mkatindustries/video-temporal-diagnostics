@@ -24,6 +24,7 @@ Shared configuration for every artifact below:
 | `hdd/cluster_bootstrap_results.json` | `f1f4a7c` | `9910735` | HDD release_2019_07_08 |
 | `epic/temporal_order_results.json` | `c2daec7` | `9634579` | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
 | `epic/vlm_prompt_results.json` | `7234bd2` (artifact consolidation) | historical aggregate transcription; raw job IDs unavailable | EPIC temporal_order_sequences_v1_len6-15_narr2-3_seed42 |
+| `soccernet/replay_results.json` | `bef179f` | `9881118` | SoccerNet-v2 Replay Grounding test split |
 | `hdd/fusion_results.json` | `13250dd` | `9674478` | HDD release_2019_07_08 |
 | `nuscenes/fusion_results.json` | `597ace9` | `9937533` | nuScenes v1.0-trainval |
 | `hdd/conditional_querywise_results.json` | `9236c63` | local CPU, 2026-07-27 | HDD release_2019_07_08 |
@@ -51,6 +52,24 @@ Notes:
   fingerprint unavailable dataset-local embedding-result files that were present during artifact
   consolidation. Those files are not metric sources and their hashes do not independently verify
   the historical generative runs.
+- Job 9881118 is the full, non-canary SoccerNet-v2 replay-grounding run: it extracted all
+  9,947 planned clips with zero drops and evaluated 6,277 primary same-half queries from 100 test
+  matches. Encoder-sequence DTW minus BoT is +0.0025 match-macro RR
+  [-0.0049, 0.0097]; DTW minus its 10-permutation shuffled control is +0.0211
+  [0.0147, 0.0279]; DTW minus one-to-one assignment is +0.0002 [-0.0035, 0.0038]; and
+  temporal-residual DTW minus BoT is -0.0097 [-0.0181, -0.0019]. The result embeds frozen-plan
+  SHA-256 `e1eb8ae7a9fe7dcd52df2be40ac664f1ced75f114793979fd539a80b67942648`;
+  the tracked result file's SHA-256 is
+  `c4c54d365adfbfa278de250ef3f40ba1c24145c1b108d2b3d3c3fe998995a642`.
+  The 4.6 MB full plan is intentionally untracked because it embeds machine-local manifest
+  metadata; the evaluator regenerated and re-grounded its canonical hash from the frozen manifest.
+  The [-2,+2] s window was frozen before test evaluation from documented train-canary judgment:
+  [-1,+1] met the formal coverage threshold, while the selected 4 s window preserved a longer
+  motion span; no test retrieval metric informed this choice. The completed cache's `_SUCCESS`
+  marker has SHA-256 `6144c041ebbc278fef1afd89b763179f26ae5286862ea1c4bdb1183e4af1ec85`.
+  A cached CPU re-evaluation on 2026-07-29 exactly reproduced the protocol, all five primary
+  match-macro RR values, and the complete paired-contrast blocks; this paper-claim subset has
+  canonical SHA-256 `4cf5abe0d47d42471ddf5eef890a1a0a3262bab008e0c5d84db74ab7250adb63`.
 - `hdd/fusion_results.json` is the held-out leave-one-cluster-out score fusion (BoT × encoder-seq
   DTW) at commit `b72592e`; its `bot_full_gallery`/`encoder_seq_dtw_full_gallery` baselines match
   `hdd/bof_dtw_directed_rerank_results.json` at reported precision (0.2556 / 0.1765 mAP). Honest null:
