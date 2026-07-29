@@ -222,14 +222,14 @@ BoT ($+0.001$, $[-0.003, 0.004]$), and on nuScenes it collapses exactly onto BoT
   \label{fig:cascade}
 \end{figure}
 
-\textbf{Within-match transfer check.} Using a pre-test, canary-frozen 4\,s event window, on
+\textbf{Within-match transfer check.} Using a train-only canary-frozen $4$\,s window, on
 $6{,}277$ same-half replay queries from $100$ SoccerNet-v2 test matches~\cite{soccernetv2},
 encoder-sequence DTW gives match-macro MRR $0.155$
 versus $0.153$ for BoT (paired match-bootstrap $\Delta{=}+0.003$ $[-0.005, 0.010]$), so no gain is
-detected. Intact DTW exceeds its 10-permutation shuffled-DTW control by $+0.021$
-$[0.015, 0.028]$ but has no detected difference from order-free one-to-one assignment
-($+0.000$ $[-0.003, 0.004]$); temporal-residual DTW is below BoT ($-0.010$
-$[-0.018, -0.002]$). This tests event retrieval with same-match negatives, not cross-match search.
+detected. Intact DTW exceeds its shuffled-DTW control by $+0.021$ $[0.015, 0.028]$ but has
+no detected difference from the assignment control ($+0.000$ $[-0.003, 0.004]$);
+temporal-residual DTW is below BoT ($-0.010$ $[-0.018, -0.002]$). This tests event retrieval
+with same-match negatives, not cross-match search.
 
 \section{Related Work}
 \label{sec:related}

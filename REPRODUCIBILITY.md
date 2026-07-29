@@ -35,6 +35,7 @@ since some runs lack complete telemetry.
 | 9641251 | HDD held-out fusion (initial) | 00:19:28 | 1.7 | 12 cpu / 1 gpu / 96G |
 | 9654434 | HDD held-out fusion + global DTW−BoT contrast | 00:20:24 | 7.6 | 12 cpu / 1 gpu / 96G |
 | 9937533 | nuScenes location-aware directed retrieval + fusion | not recorded | not recorded | 10 cpu / 1 gpu / 96G |
+| 9881118 | SoccerNet-v2 replay-grounding extraction + eval | not recorded | not recorded | 12 cpu / 1 gpu / 96G |
 
 All listed jobs completed with exit code 0. Jobs 9937532/9937533 supersede all earlier nuScenes
 runs after the location-aware clustering and stale-cache fixes. HDD rerun 9636095 supersedes failed
@@ -638,6 +639,60 @@ python experiments/vcdb_violation_pos_neg.py \
 
 For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and therefore cannot change AP except through numerical ties. The former empirical sweep mixed preprocessing across result tables and is not part of the paper's evidence.
 
+### 42. Video4Real Matched Query-Wise Protocol (HDD/nuScenes) — Table 1 (Video4Real)
+
+Restricts each eligible query's gallery to its own intersection cluster (query-macro mAP,
+matched to the same eligible-query set and aggregation used for global retrieval), rather
+than the pooled-pair protocol used for the NeurIPS paper's Table 2 and for this repo's
+shuffled-DTW/assignment controls (Section 11 above, and the HDD/nuScenes intersection
+sections). This is the "Conditional within-intersection retrieval" block in Video4Real's
+Table 1 — the two protocols are not numerically comparable and should not be conflated.
+
+```bash
+# HDD (after eval_hdd_fusion.py has produced its score cache)
+python experiments/eval_conditional_querywise.py \
+    --dataset hdd \
+    --score-cache <hdd-dir>/feature_cache/hdd_fusion_score_cache_<version>.pt \
+    --output results/hdd/conditional_querywise_results.json \
+    --n-resamples 2000
+
+# nuScenes (after eval_nuscenes_fusion.py has produced its score cache)
+python experiments/eval_conditional_querywise.py \
+    --dataset nuscenes \
+    --score-cache $NUSCENES_DIR/feature_cache/nuscenes_fusion_score_cache_<version>.pt \
+    --output results/nuscenes/conditional_querywise_results.json \
+    --n-resamples 2000
+```
+
+**Output:** `results/hdd/conditional_querywise_results.json`, `results/nuscenes/conditional_querywise_results.json`
+
+### 43. SoccerNet-v2 Within-Match Transfer Check — Video4Real Discussion
+
+Within-match event retrieval on the test split: a replay clip must be matched to the live
+moment it depicts against other live events in the same match (same-match negatives), not
+against other matches. Positive is the exact `(link.half, link.position)` event with a single
+positive per query, so AP equals reciprocal rank and results are reported as match-macro MRR;
+match is the bootstrap resampling unit. This does not test cross-match search.
+
+```bash
+# 1. Build the replay-grounding event-retrieval manifest and verify download integrity
+python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR
+
+# 2. Select and freeze the live-event window policy on a train-only canary
+#    (never inspects valid/test; see the module docstring for the scoring rubric)
+python scripts/soccernet_window_canary.py \
+    --max-samples 48 --out-dir results/soccernet/canary
+python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR \
+    --set-window-policy --pre -2 --post 2 --n-frames 8 \
+    --approve --canary-ref results/soccernet/canary/canary_index.json
+
+# 3. Extract + evaluate (gated: refuses unless the manifest's window policy is
+#    locked/approved and its canary evidence re-grounds)
+SOCCERNET_DIR=$SOCCERNET_DIR sbatch slurm_jobs/rerun_soccernet.sbatch
+```
+
+**Output:** `results/soccernet/replay_results.json`
+
 ## Output Artifact Index
 
 | Artifact | Paper Reference |
@@ -652,6 +707,9 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 | `results/hdd/bof_dtw_directed_rerank_results.json` | Corrected directed retrieval tables |
 | `results/hdd/fusion_results.json` | Held-out score-fusion result in Section 3.2 |
 | `figures/v4r_error_composition.png` | Video4Real top-1 outcome decomposition |
+| `results/hdd/conditional_querywise_results.json` | Video4Real Table 1 (HDD conditional block) |
+| `results/nuscenes/conditional_querywise_results.json` | Video4Real Table 1 (nuScenes conditional block) |
+| `results/soccernet/replay_results.json` | Video4Real Discussion (within-match transfer check) |
 | `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
 | `results/hdd/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `results/epic/temporal_order_results.json` | Corrected EPIC residual result; Tables 4-5 |

@@ -6,7 +6,16 @@ Diagnostic code for *Diagnosing Temporal Sensitivity in Video Retrieval Pipeline
 
 Scalable video retrieval often uses global descriptors that are insensitive to motion direction. This repository implements three diagnostics for locating that behavior: a temporal scramble gradient, a forward/reverse score under a declared comparator, and a controlled feature-by-comparator factorial evaluated on one shared pair set. Exact permutation invariance applies to symmetric comparisons of fixed independently encoded elements. Contextual video tokens and VLM outputs instead require empirical tests. Scores from cosine and DTW are comparator-specific and must not be put on one numerical scale.
 
-The paper reports pooled pair-classification diagnostics across seven benchmarks. These are not standard query-wise retrieval metrics. The old HDD reranking results and unbalanced-chunk scramble results were withdrawn and replaced by corrected runs. Compact summaries and provenance are tracked under `results/`; the exact rerun jobs are under `slurm_jobs/`.
+This repository backs two papers with different protocols. The NeurIPS paper reports pooled
+pair-classification diagnostics across seven benchmarks; these are not standard query-wise
+retrieval metrics. The Video4Real extended abstract (`paper/video4real.tex`) instead headlines
+a matched query-wise protocol on HDD/nuScenes (query-macro mAP over the same eligible-query
+set for both conditional and global retrieval), reserving the pooled-pair protocol for its
+shuffled-DTW/assignment order controls and a SoccerNet-v2 within-match transfer check. Scores
+from the two protocols are not on the same numerical scale and should not be compared directly.
+The old HDD reranking results and unbalanced-chunk scramble results were withdrawn and replaced
+by corrected runs. Compact summaries and provenance are tracked under `results/`; the exact
+rerun jobs are under `slurm_jobs/`.
 
 ## The Problem
 
@@ -39,6 +48,7 @@ Selected point estimates from the valid pair diagnostics:
 | Top-1 retrieval error composition | Wrong-intersection errors dominate | at least 98.9% of errors across HDD/nuScenes methods |
 | Balanced-chunk scramble (VCDB) | BoF / Chamfer / BoT remain flat | max std over 10 seeds 0.0101 |
 | V-JEPA 2 reversal (EPIC) | Temporal residual under DTW | s_rev 0.0033 [0.0031, 0.0034] |
+| Within-match transfer check (SoccerNet-v2, Video4Real) | No detected gain over BoT | match-macro MRR 0.155 vs. 0.153 |
 
 On the conditional HDD pair task, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate; a paired intersection-cluster bootstrap estimates encoder-sequence DTW minus BoT at +0.117 [0.044, 0.127]. The result does not compose into global retrieval: encoder-sequence DTW has lower full-gallery mAP than BoT (0.177 vs. 0.256) and lowers AP and MRR throughout the rerank sweep. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, direct direction prompts are weak, and integrity prompts are much stronger.
 
@@ -132,6 +142,10 @@ python experiments/eval_hdd_ordered_maxsim_vjepa2.py # OrderedMaxSim comparator 
 python experiments/eval_vcdb_ordered_maxsim.py   # OrderedMaxSim on VCDB (both backbones, cached features)
 python experiments/vcdb_violation_diagnostic.py  # Monotonicity violation count (positive pairs)
 python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positive vs negative pairs
+python scripts/setup_soccernet.py                # SoccerNet-v2 replay-grounding manifest + integrity check
+python scripts/soccernet_window_canary.py        # Train-only canary: freeze the live-event window policy
+python experiments/extract_soccernet_features.py # V-JEPA 2 feature extraction (gated on locked window policy)
+python experiments/eval_soccernet_replay.py      # Within-match replay-grounding event retrieval (Video4Real)
 ```
 
 ## Benchmarks
@@ -145,6 +159,7 @@ python experiments/vcdb_violation_pos_neg.py     # Violation diagnostic: positiv
 | **EPIC-Kitchens-100** | 500 cooking sequences | Multi-VLM temporal order probes (generative + embedding) |
 | **Nymeria** | Aria egocentric recordings | Activity scene retrieval |
 | **MUVR** | Music/dance/news | Multi-domain video retrieval |
+| **SoccerNet-v2** | 100 test matches, broadcast soccer | Within-match replay-grounding event retrieval (Video4Real) |
 
 ## Models
 
@@ -187,6 +202,7 @@ This code is released under the [MIT License](LICENSE). Note that the datasets a
 | EPIC-Kitchens-100 | Non-commercial academic |
 | VCDB, Honda HDD | Research-only |
 | Nymeria, MUVR | Research-only |
+| SoccerNet-v2 | Non-commercial academic (registration/EULA required) |
 | V-JEPA 2 (Meta) | CC-BY-NC 4.0 |
 | DINOv3, Gemma 4, Qwen3-VL, LLaVA-Video | See respective model cards |
 
