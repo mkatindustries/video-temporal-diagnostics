@@ -262,6 +262,14 @@ done
 
 **Output:** `datasets/epic_kitchens/temporal_order_results*.json`, `figures/epic_temporal_order_sensitivity.png` (Figure 4, Appendix E)
 
+The generative-probe and integrity-probe balanced-accuracy numbers quoted in the papers
+(direct direction prompts, INTACT/TAMPERED framing) are **not reproducible from a fresh run in
+this checkout**: the raw generative aggregate files this command would produce are absent, and
+per-example responses were never retained. `results/epic/vlm_prompt_results.json` is the tracked,
+compact substitute — it records the transcribed metrics plus a full provenance trail (source
+paper revisions and their SHA-256 hashes, since the numbers were transcribed from those revisions
+rather than recomputed here).
+
 ### 12. Scene Retrieval (Nymeria) — Table 11 (Appendix F)
 
 ```bash
@@ -647,19 +655,20 @@ For fixed positive alpha, `exp(-alpha * distance)` is strictly monotone and ther
 | `datasets/hdd/vlm_bridge_*_results.json` | Table 10 (HDD column) |
 | `results/hdd/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `results/epic/temporal_order_results.json` | Corrected EPIC residual result; Tables 4-5 |
+| `results/epic/vlm_prompt_results.json` | VLM direct-prompt/integrity-probe balanced accuracy (transcribed, provenance-hashed); Tables 4-5, Video4Real Discussion |
 | `datasets/epic_kitchens/linear_probe_*.json` | Table 20 (Appendix S) |
 | `datasets/epic_kitchens/mlp_probe_results.json` | Table 20 (Appendix S, MLP columns) |
 | `figures/vcdb_reversal_attack.png` | Figure 3 (Appendix B) |
 | `figures/epic_temporal_order_sensitivity.png` | Figure 4 (Appendix E) |
 | `figures/hdd_maneuver_discrimination.png` | Figure 2 (main body) |
 | `figures/nuscenes_maneuver_discrimination.png` | Figure 6 (Appendix P) |
-| `datasets/nuscenes/vlm_bridge_*_results.json` | Table 10 (nuScenes column) |
+| `datasets/nuscenes/vlm_bridge_*_results.json` | Superseded: Table 10's nuScenes column now reads "---" pending a location-aware rerun; no valid on-cluster copies found as of 2026-07-28 |
 | `results/nuscenes/intersection_results.json` | Corrected nuScenes pair diagnostic |
 | `results/nuscenes/cluster_bootstrap_results.json` | Grouped marginal and paired AP intervals |
 | `datasets/vcdb/vlm_bridge_*_results.json` | Table 10 (VCDB column) |
 | `datasets/vcdb/vlm_probes_*_results.json` | Supplementary (VCDB VLM generative) |
-| `datasets/hdd/vlm_generative_*_results.json` | Supplementary (HDD VLM generative) |
-| `datasets/nuscenes/vlm_generative_*_results.json` | Supplementary (nuScenes VLM generative) |
+| `datasets/hdd/vlm_generative_*_results.json` | Supplementary (HDD VLM generative); on-cluster copies are truncated/invalid JSON as of 2026-07-28 |
+| `datasets/nuscenes/vlm_generative_*_results.json` | Supplementary (nuScenes VLM generative); no valid on-cluster copies found as of 2026-07-28 |
 | `datasets/hdd/residual_ablation_results.json` | Appendix (comparator ablation) |
 | `datasets/hdd/cross_session_results.json` | Appendix H (cross-session) |
 | `datasets/hdd/retrieval_protocol_results.json` | Appendix (retrieval metrics) |
