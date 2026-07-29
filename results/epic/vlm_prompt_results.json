@@ -29,6 +29,7 @@
     "direct_direction": {
       "definition": "Balanced accuracy over FORWARD and REVERSE clips.",
       "prompt_sd_definition": "Standard deviation across the three prompts, not statistical uncertainty.",
+      "rounding_note": "Per-prompt values and reported mean/SD were independently transcribed at their published precision; the reported aggregate need not equal a recomputation from three-decimal prompt values.",
       "prompts": [
         "Analyze the physics, motion, and causality in this video. Is this video playing FORWARD normally, or is it playing in REVERSE (backwards)? Answer with a single word: either FORWARD or REVERSE.",
         "Is this video playing forward or in reverse? Answer FORWARD or REVERSE.",
@@ -118,7 +119,7 @@
     "metric_origin": "transcribed_aggregate",
     "raw_per_clip_responses_included": false,
     "raw_generative_aggregate_present_in_checkout": false,
-    "note": "Rounded prompt metrics and integrity rates were transcribed from contemporaneous paper artifacts. The dataset-local JSON files below authenticate the model and protocol metadata but contain embedding results, not the quoted generative metrics.",
+    "note": "Rounded prompt metrics and integrity rates were transcribed from historical paper revisions. Their hashes can be checked against Git. The unavailable dataset-local files below are recorded only as fingerprints and contain embedding results, not the quoted generative metrics.",
     "metric_transcription_sources": [
       {
         "path": "paper/neurips.tex",
@@ -131,18 +132,24 @@
         "sha256": "76d5e26c7c77c241a904c6eb23c3f53fbc41e010b14f78d8845478f2563cbd3f"
       }
     ],
-    "protocol_metadata_sources": [
+    "untracked_metadata_fingerprints": [
       {
         "path": "datasets/epic_kitchens/temporal_order_results_gemma4.json",
-        "sha256": "4b7cea0da60f373ac36ae97ac09d2d1df9a1e78729ead6977b1fc096e99d213e"
+        "sha256": "4b7cea0da60f373ac36ae97ac09d2d1df9a1e78729ead6977b1fc096e99d213e",
+        "available_in_checkout": false,
+        "contains_quoted_generative_metrics": false
       },
       {
         "path": "datasets/epic_kitchens/temporal_order_results_llava-video.json",
-        "sha256": "7c5071a79740f066f57636bd4fea25f0e641ae36e64255e054b8f904653c6881"
+        "sha256": "7c5071a79740f066f57636bd4fea25f0e641ae36e64255e054b8f904653c6881",
+        "available_in_checkout": false,
+        "contains_quoted_generative_metrics": false
       },
       {
         "path": "datasets/epic_kitchens/temporal_order_results_qwen3.json",
-        "sha256": "ea123b90a0be4ea88762a931511d9a791b457303ab1f8fa37bf1ab297e904ed5"
+        "sha256": "ea123b90a0be4ea88762a931511d9a791b457303ab1f8fa37bf1ab297e904ed5",
+        "available_in_checkout": false,
+        "contains_quoted_generative_metrics": false
       }
     ],
     "metric_computation_source": {
