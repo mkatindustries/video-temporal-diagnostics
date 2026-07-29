@@ -63,8 +63,22 @@ descriptor and rank by cosine similarity. Such pooling can be insensitive to ord
 independent-frame features is exactly invariant, whereas contextual tokens may encode temporal
 context before pooling. A natural remedy compares
 per-frame feature \emph{sequences} with DTW~\cite{sakoe1978dtw}; we test whether its conditional
-advantage comes from intact order or finer per-frame matching. Its full-gallery failures are
-overwhelmingly wrong-location retrievals (\cref{fig:error_composition}).
+advantage comes from intact order or finer per-frame matching, and whether it survives when the
+same query must be found in a much larger gallery (\cref{fig:protocol_schematic}). Its
+full-gallery failures are overwhelmingly wrong-location retrievals (\cref{fig:error_composition}).
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\linewidth]{v4r_protocol_schematic.png}
+  \caption{Same query, different gallery (schematic). Conditional retrieval restricts candidates
+  to clips from the query's intersection; global retrieval adds clips from every retained
+  intersection. A candidate is relevant only when both its intersection and maneuver match the
+  query; intersection identity defines this evaluation relevance but is not given to either video
+  scorer (BoT, encoder-sequence DTW). Icons are schematic, not real detections. Bars report the
+  aggregate query-macro mAP from \cref{tab:reversal} on a shared $[0,1]$ scale for Honda HDD and
+  nuScenes: encoder-sequence DTW leads BoT conditionally but trails it globally.}
+  \label{fig:protocol_schematic}
+\end{figure}
 
 \begin{figure}[t!]
   \centering
