@@ -39,13 +39,14 @@
 \begin{abstract}
 Scalable video retrieval favors pooled descriptors, but pooling can blur motion direction.
 Sequence comparators such as dynamic time warping (DTW) over per-frame features can distinguish
-maneuvers \emph{within} a known location. We ask whether this conditional advantage transfers
-across locations. Under a matched query-wise protocol, V-JEPA~2 encoder-sequence DTW beats a
-bag-of-tokens (BoT) cosine baseline within intersections (Honda HDD $0.955$ vs.\ $0.923$ mAP;
-nuScenes $0.922$ vs.\ $0.855$), yet loses over the full evaluation gallery (HDD $0.177$ vs.\
-$0.256$; nuScenes $0.159$ vs.\ $0.333$). Separate pooled-pair controls do not support a general
-order-specific explanation: intact DTW detectably beats shuffled DTW only for nuScenes encoder
-features; order-free assignment differs detectably only once, improving nuScenes residual AP.
+maneuvers \emph{within} a known location. We ask whether this within-location advantage survives
+when the search spans many locations. Under a matched query-wise protocol, V-JEPA~2
+encoder-sequence DTW beats a bag-of-tokens (BoT) cosine baseline within intersections (Honda HDD
+$0.955$ vs.\ $0.923$ mAP; nuScenes $0.922$ vs.\ $0.855$), yet loses over the full evaluation
+gallery (HDD $0.177$ vs.\ $0.256$; nuScenes $0.159$ vs.\ $0.333$). Separate order-ablation
+controls do not support a general order-specific explanation: intact DTW detectably beats
+shuffled DTW only for nuScenes encoder features; order-free assignment differs detectably only
+once, improving nuScenes temporal-residual AP.
 Across all six top-1 rankings, at least $98.9\%$ of errors come from the wrong intersection.
 A BoT$\to$DTW cascade lowers AP at
 every evaluated $k$; leakage-safe fusion shows no detected gain on HDD ($+0.001$, $95\%$ CI
