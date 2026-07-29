@@ -11,8 +11,9 @@ pair-classification diagnostics across seven benchmarks; these are not standard 
 retrieval metrics. The Video4Real extended abstract (`paper/video4real.tex`) instead headlines
 a matched query-wise protocol on HDD/nuScenes (query-macro mAP over the same eligible-query
 set for both conditional and global retrieval), reserving the pooled-pair protocol for its
-shuffled-DTW/assignment order controls and a SoccerNet-v2 within-match transfer check. Scores
-from the two protocols are not on the same numerical scale and should not be compared directly.
+shuffled-DTW/assignment order controls. A separate SoccerNet-v2 within-match transfer check
+uses its own match-macro MRR protocol. None of these protocols share a numerical scale and
+should not be compared directly.
 The old HDD reranking results and unbalanced-chunk scramble results were withdrawn and replaced
 by corrected runs. Compact summaries and provenance are tracked under `results/`; the exact
 rerun jobs are under `slurm_jobs/`.

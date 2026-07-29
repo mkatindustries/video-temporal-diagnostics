@@ -648,21 +648,19 @@ shuffled-DTW/assignment controls (Section 11 above, and the HDD/nuScenes interse
 sections). This is the "Conditional within-intersection retrieval" block in Video4Real's
 Table 1 — the two protocols are not numerically comparable and should not be conflated.
 
-```bash
-# HDD (after eval_hdd_fusion.py has produced its score cache)
-python experiments/eval_conditional_querywise.py \
-    --dataset hdd \
-    --score-cache <hdd-dir>/feature_cache/hdd_fusion_score_cache_<version>.pt \
-    --output results/hdd/conditional_querywise_results.json \
-    --n-resamples 2000
+`eval_conditional_querywise.py` already runs as the second step of the existing fusion jobs
+(Section 22 for HDD, Section 23-equivalent for nuScenes) and reuses their score cache
+directly, so no separate invocation or cache path is needed:
 
-# nuScenes (after eval_nuscenes_fusion.py has produced its score cache)
-python experiments/eval_conditional_querywise.py \
-    --dataset nuscenes \
-    --score-cache $NUSCENES_DIR/feature_cache/nuscenes_fusion_score_cache_<version>.pt \
-    --output results/nuscenes/conditional_querywise_results.json \
-    --n-resamples 2000
+```bash
+HDD_DIR=/path/to/hdd sbatch slurm_jobs/rerun_hdd_fusion.sbatch
+NUSCENES_DIR=/path/to/nuscenes sbatch slurm_jobs/rerun_nuscenes_fusion.sbatch
 ```
+
+Each job's `DIST_CACHE`/score cache is dataset-specific (HDD: `datasets/hdd/fusion_score_cache.pt`;
+nuScenes: `<nuscenes-dir>/feature_cache/nuscenes_fusion_score_cache_<version>.pt`) — see
+`slurm_jobs/rerun_hdd_fusion.sbatch` and `slurm_jobs/rerun_nuscenes_fusion.sbatch` for the exact
+paths rather than reconstructing them by hand.
 
 **Output:** `results/hdd/conditional_querywise_results.json`, `results/nuscenes/conditional_querywise_results.json`
 
@@ -674,15 +672,31 @@ against other matches. Positive is the exact `(link.half, link.position)` event 
 positive per query, so AP equals reciprocal rank and results are reported as match-macro MRR;
 match is the bootstrap resampling unit. This does not test cross-match search.
 
-```bash
-# 1. Build the replay-grounding event-retrieval manifest and verify download integrity
-python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR
+The frozen-feature extraction line reads its own manifest, decoupled from any other
+evaluation line's manifest to avoid one line's freeze clobbering the other's (both bind the
+same window, but each keeps its own audit artifact) — `--out` must target the
+`_frozenfeat`-suffixed file on **both** commands below, matching what
+`slurm_jobs/rerun_soccernet.sbatch` reads by default (`$SOCCERNET_DIR/replay_event_manifest_v1_seed42_frozenfeat.json`).
 
-# 2. Select and freeze the live-event window policy on a train-only canary
-#    (never inspects valid/test; see the module docstring for the scoring rubric)
+```bash
+FROZENFEAT_MANIFEST=$SOCCERNET_DIR/replay_event_manifest_v1_seed42_frozenfeat.json
+
+# 1. Build the replay-grounding event-retrieval manifest and verify download integrity
+python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR --out $FROZENFEAT_MANIFEST
+
+# 2. Render per-event montages for a train-only canary (never inspects valid/test).
+#    This step is NOT fully automated: a human visually scores each rendered montage
+#    against the embedded rubric (coverage/contamination per candidate window) and
+#    hand-writes the resulting "decision" block into the canary JSON --
+#    --approve validates that decision against the recomputed rubric and refuses a raw,
+#    unscored index. The scored decision behind this paper's frozen [-2, +2] window is
+#    already tracked at results/soccernet/canary/canary_index.json and can be reused
+#    as-is without redoing the manual review.
 python scripts/soccernet_window_canary.py \
     --max-samples 48 --out-dir results/soccernet/canary
-python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR \
+#   <- manual step: score the rendered montages and add the "decision" block here,
+#      or skip and reuse the already-scored results/soccernet/canary/canary_index.json
+python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR --out $FROZENFEAT_MANIFEST \
     --set-window-policy --pre -2 --post 2 --n-frames 8 \
     --approve --canary-ref results/soccernet/canary/canary_index.json
 
