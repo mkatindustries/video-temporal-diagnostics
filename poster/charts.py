@@ -20,7 +20,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-from matplotlib.font_manager import FontProperties  # noqa: E402
 from matplotlib.patches import FancyBboxPatch, Patch, PathPatch, Rectangle  # noqa: E402
 from matplotlib.path import Path as MPath  # noqa: E402
 
@@ -108,7 +107,7 @@ def legend_row(fig, entries, x0=0.015, y=0.985, size=17):
 
     Text never wears the data color -- identity comes from the swatch beside it.
     """
-    handles = [Patch(facecolor=c, edgecolor="none", label=l) for c, l in entries]
+    handles = [Patch(facecolor=c, edgecolor="none", label=lab) for c, lab in entries]
     fig.legend(
         handles=handles,
         loc="upper left",
@@ -518,7 +517,8 @@ def fig_cascade() -> Path:
     fig.text(
         0.105,
         0.022,
-        "Recall@k is identical (shared candidate set) — reranking only reorders, and it reorders worse.",
+        "Recall@k is identical (shared candidate set) — reranking only reorders,"
+        " and it reorders worse.",
         fontsize=16,
         style="italic",
         color=T.INK_2,

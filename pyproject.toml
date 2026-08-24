@@ -38,6 +38,14 @@ dev = [
     "isort>=5.12.0",
     "pyrefly>=0.1.0",
 ]
+# Everything poster/ needs beyond the base install. matplotlib and numpy are core
+# dependencies already; pillow is listed because build_poster.py imports PIL
+# directly rather than relying on matplotlib to pull it in.
+poster = [
+    "reportlab>=4.0.0",
+    "qrcode>=7.4",
+    "pillow>=9.0.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -51,6 +59,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.isort]
+# poster/ imports its sibling module directly, so it is first-party there.
+known-first-party = ["tokens", "video_retrieval"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -71,8 +83,16 @@ ignore-missing-imports = [
     "matplotlib.lines",
     "matplotlib.patches",
     "matplotlib.pyplot",
+    "PIL",
     "pytest",
+    "qrcode",
     "qwen_vl_utils",
+    "reportlab",
+    "reportlab.lib.colors",
+    "reportlab.lib.units",
+    "reportlab.pdfbase",
+    "reportlab.pdfbase.ttfonts",
+    "reportlab.pdfgen",
     "scipy",
     "scipy.optimize",
     "scipy.stats",

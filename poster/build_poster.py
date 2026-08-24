@@ -21,11 +21,10 @@ result than converting blind.
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import qrcode
-from reportlab.lib.colors import HexColor, Color
+from reportlab.lib.colors import Color, HexColor
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont

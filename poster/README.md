@@ -5,16 +5,25 @@ Retrieval* (`paper/video4real.tex`). Workshop: Wednesday 9 September 2026, PM.
 
 ## Build
 
-Uses the project's `video_retrieval` conda env, which already has matplotlib,
-numpy and pillow. The poster adds two pure-Python packages on top:
+The poster needs `reportlab` and `qrcode` on top of the base install. They are
+declared as the `poster` extra, so from an activated `video_retrieval` env:
+
+```bash
+pip install -e ".[poster]"
+```
+
+`pip install -e .` and `pip install -e ".[vlm]"` do **not** cover them — the
+poster extra is separate.
+
+If you would rather install through conda:
 
 ```bash
 conda install -n video_retrieval --freeze-installed -c conda-forge reportlab qrcode
 ```
 
-`--freeze-installed` matters: without it the solver also bumps `openssl` and
-`ca-certificates` in the env that produced every tracked result. With it, nothing
-already installed is touched — `torch` and `transformers` stay exactly as
+Keep `--freeze-installed`. Without it the solver also bumps `openssl` and
+`ca-certificates` in the env that produced every tracked result; with it, nothing
+already installed is touched, so `torch` and `transformers` stay exactly as
 `results/PROVENANCE.md` records them.
 
 Then, from anywhere:
