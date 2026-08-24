@@ -59,3 +59,6 @@ datasets/
 paper/SUBMISSION_PUNCHLIST.md
 paper/SKILLS.md
 texput.log
+
+# poster build output (regenerate with poster/charts.py + poster/build_poster.py)
+poster/build/

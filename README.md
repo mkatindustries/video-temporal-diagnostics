@@ -6,9 +6,14 @@ Diagnostic code for *Diagnosing Temporal Sensitivity in Video Retrieval Pipeline
 
 Scalable video retrieval often uses global descriptors that are insensitive to motion direction. This repository implements three diagnostics for locating that behavior: a temporal scramble gradient, a forward/reverse score under a declared comparator, and a controlled feature-by-comparator factorial evaluated on one shared pair set. Exact permutation invariance applies to symmetric comparisons of fixed independently encoded elements. Contextual video tokens and VLM outputs instead require empirical tests. Scores from cosine and DTW are comparator-specific and must not be put on one numerical scale.
 
-This repository backs two papers with different protocols. The NeurIPS paper reports pooled
-pair-classification diagnostics across seven benchmarks; these are not standard query-wise
-retrieval metrics. The Video4Real extended abstract (`paper/video4real.tex`) instead headlines
+The presented result is the Video4Real extended abstract (`paper/video4real.tex`), accepted to the
+[Video4Real workshop](https://sites.google.com/utwente.nl/video4real/home) at ECCV 2026. A longer
+companion manuscript (`paper/neurips.tex`) covers the same code base across seven benchmarks; its
+NeurIPS submission was withdrawn and it is not currently under review.
+
+The two use different protocols and their numbers are not interchangeable. The companion
+manuscript reports pooled pair-classification diagnostics; these are not standard query-wise
+retrieval metrics. The Video4Real extended abstract instead headlines
 a matched query-wise protocol on HDD/nuScenes (query-macro mAP over the same eligible-query
 set for both conditional and global retrieval), reserving the pooled-pair protocol for its
 shuffled-DTW/assignment order controls. A separate SoccerNet-v2 within-match transfer check
@@ -185,14 +190,20 @@ scramble-gradient numbers come from those two, not from this script.
 | TARA (Tarsier-7B) | `bpiyush/TARA` (local weights) | Chiral-trained MLLM (16 frames, 4096-dim) |
 | PL-Stitch ViT-B | `visurg/PL-Stitch` (`pl_lemon.pth`) | Temporal ranking pretrained (per-frame, 768-dim) |
 
-## Paper
+## Paper and poster
 
-The two active manuscripts are:
+- `paper/video4real.tex` — *"When Conditional Sequence Matching Does Not Transfer to Global Video
+  Retrieval."* Extended abstract, accepted to
+  [Video4Real](https://sites.google.com/utwente.nl/video4real/home) at ECCV 2026 (Malmö,
+  9 September 2026). Per the workshop call, accepted abstracts are excluded from the ECCV
+  proceedings.
+- `poster/` — the workshop poster, built from the tracked result JSONs. See `poster/README.md`.
+- `paper/neurips.tex` — *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines."* Longer
+  companion manuscript over seven benchmarks. Its NeurIPS submission was withdrawn; it is not
+  currently under review, and some of its appendix artifacts are not reproducible from this
+  checkout (see the caveats in `REPRODUCIBILITY.md`).
 
-- `paper/neurips.tex`: *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines"*
-- `paper/video4real.tex`: Video4Real extended abstract
-
-Build both from the repository root:
+Build both manuscripts from the repository root:
 
 ```bash
 make papers
