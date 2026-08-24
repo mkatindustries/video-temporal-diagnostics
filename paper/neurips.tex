@@ -49,8 +49,8 @@ difference of $+0.117$ [0.044, 0.127]. However, the ranking reverses in correcte
 retrieval (DTW 0.177 vs. bag-of-tokens 0.256 mAP). nuScenes supports the conditional pair
 contrast, while Something-Something V2 favors a different representation and comparator.
 VLM results are readout- and prompt-dependent: sequence comparisons expose
-forward/reverse changes that pooling suppresses, direct direction prompts are weak, and
-an integrity prompt can classify the same clips well. We consolidate the observed failure
+forward/reverse changes that pooling suppresses, while direct direction prompts stay near
+chance and their answer priors shift with phrasing. We consolidate the observed failure
 modes into a taxonomy and executable protocol, and release a toolkit implementing all
 three diagnostics. The results identify a task-dependent tension between scalable
 invariant matching and temporal discrimination, rather than an intrinsic blindness of
@@ -263,7 +263,7 @@ Gemini 3.1 Pro & 0.585 & 0.608 & 0.603 & $0.599 \pm 0.010$ \\
 \end{tabular}
 \end{table}
 
-Under these direct prompts, the open-weight models are near chance and Gemini~3.1 Pro~\cite{gemini31pro} reaches $0.599 \pm 0.010$. This is not evidence that the outputs contain no temporal information: an intact-vs.-tampered integrity prompt on the same clips reaches balanced accuracy 0.879 for Qwen3-VL and 0.845 for Gemma-4 (Appendix~\ref{sec:integrity_probe}). Together with strong answer-prior changes across prompt phrasings (Appendix~\ref{sec:prompt_details}), the result demonstrates prompt- and readout-dependence.
+Under these direct prompts, the open-weight models are near chance and Gemini~3.1 Pro~\cite{gemini31pro} reaches $0.599 \pm 0.010$. Near-chance generative accuracy is not by itself evidence that the outputs contain no temporal information: answer priors shift strongly across prompt phrasings (Appendix~\ref{sec:prompt_details}), and sequence comparisons of the same pipelines' internal representations do register forward/reverse changes (Section~\ref{sec:vlm_embedding}). Taken together, these results demonstrate prompt- and readout-dependence. An intact-vs.-tampered integrity probe on the same clips was reported in earlier versions of this paper; it is withdrawn pending a re-run (Appendix~\ref{sec:integrity_probe}) and no conclusion here rests on it.
 
 \subsubsection{Embedding Probes Across Readouts}
 \label{sec:vlm_embedding}
@@ -331,7 +331,7 @@ Full cross-method comparisons across the seven benchmarks are in Appendix~\ref{s
 
 \textbf{Motion dynamics} (HDD, nuScenes, SSv2). The best observed representation--comparator combination is domain-dependent: V-JEPA~2 variants have the strongest HDD and nuScenes conditional pair results, while attention trajectories lead on the selected SSv2 split. Paired cluster contrasts support encoder-sequence DTW over BoT on both driving datasets. However, the corrected global HDD gallery reverses that ranking, showing that conditional pair discrimination and end-to-end retrieval test different capabilities. Temporal-training controls (TARA~\cite{tara}, PL-Stitch~\cite{plstitch}, ViCLIP~\cite{viclip}, X-CLIP~\cite{xclip}) do not lead these evaluations.
 
-\textbf{Temporal manipulation} (reversal, scrambling). Exact invariance applies to fixed independently encoded frame sets under symmetric comparison. Contextual video encoders and VLMs instead show probe-dependent sensitivity: sequence comparisons detect changes, direct direction prompts are weak, and integrity prompts are substantially stronger. These outcomes should not be collapsed into one cross-comparator $s_\text{rev}$ ranking.
+\textbf{Temporal manipulation} (reversal, scrambling). Exact invariance applies to fixed independently encoded frame sets under symmetric comparison. Contextual video encoders and VLMs instead show probe-dependent sensitivity: sequence comparisons detect changes, while direct direction prompts are weak. These outcomes should not be collapsed into one cross-comparator $s_\text{rev}$ ranking.
 
 \textbf{Architecture implications.} Symmetric aggregation over independently encoded elements guarantees invariance; contextual encoding can retain temporal effects before pooling. The HDD query-wise result also shows that replacing the comparator after an appearance-based candidate stage is insufficient: the temporal score must retain global location discrimination. A held-out linear fusion with the first-stage BoT score does not remedy this on our gallery---cross-validated weights collapse onto BoT ($\alpha^\star\!\to\!0.95$) with no detected gain---so recovering global retrieval requires a temporal representation that is itself location-discriminative, not merely a better ranking rule over the existing scores.
 
@@ -633,37 +633,23 @@ Qwen3-VL-30B-A3B & VCDB subset (49) & 83.0\% & 28.6\% & 55.8\% \\
 
 The 30B model achieves 55.8\%, near chance. The slight improvement is driven by a content-dependent FORWARD bias (83\% forward, 28.6\% reverse), not temporal understanding. This motivated the systematic multi-VLM evaluation on EPIC-Kitchens (Section~\ref{sec:vlm_generative}).
 
-\section{VLM Temporal Integrity Probe}
+\section{VLM Temporal Integrity Probe (Withdrawn)}
 \label{sec:integrity_probe}
 
-Separately from forward/reverse classification, we asked VLMs to judge whether a video's temporal structure is ``INTACT'' or ``TAMPERED,'' on forward, reversed, and chunk-scrambled ($K\!=\!4, 16$) versions of EPIC-Kitchens sequences.
+Separately from forward/reverse classification, we asked VLMs to judge whether a video's temporal structure is ``INTACT'' or ``TAMPERED,'' on forward, reversed, and chunk-scrambled ($K\!=\!4, 16$) versions of EPIC-Kitchens sequences. Earlier versions of this paper tabulated per-condition rates for that probe and concluded that the integrity framing recovered temporal information the direct direction prompts missed. \textbf{We withdraw that result and its table.}
 
-\begin{table}[h]
-\centering
-\caption{Temporal integrity probe on EPIC-Kitchens (500 sequences): fraction judged TAMPERED. LLaVA excluded from aggregate due to constant-output degeneracy.}
-\label{tab:integrity_probe}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Model} & \textbf{Forward} & \textbf{Reversed} & \textbf{Scramble $K\!=\!4$} & \textbf{Scramble $K\!=\!16$} \\
-\midrule
-Qwen3-VL-8B & 0.112 & 0.870 & 0.668 & 0.660 \\
-Gemma-4-31B & 0.150 & 0.840 & 0.202 & 0.220 \\
-LLaVA-Video-7B$^\dagger$ & 1.000 & 1.000 & 1.000 & 1.000 \\
-\bottomrule
-\end{tabular}
-\begin{flushleft}
-\small $^\dagger$LLaVA produces constant ``TAMPERED'' regardless of input (text-only baseline confirms). Excluded from integrity analysis.
-\end{flushleft}
-\end{table}
+The tabulated per-condition rates are inconsistent with the same run's own recorded cross-transform consistency, i.e.\ the fraction of clips answered correctly under all four conditions. For Qwen3-VL, those rates imply by a union bound over the four conditions a per-clip all-correct rate of at least 8.6\%, whereas the run recorded 3.8\% for that model. All four tabulated columns are exact complements of the corresponding per-condition accuracies plotted by the same run. That is the correct conversion only for the forward condition, where the recorded accuracy is the fraction judged INTACT; for the reversed and scrambled conditions the recorded accuracy is already the fraction judged TAMPERED, so complementing it inverts the value. A uniform ``$1-\text{accuracy}$'' transcription across all four conditions therefore reproduces the published table exactly while inverting three of its four columns. We do not trust the transcribed aggregate, and the balanced accuracies derived from it are not valid. The withdrawn values are retained unchanged in the released results artifact (\texttt{results/epic/vlm\_prompt\_results.json}) alongside a machine-readable record of the defect, so the inconsistency above can be checked.
 
-Qwen and Gemma identify forward videos as INTACT ($\sim$85--89\%) and flag reversed videos as TAMPERED (Qwen~87\%, Gemma~84\%). Treating forward as the negative class and reversed as the positive class gives balanced accuracy 0.879 for Qwen and 0.845 for Gemma. This directly contradicts a blanket claim that their outputs carry no temporal information: success depends strongly on the question and label framing. Scramble detection diverges, suggesting different heuristics. Cross-transform consistency is very low (3.8--8.2\%).
+The per-clip responses from that run were not retained, so the correct rates cannot be recomputed from the stored artifacts. We consequently report no corrected numbers here: the probe can be re-run from the original sequence manifest, and the claim will be restored only if such a re-run supports it. No result in Sections~\ref{sec:vlm_generative}--\ref{sec:vlm_embedding} or in the Discussion depends on this probe.
+
+One observation from the run survives the defect, because it is invariant to the direction of the conversion: LLaVA-Video-7B emits the same integrity label for every input, including under the text-only baseline, so its integrity output is uninformative about the video under either reading.
 
 \section{VLM Prompt Sensitivity and Text-Only Baselines}
 \label{sec:prompt_details}
 
 Answers on direct forward/reverse classification are highly sensitive to prompt phrasing. Gemma-4 exhibits opposite biases across prompts: prompt~0 yields 87\% reverse bias; prompt~2 yields 73\% forward bias. LLaVA-Video answers ``FORWARD'' for prompts~0--1 ($>$98\%) but ``REVERSE'' for prompt~2 (83\%). Text-only baselines reproduce several of these priors; Qwen3 shows no text-only bias under the tested baseline but remains near chance with the direct video prompt.
 
-LLaVA-Video produces constant ``TAMPERED'' regardless of input (text-only baseline confirms prior bias). We exclude it from aggregate integrity statistics in Appendix~\ref{sec:integrity_probe}.
+LLaVA-Video produces a constant integrity label regardless of input (text-only baseline confirms prior bias); the integrity probe that used those outputs is withdrawn (Appendix~\ref{sec:integrity_probe}).
 
 \section{HDD Leakage Analysis}
 \label{sec:hdd_leakage}

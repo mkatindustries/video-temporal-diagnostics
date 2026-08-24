@@ -255,21 +255,30 @@ done
 
 **Layer ablation (Table 8, Appendix D):**
 ```bash
-for family in qwen gemma llava; do
+for family in qwen3 gemma4 llava-video; do
     python experiments/eval_epic_temporal_order.py \
         --vlm-family $family --vlm-embeddings --vlm-layer-ablation
 done
 ```
 
-**Output:** `datasets/epic_kitchens/temporal_order_results*.json`, `figures/epic_temporal_order_sensitivity.png` (Figure 4, Appendix E)
+**Output:** `datasets/epic_kitchens/temporal_order_results*.json`, `figures/epic_temporal_order_sensitivity.png` (Figure 4, Appendix D)
 
-The generative-probe and integrity-probe balanced-accuracy numbers quoted in the papers
-(direct direction prompts, INTACT/TAMPERED framing) are **not reproducible from a fresh run in
-this checkout**: the raw generative aggregate files this command would produce are absent, and
-per-example responses were never retained. `results/epic/vlm_prompt_results.json` is the tracked,
-compact substitute — it records the transcribed metrics plus a full provenance trail (source
-paper revisions and their SHA-256 hashes, since the numbers were transcribed from those revisions
-rather than recomputed here).
+The direct-direction-prompt balanced accuracies quoted in the papers are **not reproducible from a
+fresh run in this checkout**: the raw generative aggregate files this command would produce are
+absent, and per-example responses were never retained. `results/epic/vlm_prompt_results.json` is
+the tracked, compact substitute — it records the transcribed metrics plus a full provenance trail
+(source paper revisions and their SHA-256 hashes, since the numbers were transcribed from those
+revisions rather than recomputed here).
+
+The INTACT/TAMPERED **integrity-probe** numbers in that same artifact are **withdrawn** and no
+longer appear in either paper. The transcription applied a uniform `1 - accuracy` conversion to
+all four conditions, which is correct only for the forward condition — `forward_acc` is the
+fraction judged INTACT, while `reverse_acc` and `scramble_kN_acc` are already the fraction judged
+TAMPERED — so three of the four columns are inverted. The recorded values are kept byte-identical
+in the JSON under a `known_defect_integrity_sign_inversion` block; see
+`paper/neurips.tex` Appendix "VLM Temporal Integrity Probe (Withdrawn)". To restore the claim,
+re-run the probe with `slurm_jobs/rerun_epic_integrity.sbatch` and read the `*_acc` values from
+the output JSON directly — do **not** re-apply a blanket `1 - acc`.
 
 ### 12. Scene Retrieval (Nymeria) — Table 11 (Appendix F)
 

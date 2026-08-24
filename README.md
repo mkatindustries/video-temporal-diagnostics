@@ -42,7 +42,7 @@ Selected point estimates from the valid pair diagnostics:
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM direct direction prompts (open models) | Prompt-dependent, near chance | 0.50--0.54 balanced accuracy |
-| VLM integrity prompt (Qwen/Gemma) | Detects forward vs reverse | 0.879 / 0.845 balanced accuracy |
+| VLM integrity prompt (Qwen/Gemma) | **Withdrawn** — transcription inverted three of four conditions | see `paper/neurips.tex` Appendix "VLM Temporal Integrity Probe (Withdrawn)" |
 | LLM fixed-vector probes | Exploratory, no reliable evidence | best observed 0.560 across many configs |
 | V-JEPA 2 encoder-sequence DTW (HDD) | Controlled comparator contrast | AP 0.942 |
 | Directed BoT-to-DTW retrieval (HDD) | BoT beats encoder-sequence DTW globally | full-gallery mAP 0.256 vs. 0.177 |
@@ -51,7 +51,7 @@ Selected point estimates from the valid pair diagnostics:
 | V-JEPA 2 reversal (EPIC) | Temporal residual under DTW | s_rev 0.0033 [0.0031, 0.0034] |
 | Within-match transfer check (SoccerNet-v2, Video4Real) | No detected gain over BoT | match-macro MRR 0.155 vs. 0.153 |
 
-On the conditional HDD pair task, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate; a paired intersection-cluster bootstrap estimates encoder-sequence DTW minus BoT at +0.117 [0.044, 0.127]. The result does not compose into global retrieval: encoder-sequence DTW has lower full-gallery mAP than BoT (0.177 vs. 0.256) and lowers AP and MRR throughout the rerank sweep. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, direct direction prompts are weak, and integrity prompts are much stronger.
+On the conditional HDD pair task, replacing pooled cosine with encoder-sequence DTW closes 89% of the observed BoT-to-residual AP gap as a descriptive point estimate; a paired intersection-cluster bootstrap estimates encoder-sequence DTW minus BoT at +0.117 [0.044, 0.127]. The result does not compose into global retrieval: encoder-sequence DTW has lower full-gallery mAP than BoT (0.177 vs. 0.256) and lowers AP and MRR throughout the rerank sweep. VLM findings are readout- and prompt-dependent: mean-pooled cosine changes little, sequence DTW detects changes, and direct direction prompts are weak with answer priors that shift strongly across phrasings. The INTACT/TAMPERED integrity-prompt result previously reported here is **withdrawn**: its transcribed aggregate applied a uniform `1 - accuracy` conversion to all four conditions, which is correct only for the forward condition, and the raw per-clip responses were not retained. Re-run with `slurm_jobs/rerun_epic_integrity.sbatch` to restore it.
 
 ## Methods
 

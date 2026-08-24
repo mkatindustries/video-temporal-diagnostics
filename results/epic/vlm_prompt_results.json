@@ -119,6 +119,34 @@
     "metric_origin": "transcribed_aggregate",
     "raw_per_clip_responses_included": false,
     "raw_generative_aggregate_present_in_checkout": false,
+    "known_defect_integrity_sign_inversion": {
+      "status": "believed_defective_values_retained_unchanged",
+      "discovered": "2026-08-24",
+      "affected_fields": [
+        "models.gemma4.integrity.fraction_tampered.reversed",
+        "models.gemma4.integrity.fraction_tampered.scramble_k4",
+        "models.gemma4.integrity.fraction_tampered.scramble_k16",
+        "models.gemma4.integrity.derived_forward_reverse_balanced_accuracy",
+        "models.qwen3_vl.integrity.fraction_tampered.reversed",
+        "models.qwen3_vl.integrity.fraction_tampered.scramble_k4",
+        "models.qwen3_vl.integrity.fraction_tampered.scramble_k16",
+        "models.qwen3_vl.integrity.derived_forward_reverse_balanced_accuracy"
+      ],
+      "unaffected_fields": [
+        "models.gemma4.integrity.fraction_tampered.forward",
+        "models.qwen3_vl.integrity.fraction_tampered.forward",
+        "models.*.direct_direction.*"
+      ],
+      "description": "The transcription applied a uniform fraction_tampered = 1 - acc to all four integrity conditions. In experiments/eval_epic_temporal_order.py the four recorded quantities do not share a convention: forward_acc is the fraction judged INTACT, while reverse_acc, scramble_k4_acc and scramble_k16_acc are already the fraction judged TAMPERED. The 1 - acc conversion is therefore correct only for the forward column; the reversed and scramble values recorded here are believed to be complements of the true rates.",
+      "evidence": [
+        "Tracked figures figures/epic_{qwen3,gemma4,llava-video}_temporal_integrity.png, produced by plot_vlm_integrity from the raw *_acc values of this same run, agree with the forward column recorded here (1 - 0.888 = 0.112) but are exact complements of the recorded reversed, scramble_k4 and scramble_k16 values in all six non-degenerate cells.",
+        "The llava_video figure shows a forward bar of 0 where this file records fraction_tampered = 1.0; that is only consistent under accuracy semantics, which pins the convention of the recorded quantity.",
+        "paper/neurips.tex (pre-withdrawal, git revision 4b54312b15b147b777dfc1a1bea90cef178f3104) reports cross-transform consistency of 3.8-8.2% for this run. A union bound over the four qwen3_vl rates recorded here forces a per-clip all-correct rate of at least 8.6%, which is arithmetically incompatible with the recorded consistency; the figures' rates are compatible."
+      ],
+      "consequence": "derived_forward_reverse_balanced_accuracy is invalid for gemma4 and qwen3_vl (it is computed from a defective reversed value). It remains 0.5 for llava_video only because that model's output is constant, which is convention-independent.",
+      "values_not_corrected_because": "Corrected rates could only be read off the figure bar heights by eye (+/- ~0.01) and the raw per-clip responses are not present in this checkout (see raw_generative_aggregate_present_in_checkout). Values that cannot be recomputed are not substituted here; this file records what was transcribed, defect included.",
+      "downstream_action": "The integrity claim is withdrawn from paper/neurips.tex (Appendix sec:integrity_probe) and removed from paper/video4real.tex. Re-run driver: slurm_jobs/rerun_epic_integrity.sbatch."
+    },
     "note": "Rounded prompt metrics and integrity rates were transcribed from historical paper revisions. Their hashes can be checked against Git. The unavailable dataset-local files below are recorded only as fingerprints and contain embedding results, not the quoted generative metrics.",
     "metric_transcription_sources": [
       {

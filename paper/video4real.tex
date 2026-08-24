@@ -273,12 +273,10 @@ evaluation gallery well. The top-1 decomposition localizes the loss to wrong-int
 neither fixed reranking nor a cross-validated linear blend repairs it here. Global sequence retrieval
 therefore needs a fine-grained representation that is itself location-discriminative.
 
-On an EPIC-Kitchens manifest of $500$ sequences, a separate probe suggests strong interface
-dependence in multimodal LLM (MLLM) outputs: three open-weight models have mean balanced
-accuracy $0.503$--$0.538$ across three direct direction prompts, whereas INTACT/TAMPERED framing
-reaches $0.845$--$0.879$ for Qwen3-VL-8B and Gemma-4-31B; LLaVA-Video's integrity output is constant
-and excluded. These descriptive, prompt-specific classification probes do not test full-gallery
-retrieval; applying the matched-gallery protocol to MLLM readouts is future work.
+On an EPIC-Kitchens manifest of $500$ sequences, a separate probe leaves three open-weight
+multimodal LLMs (MLLMs) near chance: mean balanced accuracy $0.503$--$0.538$ across three direct
+direction prompts. These descriptive, prompt-specific classification probes do not test
+full-gallery retrieval; applying the matched-gallery protocol to MLLM readouts is future work.
 
 \textbf{Deployment and limitations.} BoT supports indexed search; retained-gallery DTW is not
 directly indexable and is quadratic in sequence length. The BoT-first cascade bounds DTW work but
