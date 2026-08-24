@@ -4,34 +4,52 @@ These are the submission scripts for the corrected cluster reruns. Compact outpu
 provenance are tracked under `results/`; dataset-local caches and per-pair files are
 intentionally excluded.
 
+`<YOUR_DATA_ROOT>` below is a placeholder: these jobs carry no default dataset locations, so
+every `*_DIR` variable must point at the operator's own copy of the dataset, obtained under
+its own license. Substitute your paths before submitting.
+
 Submit these jobs from the repository root after creating the log directory:
 
 ```bash
 mkdir -p slurm_logs
 
-VCDB_DIR=/datasets/VCDB sbatch slurm_jobs/rerun_vcdb_scramble.sbatch
-HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_retrieval.sbatch
-HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_controls.sbatch
-HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
-EPIC_DIR=/datasets/EPIC_KITCHENS sbatch slurm_jobs/rerun_epic_residual.sbatch
+VCDB_DIR=<YOUR_DATA_ROOT>/vcdb sbatch slurm_jobs/rerun_vcdb_scramble.sbatch
+HDD_DIR=<YOUR_DATA_ROOT>/hdd sbatch slurm_jobs/rerun_hdd_retrieval.sbatch
+HDD_DIR=<YOUR_DATA_ROOT>/hdd sbatch slurm_jobs/rerun_hdd_controls.sbatch
+HDD_DIR=<YOUR_DATA_ROOT>/hdd sbatch slurm_jobs/rerun_hdd_fusion.sbatch
+EPIC_DIR=<YOUR_DATA_ROOT>/epic_kitchens sbatch slurm_jobs/rerun_epic_residual.sbatch
+EPIC_DIR=<YOUR_DATA_ROOT>/epic_kitchens sbatch slurm_jobs/rerun_epic_integrity.sbatch   # re-run of the withdrawn integrity probe
+SOCCERNET_DIR=<YOUR_DATA_ROOT>/soccernet sbatch slurm_jobs/rerun_soccernet.sbatch
 ```
+
+`VCDB_DIR` must be the directory that directly contains VCDB's `annotation/` and
+`core_dataset/` subdirectories, and `HDD_DIR` must be the HDD release root that contains
+`release_2019_07_08/`, `features/`, and `labels/` — in both cases the level that holds those
+entries, not a wrapper directory above it.
 
 The nuScenes fusion run consumes the feature cache produced by the temporal run, so submit
 it as an `afterok` dependency rather than starting both jobs concurrently:
 
 ```bash
-nuscenes_job=$(NUSCENES_DIR=/datasets/nuScenes \
+nuscenes_job=$(NUSCENES_DIR=<YOUR_DATA_ROOT>/nuscenes \
   sbatch --parsable slurm_jobs/rerun_nuscenes.sbatch)
-NUSCENES_DIR=/datasets/nuScenes \
+NUSCENES_DIR=<YOUR_DATA_ROOT>/nuscenes \
   sbatch --dependency="afterok:${nuscenes_job}" slurm_jobs/rerun_nuscenes_fusion.sbatch
 ```
+
+`NUSCENES_DIR` must be the extracted nuScenes root that actually contains `v1.0-trainval/`,
+`samples/`, `sweeps/`, and `maps/`. A sibling path whose name differs only by a `_data` suffix
+(or the reverse) is a common trap on shared filesystems: one is the real extraction and the
+other is an empty stub or a README-only placeholder left over from the download step. Confirm
+`ls "$NUSCENES_DIR"/v1.0-trainval` succeeds before submitting, or the temporal job fails after
+queueing. The same check applies to `HDD_DIR`.
 
 For the HDD Video4Real error-composition result, rerun its fusion job after the feature and
 distance caches exist. The nuScenes fusion job is already included in the dependency chain
 above. Both write compact summaries directly to the tracked `results/` paths:
 
 ```bash
-HDD_DIR=/datasets/HDD sbatch slurm_jobs/rerun_hdd_fusion.sbatch
+HDD_DIR=<YOUR_DATA_ROOT>/hdd sbatch slurm_jobs/rerun_hdd_fusion.sbatch
 ```
 
 The fusion jobs also evaluate full-gallery temporal-residual DTW. A compatible

@@ -23,7 +23,12 @@ Thumbs.db
 trajectories.png
 *.ckpt
 *.pth
-results/soccernet/canary/*.png  # large canary montages; regenerable, hashes recorded in canary_index.json
+# Large canary montages; regenerable, hashes recorded in canary_index.json.
+# (gitignore has no trailing-comment syntax, so keep these comments on their own lines.)
+results/soccernet/canary/*.png
+# Frozen extraction plans embed machine-local manifest metadata; intentionally untracked
+# per results/PROVENANCE.md, which records the canonical plan hash instead.
+results/soccernet/plans/
 
 # LaTeX build artifacts
 paper/*.aux

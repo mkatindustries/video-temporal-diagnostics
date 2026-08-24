@@ -113,7 +113,7 @@ Embeddings are `{video_id: (T, D)}` dicts saved as `.pt` files. Pairs are CSVs w
 
 ```bash
 python experiments/eval_vcdb.py                  # VCDB copy detection benchmark
-python experiments/eval_vcdb_scramble.py         # Temporal scramble sensitivity
+python experiments/eval_vcdb_scramble.py         # Temporal scramble sensitivity (SUPERSEDED: see eval_vcdb_scramble_multiseed.py + eval_vcdb_scramble_raw.py below)
 python experiments/eval_vcdb_vlm_bridge.py       # VLM vision tower + LLM on VCDB
 python experiments/eval_vcdb_vlm_probes.py       # VLM generative probes on VCDB
 python experiments/eval_hdd_intersections.py     # HDD maneuver discrimination
@@ -122,6 +122,8 @@ python experiments/eval_hdd_vlm_generative.py    # VLM generative probes on HDD
 python experiments/eval_nuscenes_intersections.py # nuScenes cross-dataset validation
 python experiments/eval_nuscenes_vlm_bridge.py   # VLM vision tower + LLM on nuScenes
 python experiments/eval_nuscenes_vlm_generative.py # VLM generative probes on nuScenes
+python scripts/setup_ssv2.py                     # SSv2 chiral-pair manifest (template pairs + video sampling)
+python experiments/eval_ssv2_motion_direction.py # SSv2 cross-domain motion-direction retrieval
 python experiments/eval_epic_temporal_order.py   # EPIC-Kitchens multi-VLM probes
 python experiments/eval_epic_linear_probe.py     # Linear probe on LLM hidden states
 python experiments/eval_mlp_probe.py              # MLP probe on LLM hidden states (GroupKFold)
@@ -148,6 +150,12 @@ python scripts/soccernet_window_canary.py        # Train-only canary: freeze the
 python experiments/extract_soccernet_features.py # V-JEPA 2 feature extraction (gated on locked window policy)
 python experiments/eval_soccernet_replay.py      # Within-match replay-grounding event retrieval (Video4Real)
 ```
+
+`eval_vcdb_scramble.py` is kept only for reference: it scrambles extracted embeddings under a
+single deterministic permutation per video. `REPRODUCIBILITY.md` (experiment 3) treats the
+10-seed run (`eval_vcdb_scramble_multiseed.py`) plus the raw-frame re-extraction run
+(`eval_vcdb_scramble_raw.py`) as the valid scramble-gradient line, and the reported Figure 1 /
+scramble-gradient numbers come from those two, not from this script.
 
 ## Benchmarks
 
