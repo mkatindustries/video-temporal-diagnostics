@@ -1,24 +1,42 @@
-# Diagnosing Temporal Sensitivity in Video Retrieval Pipelines
+# When Conditional Sequence Matching Does Not Transfer to Global Video Retrieval
 
-Diagnostic code for *Diagnosing Temporal Sensitivity in Video Retrieval Pipelines*. The project evaluates temporal signals for video deduplication and retrieval, including cases where semantic descriptors assign similar scores to recordings with different motion or ordering.
+Evaluation code and diagnostics for *When Conditional Sequence Matching Does Not Transfer to
+Global Video Retrieval*, Arjang Talattof — presented at the
+[Video4Real workshop](https://sites.google.com/utwente.nl/video4real/home) at ECCV 2026
+(Malmö, 9 September 2026). The extended abstract is `paper/video4real.tex`; the poster, built
+from this repository's tracked result JSONs, is under `poster/`.
+
+The project evaluates temporal signals for video deduplication and retrieval, including cases
+where semantic descriptors assign similar scores to recordings with different motion or ordering.
 
 ## Abstract
 
-Scalable video retrieval often uses global descriptors that are insensitive to motion direction. This repository implements three diagnostics for locating that behavior: a temporal scramble gradient, a forward/reverse score under a declared comparator, and a controlled feature-by-comparator factorial evaluated on one shared pair set. Exact permutation invariance applies to symmetric comparisons of fixed independently encoded elements. Contextual video tokens and VLM outputs instead require empirical tests. Scores from cosine and DTW are comparator-specific and must not be put on one numerical scale.
+Scalable video retrieval favors pooled descriptors, but pooling can blur motion direction.
+Sequence comparators such as dynamic time warping (DTW) over per-frame features can distinguish
+maneuvers *within* a known location. We ask whether this within-location advantage survives when
+the search spans many locations. Under a matched query-wise protocol, V-JEPA 2 encoder-sequence
+DTW beats a bag-of-tokens (BoT) cosine baseline within intersections (Honda HDD 0.955 vs. 0.923
+mAP; nuScenes 0.922 vs. 0.855), yet loses over the full evaluation gallery (HDD 0.177 vs. 0.256;
+nuScenes 0.159 vs. 0.333). Separate order-ablation controls do not support a general
+order-specific explanation: intact DTW detectably beats shuffled DTW only for nuScenes encoder
+features; order-free assignment differs detectably only once, improving nuScenes
+temporal-residual AP. Across all six top-1 rankings, at least 98.9% of errors come from the wrong
+intersection. A BoT→DTW cascade lowers AP at every evaluated k; leakage-safe fusion shows no
+detected gain on HDD (+0.001, 95% CI [−0.003, 0.004]) and equals BoT on nuScenes. For these
+datasets, scores, and a linear fusion rule, fine-grained sequence matching is useful conditionally
+but insufficient for global retrieval. We release the diagnostics and evaluation protocol.
 
-The presented result is the Video4Real extended abstract (`paper/video4real.tex`), accepted to the
-[Video4Real workshop](https://sites.google.com/utwente.nl/video4real/home) at ECCV 2026. A longer
-companion manuscript (`paper/neurips.tex`) covers the same code base across seven benchmarks; its
-NeurIPS submission was withdrawn and it is not currently under review.
+### Protocols are not interchangeable
 
-The two use different protocols and their numbers are not interchangeable. The companion
-manuscript reports pooled pair-classification diagnostics; these are not standard query-wise
-retrieval metrics. The Video4Real extended abstract instead headlines
-a matched query-wise protocol on HDD/nuScenes (query-macro mAP over the same eligible-query
-set for both conditional and global retrieval), reserving the pooled-pair protocol for its
-shuffled-DTW/assignment order controls. A separate SoccerNet-v2 within-match transfer check
-uses its own match-macro MRR protocol. None of these protocols share a numerical scale and
-should not be compared directly.
+`paper/` also carries a longer companion manuscript covering the same code base across seven
+benchmarks. It is not under review. It reports pooled pair-classification diagnostics, which are
+not standard query-wise retrieval metrics, so its numbers and the extended abstract's are not
+comparable. The extended abstract instead headlines a matched query-wise protocol on HDD/nuScenes
+(query-macro mAP over the same eligible-query set for both conditional and global retrieval),
+reserving the pooled-pair protocol for its shuffled-DTW/assignment order controls. A separate
+SoccerNet-v2 within-match transfer check uses its own match-macro MRR protocol. None of these
+protocols share a numerical scale and should not be compared directly.
+
 The old HDD reranking results and unbalanced-chunk scramble results were withdrawn and replaced
 by corrected runs. Compact summaries and provenance are tracked under `results/`; the exact
 rerun jobs are under `slurm_jobs/`.
@@ -47,7 +65,7 @@ Selected point estimates from the valid pair diagnostics:
 | Scene retrieval (Nymeria) | BoF | AP 0.485 |
 | Multi-domain retrieval (MUVR News) | Chamfer | AP 0.746 |
 | VLM direct direction prompts (open models) | Prompt-dependent, near chance | 0.50--0.54 balanced accuracy |
-| VLM integrity prompt (Qwen/Gemma) | **Withdrawn** — transcription inverted three of four conditions | see `paper/neurips.tex` Appendix "VLM Temporal Integrity Probe (Withdrawn)" |
+| VLM integrity prompt (Qwen/Gemma) | **Withdrawn** — transcription inverted three of four conditions | see the companion manuscript's "VLM Temporal Integrity Probe (Withdrawn)" appendix |
 | LLM fixed-vector probes | Exploratory, no reliable evidence | best observed 0.560 across many configs |
 | V-JEPA 2 encoder-sequence DTW (HDD) | Controlled comparator contrast | AP 0.942 |
 | Directed BoT-to-DTW retrieval (HDD) | BoT beats encoder-sequence DTW globally | full-gallery mAP 0.256 vs. 0.177 |
@@ -193,15 +211,14 @@ scramble-gradient numbers come from those two, not from this script.
 ## Paper and poster
 
 - `paper/video4real.tex` — *"When Conditional Sequence Matching Does Not Transfer to Global Video
-  Retrieval."* Extended abstract, accepted to
+  Retrieval,"* Arjang Talattof. Extended abstract, presented at
   [Video4Real](https://sites.google.com/utwente.nl/video4real/home) at ECCV 2026 (Malmö,
   9 September 2026). Per the workshop call, accepted abstracts are excluded from the ECCV
   proceedings.
 - `poster/` — the workshop poster, built from the tracked result JSONs. See `poster/README.md`.
 - `paper/neurips.tex` — *"Diagnosing Temporal Sensitivity in Video Retrieval Pipelines."* Longer
-  companion manuscript over seven benchmarks. Its NeurIPS submission was withdrawn; it is not
-  currently under review, and some of its appendix artifacts are not reproducible from this
-  checkout (see the caveats in `REPRODUCIBILITY.md`).
+  companion manuscript over seven benchmarks. Not under review, and some of its appendix
+  artifacts are not reproducible from this checkout (see the caveats in `REPRODUCIBILITY.md`).
 
 Build both manuscripts from the repository root:
 
@@ -209,7 +226,7 @@ Build both manuscripts from the repository root:
 make papers
 ```
 
-Individual targets are `make neurips` and `make video4real`. For a clean rebuild,
+Individual targets are `make video4real` and `make neurips`. For a clean rebuild,
 run `make clean-papers papers`.
 
 ## License

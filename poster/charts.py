@@ -31,6 +31,18 @@ OUT = Path(__file__).resolve().parent / "build"
 DPI = 300
 MM = 1.0 / 25.4  # mm -> inch
 
+# Type scale, in printed points. Figures are placed on the poster at 1:1, so a
+# point here is a point on paper. 20 pt is the floor for anything a reader is
+# meant to decode -- below that the chart type falls under the 21-25 pt body
+# copy beside it, which reads as an accident at poster viewing distance.
+# Captions stay at 18 pt so each remains a single line inside the figure width.
+TITLE_PT = 21
+LABEL_PT = 21  # axis labels
+TICK_PT = 20
+LEGEND_PT = 20
+ANNOT_PT = 20  # value labels and in-chart annotation
+CAPTION_PT = 18
+
 
 def load(rel: str) -> dict:
     return json.loads((RESULTS / rel).read_text())
@@ -51,8 +63,11 @@ def apply_style() -> None:
             "axes.grid": False,
             "text.color": T.INK,
             "axes.labelcolor": T.INK_2,
-            "xtick.color": T.MUTED,
-            "ytick.color": T.MUTED,
+            # Tick labels are text a reader decodes, so they take INK_2 (7.9:1 on
+            # white). MUTED is 3.6:1 and fails WCAG AA -- it is a hairline/rule
+            # colour only, never type.
+            "xtick.color": T.INK_2,
+            "ytick.color": T.INK_2,
             "xtick.direction": "out",
             "ytick.direction": "out",
         }
@@ -102,7 +117,7 @@ def capped_bar(ax, x, w, h, color, radius_frac=0.16, zorder=3):
     )
 
 
-def legend_row(fig, entries, x0=0.015, y=0.985, size=17):
+def legend_row(fig, entries, x0=0.015, y=0.985, size=LEGEND_PT):
     """Swatch + text-token label, laid out by matplotlib so labels cannot collide.
 
     Text never wears the data color -- identity comes from the swatch beside it.
@@ -170,7 +185,7 @@ def gallery(ax, include_others: bool) -> None:
     )
     ax.text(
         0.0, 0.50, "query's intersection", ha="center", va="bottom",
-        fontsize=15, color=T.INK_2, zorder=4,
+        fontsize=ANNOT_PT, color=T.INK_2, zorder=4,
     )
     if include_others:
         for ocx, ocy in [(-1.14, 0.26), (1.14, 0.26), (-1.14, -0.30), (1.14, -0.30)]:
@@ -178,7 +193,7 @@ def gallery(ax, include_others: bool) -> None:
                 clipbox(ax, ocx + dx, ocy + dy, T.OUT_WRONG_PLACE, w=0.27, h=0.19)
         ax.text(
             0.0, -0.60, "+ every other retained intersection", ha="center", va="top",
-            fontsize=15, color=T.INK_2, zorder=4,
+            fontsize=ANNOT_PT, color=T.INK_2, zorder=4,
         )
 
 
@@ -196,7 +211,7 @@ def fig_schematic() -> Path:
         ],
         x0=0.020,
         y=0.995,
-        size=16,
+        size=LEGEND_PT,
     )
 
     box_w, box_h = 0.462, 0.660          # axes fraction
@@ -212,7 +227,7 @@ def fig_schematic() -> Path:
         ax.set_ylim(y_lo, y_hi)
         ax.set_aspect("equal")
         ax.axis("off")
-        ax.set_title(title, fontsize=17, fontweight="bold", color=T.INK, pad=6)
+        ax.set_title(title, fontsize=TITLE_PT, fontweight="bold", color=T.INK, pad=6)
         gallery(ax, others)
 
     out = OUT / "p_schematic.png"
@@ -256,7 +271,7 @@ def fig_reversal() -> Path:
         [(T.METHOD_COLOR[m], T.METHOD_LABEL[m]) for m in order],
         x0=0.105,
         y=0.995,
-        size=18,
+        size=LEGEND_PT,
     )
 
     ticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
@@ -287,12 +302,18 @@ def fig_reversal() -> Path:
                         lw=1.8,
                         zorder=5,
                     )
+                # Three ANNOT_PT labels will not sit side by side over three bars:
+                # "0.955" is about 24 mm against a ~22 mm bar pitch, and in the
+                # conditional panel all three bars are nearly the same height, so
+                # the labels land at the same y and collide. Lifting the middle one
+                # leaves the outer two a full two pitches apart, which cannot touch.
+                lift = 0.055 if mi == 1 else 0.0
                 ax.text(
                     x + bw / 2,
-                    max(ci[1], mean) + 0.030,
+                    max(ci[1], mean) + 0.030 + lift,
                     f"{mean:.3f}",
                     ha="center",
-                    fontsize=16,
+                    fontsize=ANNOT_PT,
                     fontweight="bold",
                     color=T.INK,
                     zorder=6,
@@ -300,15 +321,17 @@ def fig_reversal() -> Path:
             centers.append(base + (3 * bw + 2 * gap_in) / 2)
 
         ax.set_xticks(centers)
-        ax.set_xticklabels(["Honda HDD", "nuScenes"], fontsize=20, color=T.INK)
+        ax.set_xticklabels(["Honda HDD", "nuScenes"], fontsize=TICK_PT, color=T.INK)
         ax.tick_params(axis="x", length=0, pad=10)
         ax.set_yticks(ticks)
-        ax.set_yticklabels([f"{t:.1f}" for t in ticks], fontsize=17)
-        ax.set_ylim(0, 1.06)
+        ax.set_yticklabels([f"{t:.1f}" for t in ticks], fontsize=TICK_PT)
+        ax.set_ylim(0, 1.12)  # headroom for the lifted middle value label
         half = (3 * bw + 2 * gap_in) / 2
         ax.set_xlim(-half - 0.10, centers[-1] + half + 0.10)
-        ax.set_ylabel("query-macro mAP", fontsize=19, color=T.INK_2, labelpad=10)
-        ax.set_title(title, fontsize=21, fontweight="bold", color=T.INK, pad=14, loc="left")
+        ax.set_ylabel("query-macro mAP", fontsize=LABEL_PT, color=T.INK_2, labelpad=10)
+        ax.set_title(
+            title, fontsize=TITLE_PT, fontweight="bold", color=T.INK, pad=14, loc="left"
+        )
         despine(ax)
         ax.spines["left"].set_color(T.BASELINE)
         ax.spines["bottom"].set_color(T.BASELINE)
@@ -317,8 +340,8 @@ def fig_reversal() -> Path:
         0.115,
         0.012,
         "Bars: cluster-bootstrap mean.  Whiskers: marginal 95% intersection-cluster CI.",
-        fontsize=15,
-        color=T.MUTED,
+        fontsize=CAPTION_PT,
+        color=T.INK_2,
     )
 
     out = OUT / "p_reversal.png"
@@ -355,7 +378,7 @@ def fig_errors() -> Path:
         ],
         x0=0.030,
         y=0.995,
-        size=17,
+        size=LEGEND_PT,
     )
 
     ax = fig.add_axes((0.30, 0.125, 0.665, 0.800))
@@ -382,14 +405,17 @@ def fig_errors() -> Path:
                 ax.add_patch(
                     Rectangle((left, y), w, bh, facecolor=color, edgecolor="none", zorder=3)
                 )
-            if frac > 0.085:
+            # A "98.9%" label at ANNOT_PT is ~22.6 mm wide against a 199.5 mm axis,
+            # i.e. ~0.113 of it, so the segment must be at least that wide or the
+            # label spills over its own colour. The threshold tracks the type size.
+            if frac > 0.12:
                 ax.text(
                     left + frac / 2,
                     y + bh / 2,
                     f"{frac * 100:.1f}%",
                     ha="center",
                     va="center",
-                    fontsize=17,
+                    fontsize=ANNOT_PT,
                     fontweight="bold",
                     color="white",
                     zorder=5,
@@ -399,13 +425,13 @@ def fig_errors() -> Path:
         y += bh + gap_in
 
     ax.set_yticks(yc)
-    ax.set_yticklabels(labels, fontsize=18, color=T.INK)
+    ax.set_yticklabels(labels, fontsize=TICK_PT, color=T.INK)
     ax.tick_params(axis="y", length=0, pad=8)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
-    ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=17)
+    ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=TICK_PT)
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.18, y - gap_in + 0.18)
-    ax.set_xlabel("share of top-1 retrievals", fontsize=19, color=T.INK_2, labelpad=10)
+    ax.set_xlabel("share of top-1 retrievals", fontsize=LABEL_PT, color=T.INK_2, labelpad=10)
     despine(ax, keep=("bottom",))
     ax.spines["bottom"].set_color(T.BASELINE)
 
@@ -427,7 +453,7 @@ def fig_errors() -> Path:
             rotation=90,
             ha="center",
             va="center",
-            fontsize=20,
+            fontsize=TITLE_PT,
             fontweight="bold",
             color=T.INK,
             clip_on=False,
@@ -437,7 +463,7 @@ def fig_errors() -> Path:
         0.030,
         0.012,
         "Right place, wrong maneuver is never above 0.6%.\nThe loss is location, not order.",
-        fontsize=18,
+        fontsize=CAPTION_PT,
         style="italic",
         color=T.INK_2,
         linespacing=1.35,
@@ -462,7 +488,7 @@ def fig_cascade() -> Path:
         [(T.BOT, "BoT AP@k"), (T.DTW, "BoT→DTW rerank AP@k")],
         x0=0.105,
         y=0.995,
-        size=17,
+        size=LEGEND_PT,
     )
 
     for i, (data, title) in enumerate(((hdd, "Honda HDD"), (nus, "nuScenes"))):
@@ -487,29 +513,40 @@ def fig_cascade() -> Path:
                 markeredgewidth=2.0,
                 zorder=4,
             )
-        # direct end labels only (never a number on every point)
-        for ys, color, dy in ((bot, T.BOT, 0.022), (dtw, T.DTW, -0.030)):
+        # Direct end labels only (never a number on every point). Each label is
+        # ringed in its series colour so identity comes from a swatch rather than
+        # from proximity to the nearest line; the glyphs stay INK, per legend_row.
+        for ys, color, dy in ((bot, T.BOT, 0.030), (dtw, T.DTW, -0.038)):
             ax.text(
                 xs[-1],
                 ys[-1] + dy,
                 f"{ys[-1]:.3f}",
                 ha="right",
-                fontsize=17,
+                va="center",
+                fontsize=ANNOT_PT,
                 fontweight="bold",
                 color=T.INK,
                 zorder=6,
+                bbox=dict(
+                    boxstyle="round,pad=0.28",
+                    facecolor=T.SURFACE,
+                    edgecolor=color,
+                    linewidth=1.8,
+                ),
             )
 
         ax.set_xticks(xs)
-        ax.set_xticklabels([str(k) for k in ks], fontsize=16)
+        ax.set_xticklabels([str(k) for k in ks], fontsize=TICK_PT)
         ax.set_yticks(ticks)
-        ax.set_yticklabels([f"{t:.2f}" for t in ticks], fontsize=15)
+        ax.set_yticklabels([f"{t:.2f}" for t in ticks], fontsize=TICK_PT)
         ax.set_xlim(-0.30, len(ks) - 0.70)
         ax.set_ylim(0, 0.375)
-        ax.set_xlabel("k (candidates reranked)", fontsize=17, color=T.INK_2, labelpad=8)
+        ax.set_xlabel("k (candidates reranked)", fontsize=LABEL_PT, color=T.INK_2, labelpad=8)
         if i == 0:
-            ax.set_ylabel("AP@k", fontsize=18, color=T.INK_2, labelpad=10)
-        ax.set_title(title, fontsize=19, fontweight="bold", color=T.INK, pad=10, loc="left")
+            ax.set_ylabel("AP@k", fontsize=LABEL_PT, color=T.INK_2, labelpad=10)
+        ax.set_title(
+            title, fontsize=TITLE_PT, fontweight="bold", color=T.INK, pad=10, loc="left"
+        )
         despine(ax)
         ax.spines["left"].set_color(T.BASELINE)
         ax.spines["bottom"].set_color(T.BASELINE)
@@ -517,11 +554,14 @@ def fig_cascade() -> Path:
     fig.text(
         0.105,
         0.022,
-        "Recall@k is identical (shared candidate set) — reranking only reorders,"
-        " and it reorders worse.",
-        fontsize=16,
+        # Two lines: at CAPTION_PT this caption is wider than the figure on one.
+        "Recall@k is identical (shared candidate set) —\n"
+        "reranking only reorders, and it reorders worse.",
+        fontsize=CAPTION_PT,
         style="italic",
         color=T.INK_2,
+        va="bottom",
+        linespacing=1.35,
     )
 
     out = OUT / "p_cascade.png"

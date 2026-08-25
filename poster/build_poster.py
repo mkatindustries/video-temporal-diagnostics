@@ -404,8 +404,8 @@ def draw_col2(c) -> None:
     ) / mm
     col_b = x + w - pad
     col_a = col_b - (widest + 9.0)
-    c.setFont("DejaVu", 16)
-    c.setFillColor(HexColor(T.MUTED))
+    c.setFont("DejaVu", 18)
+    c.setFillColor(HexColor(T.INK_2))
     iy -= lh(rsize, 1.5)
     c.drawRightString(X(col_a), Y(iy), "Honda HDD")
     c.drawRightString(X(col_b), Y(iy), "nuScenes")
@@ -481,7 +481,7 @@ def draw_col4(c) -> None:
         "backbone, the tested DTW variants, one linear fusion family. A SoccerNet-v2 "
         "within-match replay check detects no gain either (MRR 0.155 vs 0.153) but does "
         "not test cross-match search.",
-        x, y, w, size=18, color=T.MUTED,
+        x, y, w, size=18, color=T.INK_2,
     )
 
 

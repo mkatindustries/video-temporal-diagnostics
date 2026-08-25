@@ -16,8 +16,10 @@ from __future__ import annotations
 # --- ink ---------------------------------------------------------------
 SURFACE = "#ffffff"  # paper
 PLANE = "#f7f7f5"  # panel wash, one step off paper
-INK = "#0b0b0b"
-INK_2 = "#52514e"
+INK = "#0b0b0b"  # 19.7:1 on white
+INK_2 = "#52514e"  # 7.9:1 -- the floor for any text on this poster
+# 3.6:1, below the WCAG AA 4.5:1 text gate but above the 3:1 non-text gate.
+# Rules, hairlines and dashed enclosures only -- never type.
 MUTED = "#898781"
 GRID = "#e1e0d9"
 BASELINE = "#c3c2b7"
