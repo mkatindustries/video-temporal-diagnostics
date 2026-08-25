@@ -570,10 +570,101 @@ def fig_cascade() -> Path:
     return out
 
 
+# ----------------------------------------------------------------------
+# 5. third-domain transfer check
+# ----------------------------------------------------------------------
+def fig_soccernet() -> Path:
+    """Paired differences on SoccerNet-v2, as a forest plot.
+
+    A forest plot is the right mark here: every quantity is a paired difference
+    with a match-clustered CI, and the only question asked of each row is whether
+    its interval clears zero. Filled/hollow carries that, so no palette slot is
+    spent on it -- the method colours keep their meaning from the other panels.
+    """
+    d = load("soccernet/replay_results.json")
+    paired = d["paired_same_half_rr"]
+
+    rows = [
+        ("encoder_seq_dtw_minus_bot", "Enc-seq DTW − BoT"),
+        ("temporal_residual_dtw_minus_bot", "Residual DTW − BoT"),
+        ("encoder_seq_dtw_minus_encoder_seq_dtw_shuffled", "Intact − shuffled DTW"),
+        ("encoder_seq_dtw_minus_encoder_seq_assignment", "Intact − order-free assign."),
+    ]
+    n_matches = paired[rows[0][0]]["n_matches"]
+
+    fig = plt.figure(figsize=(300 * MM, 110 * MM))
+    ax = fig.add_axes((0.400, 0.360, 0.420, 0.560))
+
+    ys = list(range(len(rows)))[::-1]  # first row reads at the top
+    for yy, (key, label) in zip(ys, rows):
+        v = paired[key]
+        lo, hi = v["ci"]
+        diff = v["difference_a_minus_b"]
+        detected = lo > 0.0 or hi < 0.0
+
+        ax.plot([lo, hi], [yy, yy], color=T.INK_2, lw=2.2, solid_capstyle="butt", zorder=3)
+        for end in (lo, hi):
+            ax.plot([end, end], [yy - 0.17, yy + 0.17], color=T.INK_2, lw=2.2, zorder=3)
+        ax.plot(
+            [diff],
+            [yy],
+            "o",
+            markersize=13,
+            color=T.INK if detected else T.SURFACE,
+            markeredgecolor=T.INK,
+            markeredgewidth=2.2,
+            zorder=4,
+        )
+        ax.text(
+            1.045,
+            yy,
+            f"{diff:+.3f}",
+            transform=ax.get_yaxis_transform(),
+            ha="left",
+            va="center",
+            fontsize=ANNOT_PT,
+            fontweight="bold",
+            color=T.INK if detected else T.INK_2,
+            clip_on=False,
+            zorder=6,
+        )
+
+    ax.axvline(0.0, color=T.ACCENT, lw=2.0, zorder=2)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([lab for _, lab in rows], fontsize=TICK_PT, color=T.INK)
+    ax.tick_params(axis="y", length=0, pad=8)
+    ax.set_ylim(-0.62, len(rows) - 0.38)
+    ax.set_xlim(-0.028, 0.034)
+    ax.set_xticks([-0.02, 0.0, 0.02])
+    ax.set_xticklabels(["−0.02", "0", "+0.02"], fontsize=TICK_PT)
+    ax.set_xlabel(
+        "difference in match-macro RR", fontsize=LABEL_PT, color=T.INK_2, labelpad=8
+    )
+    despine(ax, keep=("bottom",))
+    ax.spines["bottom"].set_color(T.BASELINE)
+
+    fig.text(
+        0.015,
+        0.020,
+        f"SoccerNet-v2 within-match replay grounding, {n_matches} test matches, same half.\n"
+        "Filled = 95% CI excludes zero.  Hollow = no detected difference.",
+        fontsize=CAPTION_PT,
+        style="italic",
+        color=T.INK_2,
+        va="bottom",
+        linespacing=1.35,
+    )
+
+    out = OUT / "p_soccernet.png"
+    fig.savefig(out, dpi=DPI, facecolor=T.SURFACE)
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     apply_style()
-    for fn in (fig_schematic, fig_reversal, fig_errors, fig_cascade):
+    for fn in (fig_schematic, fig_reversal, fig_errors, fig_cascade, fig_soccernet):
         p = fn()
         print(f"wrote {p.relative_to(ROOT)}")
 

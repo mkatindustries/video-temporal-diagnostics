@@ -63,6 +63,24 @@ CODE_URL = "https://github.com/mkatindustries/video-temporal-diagnostics"
 TITLE = "When Conditional Sequence Matching Does Not\nTransfer to Global Video Retrieval"
 VENUE = "Video4Real @ ECCV 2026"
 
+TAKEAWAY_BODY = (
+    "A sequence score that wins inside a place can lose across places if it is not itself "
+    "place-discriminative. Conditional benchmarks do not predict global retrieval — report "
+    "both galleries."
+)
+# SoccerNet used to live here as a parenthetical; it now has its own panel, so this
+# keeps only the limitation that panel cannot speak to.
+SCOPE = (
+    "Scope: two driving datasets, their 50 largest mixed-direction clusters, one backbone, the "
+    "tested DTW variants, one linear fusion family. The SoccerNet-v2 check is within-match only "
+    "and does not test cross-match search."
+)
+
+# Vertical budget for the full-width closing band: it hangs BAND_GAP below the
+# shortest column and may not intrude on FOOTER_CEIL (the top of the QR block).
+BAND_GAP = 16.0
+FOOTER_CEIL = FOOTER_Y + 54.0
+
 
 def font(name: str) -> str:
     return name
@@ -195,7 +213,13 @@ def panel(c, x, y, w, h, fill=T.PLANE, stroke=None) -> None:
     c.roundRect(X(x), Y(y), w * mm, h * mm, 5 * mm, stroke=1 if stroke else 0, fill=1)
 
 
-CHARTS = ("p_schematic.png", "p_reversal.png", "p_errors.png", "p_cascade.png")
+CHARTS = (
+    "p_schematic.png",
+    "p_reversal.png",
+    "p_errors.png",
+    "p_cascade.png",
+    "p_soccernet.png",
+)
 
 
 def require_charts() -> None:
@@ -322,7 +346,7 @@ def draw_stats(c) -> None:
         stat_tile(c, COL_X[i], y, COL_W, STATS_H, label, value, note, hero=hero)
 
 
-def draw_col1(c) -> None:
+def draw_col1(c) -> float:
     x, w = COL_X[0], COL_W
     y = section_head(c, 1, "The question", x, BODY_TOP, w)
     y = para(
@@ -355,7 +379,7 @@ def draw_col1(c) -> None:
         ],
     )
     y -= 18
-    boxed(
+    return boxed(
         c, x, y, w, "Three comparators, one backbone",
         [
             "BoT — V-JEPA 2 mean-pools every patch token to one vector; cosine "
@@ -370,7 +394,7 @@ def draw_col1(c) -> None:
     )
 
 
-def draw_col2(c) -> None:
+def draw_col2(c) -> float:
     x, w = COL_X[1], COL_W
     y = section_head(c, 2, "Conditional gains reverse globally", x, BODY_TOP, w)
     y = para(
@@ -424,8 +448,10 @@ def draw_col2(c) -> None:
         c.drawRightString(X(col_a), Y(iy), a)
         c.drawRightString(X(col_b), Y(iy), b)
 
+    return y - h
 
-def draw_col3(c) -> None:
+
+def draw_col3(c) -> float:
     x, w = COL_X[2], COL_W
     y = section_head(c, 3, "The loss is location, not order", x, BODY_TOP, w)
     y = para(
@@ -437,7 +463,7 @@ def draw_col3(c) -> None:
     y -= 14
     y = image(c, "p_errors.png", x, y, w)
     y -= 18
-    boxed(
+    return boxed(
         c, x, y, w, "Order controls do not explain it",
         [
             "Intact DTW beats its shuffled control detectably on nuScenes only "
@@ -450,7 +476,7 @@ def draw_col3(c) -> None:
     )
 
 
-def draw_col4(c) -> None:
+def draw_col4(c) -> float:
     x, w = COL_X[3], COL_W
     y = section_head(c, 4, "Neither remedy recovers the gap", x, BODY_TOP, w)
     y = image(c, "p_cascade.png", x, y, w)
@@ -463,26 +489,29 @@ def draw_col4(c) -> None:
         "and collapses exactly onto BoT on nuScenes.",
         bullet=False,
     )
-    y -= 18
+    y -= 14
 
-    y = boxed(
-        c, x, y, w, "Takeaway",
-        "A sequence score that wins inside a place can lose across places if it is not "
-        "itself place-discriminative. Conditional benchmarks do not predict global "
-        "retrieval — report both galleries.",
-        bullet=False, size=24, title_size=28, pad=17.0,
+    # The takeaway used to sit here. It is the poster's conclusion, so it now runs
+    # full width across the foot of the page and this column carries the
+    # third-domain check instead.
+    y = section_head(c, 5, "Does it hold outside driving?", x, y, w)
+    return image(c, "p_soccernet.png", x, y, w)
+
+
+def draw_takeaway(c, y_top: float) -> float:
+    """Full-width closing band. Returns its bottom edge in mm."""
+    bottom = boxed(
+        c, MARGIN, y_top, TRIM_W - 2 * MARGIN, "Takeaway", TAKEAWAY_BODY,
+        bullet=False, size=24, title_size=28, pad=12.0,
         fill="#f1efff", stroke=T.ACCENT, title_color=T.ACCENT, body_color=T.INK,
     )
-    y -= 16
-
-    para(
-        c,
-        "Scope: two driving datasets, their 50 largest mixed-direction clusters, one "
-        "backbone, the tested DTW variants, one linear fusion family. A SoccerNet-v2 "
-        "within-match replay check detects no gain either (MRR 0.155 vs 0.153) but does "
-        "not test cross-match search.",
-        x, y, w, size=18, color=T.INK_2,
-    )
+    if bottom < FOOTER_CEIL:
+        raise SystemExit(
+            f"Takeaway band runs to {bottom:.1f} mm, under the {FOOTER_CEIL:.1f} mm footer "
+            "ceiling -- a column grew and the band no longer clears the QR block. "
+            "Shorten a column, or reduce BAND_GAP."
+        )
+    return bottom
 
 
 def draw_footer(c) -> None:
@@ -502,9 +531,9 @@ def draw_footer(c) -> None:
     c.setFillColor(HexColor(T.ACCENT))
     c.drawRightString(X(qx - 16), Y(FOOTER_Y - 2), CODE_URL)
 
-    c.setStrokeColor(HexColor(T.RULE))
-    c.setLineWidth(1.6)
-    c.line(X(MARGIN), Y(FOOTER_Y + 58), X(TRIM_W - MARGIN), Y(FOOTER_Y + 58))
+    # Scope fills the footer's empty left half. The takeaway band's stroked border
+    # now separates the footer, so the old hairline rule here would just be noise.
+    para(c, SCOPE, MARGIN, FOOTER_Y + 46, 940.0, size=18, color=T.INK_2)
 
 
 def main() -> None:
@@ -527,10 +556,11 @@ def main() -> None:
 
     draw_header(c)
     draw_stats(c)
-    draw_col1(c)
-    draw_col2(c)
-    draw_col3(c)
-    draw_col4(c)
+    # The band hangs off the shortest column rather than a fixed y, so editing any
+    # column's copy cannot silently drive it into the footer -- draw_takeaway raises
+    # instead.
+    bottoms = [draw_col1(c), draw_col2(c), draw_col3(c), draw_col4(c)]
+    draw_takeaway(c, min(bottoms) - BAND_GAP)
     draw_footer(c)
     crop_marks(c)
 
