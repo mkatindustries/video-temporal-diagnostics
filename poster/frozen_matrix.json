@@ -1,0 +1,317 @@
+{
+  "_provenance": {
+    "source_repository": "fairinternal/temporal-sdm @ da580f9; compact values manually consolidated for this poster",
+    "source_sha256": {
+      "results/hdd_frozen_matrix.json": "038cc8a0641760213da782752e79129a3b2482e98f0a8fb2f4f47bde88bc362e",
+      "results/vcdb_frozen_matrix.json": "57bc64d397d1a332d9d14e354c308c2ce90e9398b689c11cb0db46b05f677647",
+      "docs/results/aria_row_complete.md": "f3246ba37a599b21631324071895a5b41de7b31d61d6cf0918a4dd386db183b1",
+      "docs/design/soccernet_dedup_encoder_arm_preregistration.md": "40033b21c3748232dda38bfe18c45ab4516e08bd6ff24afdca8788eedb590e69",
+      "docs/results/soccernet_appearance_encoder_event_identity/dinov3_frames_2s8_r448.json": "c572751d0d64816458f510448719db6381ccfe489667597552d30be72562e712",
+      "docs/results/soccernet_appearance_encoder_event_identity/radio_frames_2s8_r448.json": "e351bbb7045b9c1e4ebec4337e211ece1010dff39958590808dfe209443acd20",
+      "docs/results/soccernet_vjepa2_reference.md": "056c61c279f5d61950c14e7e3359a6b1be4b35acea55880009bae176bdf113f4",
+      "docs/results/levjepa_aria_final_state.md": "91610261b49ff4505d3ebf74e939d33549f5e9ef36bcee032f53455c0b1f5147",
+            "this_repo/paper/note.md": "85c54a2200bc4ac79ad12dc255ee1baf90809c68ae4f52d5e75a4b9fdb85b1d0",
+            "this_repo/paper/note2.md": "49451c01d2a4d9bf5a8915e9e56a926cf3966f06de89c11eeb29749c937574a4"
+    },
+    "hdd": "results/hdd_frozen_matrix.json -> cells[*].macro_map.macro_map; its seven registered paired contrasts are each alternative minus V-JEPA-2, not all 28 pairs",
+    "vcdb": "results/vcdb_frozen_matrix.json -> cells[*].readouts.bof.query_macro_ap (role=canonical); its seven registered paired contrasts are each alternative minus SONAR2-PE",
+    "aria": "docs/results/aria_row_complete.md (record of truth; the JSONs hold per-recording detail only)",
+    "soccernet": "Valid split, 6,376 same-half queries from 100 complete matches, unordered bidirectional Chamfer, match-macro MRR. DINOv3 and RADIO use 2 s / 1 s windows, eight frames per window at 448 px; V-JEPA 2 uses 16 frames and eight tubelet tokens per window at 256 px. Only these three displayed public arms have tracked results on the same valid population with the same scorer family.",
+    "selection": "The plot keeps five configurations scored in HDD, VCDB, and Aria, plus two synthetic-copy-only configurations. SoccerNet-v2 is intentionally sparse: three displayed rows have tracked results on the same valid population and four were not run. Source-matrix rows omitted from the display are SONAR2-PE, V-JEPA 2.1, and DINO-RADIO.",
+    "excluded_arms": "SONAR2-PE and V-JEPA 2.1 are excluded because they are not public. DINO-RADIO, including all variants, is excluded by author decision. PE-AV visual and VCE 16-frame were scored only on the internal synthetic-copy cohort and appear under their poster codenames.",
+        "note_role": "paper/note2.md and the immutable cross_dataset_synthesis_v8 artifact supply the separate DRT production-recipe scorecard. This file records a controlled frozen-matrix evaluation; neither result set supersedes the other.",
+        "note": "Compact snapshot of the controlled evaluation. Poster production-scorecard values live in production_scorecard.json and retain their own source hash and protocol descriptions.",
+        "synthetic_copies": "The values shown here agree with the corresponding DRT source cells, but belong to this controlled-evaluation summary only when explicitly plotted. Point estimates only -- no paired bootstrap exists for this cohort.",
+        "production_scorecard_boundary": "The DRT SoccerNet lane uses one normalized clip vector with cosine similarity; this file's SoccerNet lane uses window sequences with unordered bidirectional Chamfer on the valid same-half population. HDD, VCDB, and Aria also use different protocols across the two artifacts. Both evaluations are valid; do not transfer values, chance floors, intervals, or run-status claims between them.",
+    "gaps": "A null value means the cell was not run under that cohort protocol, not zero.",
+    "qualification": "These are configuration-level descriptive comparisons, not a controlled backbone ablation. Sampling density and resolution vary in HDD and VCDB; Aria also uses predeclared readouts that differ by cell. SoccerNet-v2 uses a separate valid-split Chamfer protocol and model-specific tokenization. The synthetic-copy, HDD, VCDB, SoccerNet-v2, and Aria columns are distinct protocols and their raw metric levels are not comparable across columns."
+  },
+  "cohorts": [
+    {
+      "key": "synthetic_copies",
+      "label": "Internal synthetic copies",
+      "metric": "best F1",
+      "higher_is_better": true,
+      "reference_line": null,
+      "verdict": "point estimates only -- no paired interval available"
+    },
+    {
+      "key": "hdd",
+      "label": "Honda HDD",
+      "metric": "50-cluster macro-mAP",
+      "higher_is_better": true,
+      "reference_line": {
+        "value": 0.42208222870788353,
+        "label": "chance"
+      },
+      "reference_test": {
+        "reference": "vjepa2",
+        "criterion": "paired cluster-bootstrap 95% CI excludes zero",
+        "source_comparisons": 7,
+        "source_separated": 7,
+        "displayed_comparisons": 4,
+        "displayed_separated": 4,
+        "displayed_vjepa2_minus_peer": {
+          "levjepa": {
+            "difference": 0.204204,
+            "ci": [
+              0.168864,
+              0.238204
+            ]
+          },
+          "internvideo_large": {
+            "difference": 0.245148,
+            "ci": [
+              0.209954,
+              0.280685
+            ]
+          },
+          "radio": {
+            "difference": 0.295403,
+            "ci": [
+              0.255413,
+              0.335234
+            ]
+          },
+          "dinov3": {
+            "difference": 0.304615,
+            "ci": [
+              0.264992,
+              0.343887
+            ]
+          }
+        }
+      },
+      "verdict": "V-JEPA-2 separates from each alternative (7/7 registered reference contrasts; 4/4 displayed); this is not an all-pairs claim"
+    },
+    {
+      "key": "vcdb",
+      "label": "VCDB",
+      "metric": "within-topic copy AP",
+      "higher_is_better": true,
+      "reference_line": null,
+      "reference_test": {
+        "reference": "sonar2pe",
+        "criterion": "paired topic-bootstrap 95% CI excludes zero",
+        "source_comparisons": 7,
+        "source_separated": 0
+      },
+      "verdict": "no alternative separates from SONAR2-PE (0/7 registered reference contrasts); the displayed subset spans 0.0054 AP"
+    },
+    {
+      "key": "aria",
+      "label": "Project Aria",
+      "metric": "order sensitivity / within-record change",
+      "higher_is_better": true,
+      "reference_line": {
+        "value": 1.0,
+        "label": "parity"
+      },
+      "threshold_test": {
+        "criterion": "95% CI lies above parity",
+        "source_cells": 8,
+        "source_clear": 0,
+        "displayed_cells": 5,
+        "displayed_clear": 0
+      },
+      "verdict": "no source cell clears parity (0/8); 0/5 displayed cells clear parity"
+    },
+    {
+      "key": "soccernet",
+      "label": "SoccerNet-v2",
+      "metric": "valid same-half match-macro MRR",
+      "higher_is_better": true,
+      "reference_line": {
+        "value": 0.1210594538947418,
+        "label": "chance"
+      },
+      "coverage": {
+        "displayed_rows": 7,
+        "scored_rows": 3,
+        "cells_with_ci": 2
+      },
+      "order_test": {
+        "comparison": "V-JEPA 2 locked ordered alignment minus unordered Chamfer",
+        "difference": -0.0014262563114047849,
+        "ci": [
+          -0.005315623048335346,
+          0.0024439503381343507
+        ],
+        "resamples": 100000,
+        "bootstrap_unit": "complete match"
+      },
+      "verdict": "three of seven displayed public rows have tracked results on the same valid population and with the same scorer family; model inputs and reductions differ, so this is a sparse descriptive comparison, not a complete leaderboard"
+    }
+  ],
+  "arms": [
+    {
+      "key": "internvideo_large",
+      "label": "InternVideo-Next L",
+      "hdd": {
+        "value": 0.694362450133254
+      },
+      "vcdb": {
+        "value": 0.9892203558171341
+      },
+      "aria": {
+        "value": 0.803,
+        "ci": [
+          0.773,
+          0.835
+        ],
+        "readout": "moment"
+      },
+      "synthetic_copies": {
+        "value": 0.9252
+      },
+      "soccernet": {
+        "value": null
+      }
+    },
+    {
+      "key": "sam3pe",
+      "label": "SAM3 Perception Encoder",
+      "synthetic_copies": {
+        "value": 0.9209
+      },
+      "hdd": {
+        "value": null
+      },
+      "vcdb": {
+        "value": null
+      },
+      "aria": {
+        "value": null
+      },
+      "soccernet": {
+        "value": null
+      }
+    },
+    {
+      "key": "copydet",
+      "label": "Internal copy detector",
+      "synthetic_copies": {
+        "value": 0.9113
+      },
+      "hdd": {
+        "value": null
+      },
+      "vcdb": {
+        "value": null
+      },
+      "aria": {
+        "value": null
+      },
+      "soccernet": {
+        "value": null
+      }
+    },
+    {
+      "key": "dinov3",
+      "label": "DINOv3",
+      "hdd": {
+        "value": 0.6348950081786064
+      },
+      "vcdb": {
+        "value": 0.9919825244794547
+      },
+      "aria": {
+        "value": 0.919,
+        "ci": [
+          0.892,
+          0.946
+        ],
+        "readout": "moment"
+      },
+      "synthetic_copies": {
+        "value": 0.8888
+      },
+      "soccernet": {
+        "value": 0.22353292098674113,
+        "ci": [
+          0.2127653758759546,
+          0.23497684481383127
+        ],
+        "configuration": "2 s / 1 s windows; eight frames per window; 448 px; one vector per window; unordered bidirectional Chamfer"
+      }
+    },
+    {
+      "key": "radio",
+      "label": "RADIO",
+      "hdd": {
+        "value": 0.6441076367958395
+      },
+      "vcdb": {
+        "value": 0.9904543073428541
+      },
+      "aria": {
+        "value": 0.912,
+        "ci": [
+          0.88,
+          0.942
+        ],
+        "readout": "moment"
+      },
+      "synthetic_copies": {
+        "value": null
+      },
+      "soccernet": {
+        "value": 0.22980753377362922,
+        "ci": [
+          0.21820227321843882,
+          0.24246851011989526
+        ],
+        "configuration": "2 s / 1 s windows; eight frames per window; 448 px; one vector per window; unordered bidirectional Chamfer"
+      }
+    },
+    {
+      "key": "vjepa2",
+      "label": "V-JEPA 2",
+      "hdd": {
+        "value": 0.9395103302624531
+      },
+      "vcdb": {
+        "value": 0.9872386301800744
+      },
+      "aria": {
+        "value": 0.843,
+        "ci": [
+          0.801,
+          0.887
+        ],
+        "readout": "final"
+      },
+      "synthetic_copies": {
+        "value": 0.7048
+      },
+      "soccernet": {
+        "value": 0.16442531290917672,
+        "configuration": "2 s / 1 s windows; 16 frames and eight tubelet tokens per window; 256 px; unordered bidirectional Chamfer; no individual interval in the tracked summary"
+      }
+    },
+    {
+      "key": "levjepa",
+      "label": "LeVJEPA",
+      "hdd": {
+        "value": 0.7353067928959598
+      },
+      "vcdb": {
+        "value": 0.9866129535600071
+      },
+      "aria": {
+        "value": 1.061,
+        "ci": [
+          0.981,
+          1.135
+        ],
+        "readout": "final"
+      },
+      "synthetic_copies": {
+        "value": null
+      },
+      "soccernet": {
+        "value": null
+      }
+    }
+  ]
+}

@@ -1,7 +1,11 @@
 # Video4Real @ ECCV 2026 poster
 
 Poster for *When Conditional Sequence Matching Does Not Transfer to Global Video
-Retrieval* (`paper/video4real.tex`). Workshop: Wednesday 9 September 2026, PM.
+Retrieval*. Its main result
+is a public-safe view of the complete DRT production-recipe scorecard; section 2
+is a separate matched conditional/global retrieval diagnostic from
+`paper/video4real.tex`. A separate top inset reports the two source-backed
+large-model vision-tower baselines. Workshop: Wednesday 9 September 2026, PM.
 
 ## Build
 
@@ -35,17 +39,20 @@ python poster/build_poster.py  # -> poster/build/video4real_poster_1400x1000mm.p
 ```
 
 Both scripts resolve their paths from `__file__`, so the working directory does
-not matter. No GPU, no dataset, and no LaTeX is needed — only the result JSONs
-tracked under `results/`, so this builds from a bare clone.
+not matter. No GPU, dataset, or LaTeX install is needed. The scorecard and
+large-model inset read the self-contained snapshots in `poster/`; the separate
+conditional/global figure reads result JSONs under `results/`.
 
 A beamerposter/tikzposter route is not available here: both conda TeX Live
 installs are binaries-only, with no `.sty`, no `.cls` and no format sources, so
 no LaTeX document can be compiled at all. Drawing the page directly with
 reportlab also gives exact millimetre control over trim, bleed, and crop marks.
 
-`charts.py` reads every number from the tracked JSONs under `results/` — nothing
-is hardcoded, so regenerating a result and re-running the two scripts cannot
-leave the poster silently stale.
+`production_scorecard.json` records the immutable source hash, source identity,
+completion-bundle hash, public name mapping, display selection, rank rules, and
+protocol qualifications. Its upstream raw artifact is not part of this
+repository. The scorecard and matched diagnostic are intentionally not
+numerically combined.
 
 ## Print specification
 
@@ -53,11 +60,11 @@ Checked against the ECCV / Nordic Expo Service brief:
 
 | Requirement | Status |
 |---|---|
-| 1:1 scale, 1400 × 1000 mm landscape | page is 1410 × 1010 mm = trim + 5 mm bleed |
-| 5–10 mm bleed | 5 mm on every edge |
-| Crop marks | 12 mm marks, offset 3 mm outside the trim |
+| 1:1 scale, 1400 × 1000 mm landscape | explicit 1400 × 1000 mm TrimBox |
+| 5–10 mm bleed | explicit 1410 × 1010 mm BleedBox (5 mm each edge) |
+| Crop marks | complete 12 mm marks, offset 3 mm outside trim, in a 1432 × 1032 mm MediaBox |
 | Fonts embedded or outlined | 3 subset-embedded TrueType faces, no base-14 refs |
-| Images ≥ 100 DPI at 1:1 | charts at 300 DPI, QR at 287 DPI |
+| Images ≥ 100 DPI at 1:1 | charts at 300 DPI, QR at 342 DPI (700 px over 52 mm) |
 | CMYK (Fogra 39) | **not applied — see below** |
 
 **Colour.** The PDF is RGB. A faithful Fogra 39 conversion needs that ICC
@@ -102,6 +109,9 @@ obligates visible direct labels — every mark on the poster carries one.
 | File | Role |
 |---|---|
 | `tokens.py` | palette + ink tokens shared by both scripts |
-| `charts.py` | renders the four chart PNGs from `results/` |
+| `charts.py` | renders the production scorecard and compact matched diagnostic |
+| `production_scorecard.json` | public-safe scorecard snapshot with source and protocol provenance |
+| `large_model_baselines.json` | source-backed Gemma 4 and LLaVA-Video vision-tower baselines |
+| `frozen_matrix.json` | provenance snapshot for separate controlled follow-ups; not rendered here |
 | `build_poster.py` | page geometry, typography, layout, crop marks |
 | `build/` | generated output (gitignored) |
