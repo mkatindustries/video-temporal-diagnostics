@@ -62,3 +62,4 @@ texput.log
 
 # poster build output (regenerate with poster/charts.py + poster/build_poster.py)
 poster/build/
+.codex/
