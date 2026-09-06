@@ -28,9 +28,8 @@ from pathlib import Path
 WINDOW_POLICY_SCHEMA = "soccernet_window_policy_v1"
 PLAN_SCHEMA = "soccernet_extraction_plan_v1"
 
-# Frozen model specs. sha256 for SONAR2-PE is the confirmed VIDEO checkpoint hash
-# (from its plan.json); vjepa2 sha is filled by fingerprinting the local checkpoint
-# at plan-build time (recorded=None -> hash the weights).
+# Frozen public model spec. The checkpoint hash is filled by fingerprinting the
+# local weights at plan-build time (recorded=None -> hash the weights).
 MODEL_SPECS = {
     "vjepa2_encoder_seq": {
         "name": "facebook/vjepa2-vitl-fpc64-256",
@@ -41,16 +40,6 @@ MODEL_SPECS = {
         "n_frames": 64,
         "produces": "encoder_seq[32,1024] + mean_emb[1024] + temporal_residual[16,1024]",
         "windowing": None,
-    },
-    "sonar2pe": {
-        "name": "sonar2-pe",
-        "path": "/path/to/sonar2-pe",
-        "recorded_sha256": "90d02aa2188b70743a4f75efdb90afaa102633fa9d5a0769cd5f03232fe353e8",
-        "preprocessing": "SonarOmniPEImageProcessor._transform (resize 448, Normalize(0.5,0.5))",
-        "dtype": "float16",
-        "n_frames": 8,
-        "produces": "ordered window sequence [T,1024] (BoT = mean+renorm)",
-        "windowing": {"window_s": 2, "stride_s": 1, "frames_per_window": 8},
     },
 }
 

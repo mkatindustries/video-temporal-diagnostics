@@ -1,9 +1,9 @@
 {
   "_provenance": {
     "scope": "Pooled vision-tower baselines from large multimodal-model pipelines. These are visual embeddings, not end-to-end language-model outputs or generative answers.",
-    "primary_source": "/tmp/SDM-JEPA/results/sonar2pe_readouts_hdd_vcdb.json",
+    "primary_source": "vision_tower_readouts_hdd_vcdb.json (external artifact)",
     "primary_source_sha256": "ab1de9541f310902c5ae7556b97313edfac19cd21a810849747ff98057054647",
-    "independent_reproduction": "/tmp/SDM-JEPA/results/sonar2pe_amendment_measurements.json",
+    "independent_reproduction": "vision_tower_amendment_measurements.json (external artifact)",
     "independent_reproduction_sha256": "238df957395f8f63013fb2f51b57e2df33525638b488dc2d39f4bc6854bbd675",
     "comparison_boundary": "HDD and seed-42 VCDB use the same population and metric definitions as the DRT lanes, but these two configurations are absent from synthesis v8 and common-backbone values differ across caches/configurations. Show them as a separate inset and never insert them into or use them to rerank the v8 scorecard.",
     "other_large_models": "Gemini 3.1 Pro and Claude Opus 4.6 direct-prompt values appear only in manuscript text; their raw result JSONs are absent. Qwen3-VL, Gemma 4, and LLaVA-Video prompt values are aggregate transcriptions without raw per-clip responses. The defective integrity summary is withdrawn. None of those prompt results are rendered on the poster."

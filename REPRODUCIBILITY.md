@@ -758,8 +758,8 @@ python scripts/setup_soccernet.py --soccernet-dir $SOCCERNET_DIR --out $FROZENFE
 #    already tracked at results/soccernet/canary/canary_index.json and can be reused
 #    as-is without redoing the manual review.
 #    --manifest is required here: the canary otherwise falls back to the bare
-#    replay_event_manifest_v1_seed42.json, which belongs to the separate temporal-SDM line
-#    and is not what step 1 wrote.
+#    replay_event_manifest_v1_seed42.json, which is the generic default rather than the
+#    dedicated frozen-feature manifest written in step 1.
 python scripts/soccernet_window_canary.py \
     --soccernet-dir $SOCCERNET_DIR --manifest $FROZENFEAT_MANIFEST \
     --max-samples 48 --out-dir results/soccernet/canary

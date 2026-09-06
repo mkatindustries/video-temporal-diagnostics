@@ -40,7 +40,7 @@ BUILD = HERE / "build"
 # ---------------------------------------------------------------- geometry
 TRIM_W, TRIM_H = 36 * 25.4, 24 * 25.4
 BLEED = 5.0
-MARK_LEN, MARK_OFF = 12.0, 3.0
+MARK_LEN, MARK_OFF = 12.0, BLEED + 3.0
 # The marks extend MARK_OFF + MARK_LEN outside trim.  One additional millimetre
 # keeps their outer endpoints off the MediaBox boundary.  This is a slug, not
 # extra bleed: TrimBox and BleedBox below retain the requested physical sizes.
@@ -80,7 +80,7 @@ TAKEAWAY_BODY = (
     "appearance-temporal fusion under matched protocols."
 )
 SCOPE = (
-    "Snapshot 91eaebaf · Six approved recipes from a complete 65/65 matrix · Point estimates; "
+    "Six recipes from a complete 65/65 matrix · Point estimates; "
     "ranks only among six shown · Metrics are task-specific · The vision-tower inset and "
     "Section 2 are separate diagnostics."
 )
@@ -482,7 +482,7 @@ def draw_synthesis(c, y_top: float) -> float:
         "Evidence boundaries",
         "Scorecard: recipe-level point estimates; no paired intervals.\n"
         "Vision towers and Section 2 use separate sources and protocols.\n"
-        "Controlled checks: VCDB 0/7; SoccerNet CI crosses zero; Aria 0/5.",
+        "Controlled checks: VCDB shown spread 0.0054 AP; SoccerNet CI crosses zero; Aria 0/5.",
         bullet=False,
         size=17,
         title_size=20,

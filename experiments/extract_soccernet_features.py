@@ -8,9 +8,8 @@ produces the same three V-JEPA 2 features the driving evaluators use — mean_em
 keyed by ``clip_id`` and bound to the plan's ``plan_sha256`` for provenance.
 
 Gated: :func:`build_extraction_plan` calls ``require_locked_window_policy``, so
-this refuses to run unless the manifest's window policy is locked/approved. This
-is the **frozen-feature** arm only; the SONAR2-PE / learned-SDM arms live on the
-parallel temporal-SDM line, not here. ``--limit`` caps clips for a GPU canary.
+this refuses to run unless the manifest's window policy is locked/approved.
+``--limit`` caps clips for a GPU canary.
 
 Usage:
     python experiments/extract_soccernet_features.py \

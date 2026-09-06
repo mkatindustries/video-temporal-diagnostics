@@ -1,6 +1,6 @@
 {
   "_provenance": {
-    "source_repository": "fairinternal/temporal-sdm @ da580f9; compact values manually consolidated for this poster",
+    "source_repository": "external evaluation snapshot da580f9; compact values manually consolidated for this poster",
     "source_sha256": {
       "results/hdd_frozen_matrix.json": "038cc8a0641760213da782752e79129a3b2482e98f0a8fb2f4f47bde88bc362e",
       "results/vcdb_frozen_matrix.json": "57bc64d397d1a332d9d14e354c308c2ce90e9398b689c11cb0db46b05f677647",
@@ -13,13 +13,13 @@
             "this_repo/paper/note.md": "85c54a2200bc4ac79ad12dc255ee1baf90809c68ae4f52d5e75a4b9fdb85b1d0",
             "this_repo/paper/note2.md": "49451c01d2a4d9bf5a8915e9e56a926cf3966f06de89c11eeb29749c937574a4"
     },
-    "hdd": "results/hdd_frozen_matrix.json -> cells[*].macro_map.macro_map; its seven registered paired contrasts are each alternative minus V-JEPA-2, not all 28 pairs",
-    "vcdb": "results/vcdb_frozen_matrix.json -> cells[*].readouts.bof.query_macro_ap (role=canonical); its seven registered paired contrasts are each alternative minus SONAR2-PE",
+    "hdd": "results/hdd_frozen_matrix.json -> cells[*].macro_map.macro_map; displayed paired contrasts are each alternative minus V-JEPA 2, not all pairwise comparisons",
+    "vcdb": "results/vcdb_frozen_matrix.json -> cells[*].readouts.bof.query_macro_ap (role=canonical); this public snapshot retains displayed point estimates only",
     "aria": "docs/results/aria_row_complete.md (record of truth; the JSONs hold per-recording detail only)",
     "soccernet": "Valid split, 6,376 same-half queries from 100 complete matches, unordered bidirectional Chamfer, match-macro MRR. DINOv3 and RADIO use 2 s / 1 s windows, eight frames per window at 448 px; V-JEPA 2 uses 16 frames and eight tubelet tokens per window at 256 px. Only these three displayed public arms have tracked results on the same valid population with the same scorer family.",
-    "selection": "The plot keeps five configurations scored in HDD, VCDB, and Aria, plus two synthetic-copy-only configurations. SoccerNet-v2 is intentionally sparse: three displayed rows have tracked results on the same valid population and four were not run. Source-matrix rows omitted from the display are SONAR2-PE, V-JEPA 2.1, and DINO-RADIO.",
-    "excluded_arms": "SONAR2-PE and V-JEPA 2.1 are excluded because they are not public. DINO-RADIO, including all variants, is excluded by author decision. PE-AV visual and VCE 16-frame were scored only on the internal synthetic-copy cohort and appear under their poster codenames.",
-        "note_role": "paper/note2.md and the immutable cross_dataset_synthesis_v8 artifact supply the separate DRT production-recipe scorecard. This file records a controlled frozen-matrix evaluation; neither result set supersedes the other.",
+    "selection": "The plot keeps five disclosure-approved configurations scored in HDD, VCDB, and Aria, plus two synthetic-copy-only configurations. SoccerNet-v2 is intentionally sparse: three displayed rows have tracked results on the same valid population and four were not run. Omitted row identities and results are not carried in this public artifact.",
+    "excluded_arms": "Non-public and author-excluded source rows are absent by design. Do not extend the public display without a fresh disclosure review. The two internal synthetic-copy configurations appear only under their public display labels.",
+        "note_role": "An external narrative snapshot and immutable scorecard artifact supply the separate DRT production-recipe scorecard. This file records a controlled frozen-matrix evaluation; neither result set supersedes the other.",
         "note": "Compact snapshot of the controlled evaluation. Poster production-scorecard values live in production_scorecard.json and retain their own source hash and protocol descriptions.",
         "synthetic_copies": "The values shown here agree with the corresponding DRT source cells, but belong to this controlled-evaluation summary only when explicitly plotted. Point estimates only -- no paired bootstrap exists for this cohort.",
         "production_scorecard_boundary": "The DRT SoccerNet lane uses one normalized clip vector with cosine similarity; this file's SoccerNet lane uses window sequences with unordered bidirectional Chamfer on the valid same-half population. HDD, VCDB, and Aria also use different protocols across the two artifacts. Both evaluations are valid; do not transfer values, chance floors, intervals, or run-status claims between them.",
@@ -47,8 +47,6 @@
       "reference_test": {
         "reference": "vjepa2",
         "criterion": "paired cluster-bootstrap 95% CI excludes zero",
-        "source_comparisons": 7,
-        "source_separated": 7,
         "displayed_comparisons": 4,
         "displayed_separated": 4,
         "displayed_vjepa2_minus_peer": {
@@ -82,7 +80,7 @@
           }
         }
       },
-      "verdict": "V-JEPA-2 separates from each alternative (7/7 registered reference contrasts; 4/4 displayed); this is not an all-pairs claim"
+      "verdict": "V-JEPA 2 separates from each of the four displayed alternatives; this is not an all-pairs claim"
     },
     {
       "key": "vcdb",
@@ -90,13 +88,7 @@
       "metric": "within-topic copy AP",
       "higher_is_better": true,
       "reference_line": null,
-      "reference_test": {
-        "reference": "sonar2pe",
-        "criterion": "paired topic-bootstrap 95% CI excludes zero",
-        "source_comparisons": 7,
-        "source_separated": 0
-      },
-      "verdict": "no alternative separates from SONAR2-PE (0/7 registered reference contrasts); the displayed subset spans 0.0054 AP"
+      "verdict": "the displayed public rows span 0.0054 AP; no public reference contrast is reported"
     },
     {
       "key": "aria",
@@ -109,12 +101,10 @@
       },
       "threshold_test": {
         "criterion": "95% CI lies above parity",
-        "source_cells": 8,
-        "source_clear": 0,
         "displayed_cells": 5,
         "displayed_clear": 0
       },
-      "verdict": "no source cell clears parity (0/8); 0/5 displayed cells clear parity"
+      "verdict": "0/5 displayed cells clear parity"
     },
     {
       "key": "soccernet",

@@ -34,7 +34,7 @@ import numpy as np
 DEFAULT_SN_DIR = Path("/path/to/soccernet_v2_replay_grounding")
 # Predeclared candidate windows around the anchor, (pre_s, post_s). Frozen set.
 CANDIDATE_WINDOWS = [(-1.0, 1.0), (-2.0, 2.0), (-3.0, 3.0), (-2.0, 4.0)]
-N_FRAMES = 8  # frames rendered per window (matches the SONAR2-PE 8-frame window)
+N_FRAMES = 8  # frames rendered per candidate window
 THUMB_W = 160
 # Predeclared scoring rubric — recorded in the audit artifact so the frozen window
 # is justified by an auditable, class-agnostic decision (train-only).

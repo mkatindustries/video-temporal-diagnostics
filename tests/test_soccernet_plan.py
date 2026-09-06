@@ -18,7 +18,6 @@ from soccernet_plan import (  # noqa: E402
     MODEL_SPECS,
     build_extraction_plan,
     make_window_policy,
-    model_fingerprint,
     recompute_selected_window,
     require_locked_window_policy,
     require_scored_canary,
@@ -66,11 +65,13 @@ def test_gate_requires_approved_policy():
 
 def test_build_refuses_when_unlocked(tmp_path):
     with pytest.raises(SystemExit):
-        build_extraction_plan(_write(tmp_path, None), "sonar2pe", fingerprint=False)
+        build_extraction_plan(_write(tmp_path, None), "vjepa2_encoder_seq", fingerprint=False)
 
 
 def test_plan_spans_order_and_counts(tmp_path):
-    plan = build_extraction_plan(_write(tmp_path, LOCKED), "sonar2pe", fingerprint=False)
+    plan = build_extraction_plan(
+        _write(tmp_path, LOCKED), "vjepa2_encoder_seq", fingerprint=False
+    )
     assert plan["counts"] == {"clips": 3, "queries": 1, "events": 2}
     spans = {c["clip_id"]: c["span_ms"] for c in plan["clips"]}
     # event window = anchor + [pre_s, post_s] * 1000
@@ -83,26 +84,15 @@ def test_plan_spans_order_and_counts(tmp_path):
 
 def test_plan_hash_deterministic_and_window_sensitive(tmp_path):
     m = _write(tmp_path, LOCKED)
-    h1 = build_extraction_plan(m, "sonar2pe", fingerprint=False)["plan_sha256"]
-    h2 = build_extraction_plan(m, "sonar2pe", fingerprint=False)["plan_sha256"]
+    h1 = build_extraction_plan(m, "vjepa2_encoder_seq", fingerprint=False)["plan_sha256"]
+    h2 = build_extraction_plan(m, "vjepa2_encoder_seq", fingerprint=False)["plan_sha256"]
     assert h1 == h2  # same manifest + policy -> identical plan
     wider = make_window_policy(-3, 3, 8, approved=True, canary_ref=None, commit="test")
-    p3 = build_extraction_plan(_write(tmp_path, wider), "sonar2pe", fingerprint=False)
+    p3 = build_extraction_plan(
+        _write(tmp_path, wider), "vjepa2_encoder_seq", fingerprint=False
+    )
     h3 = p3["plan_sha256"]
     assert h3 != h1  # a different window yields a different plan
-
-
-def test_sonar2pe_uses_recorded_video_hash():
-    fp = model_fingerprint(MODEL_SPECS["sonar2pe"])
-    assert fp == "90d02aa2188b70743a4f75efdb90afaa102633fa9d5a0769cd5f03232fe353e8"
-
-
-def test_sonar2pe_plan_binds_model_and_window(tmp_path):
-    plan = build_extraction_plan(_write(tmp_path, LOCKED), "sonar2pe", fingerprint=True)
-    assert plan["model"]["sha256"] == MODEL_SPECS["sonar2pe"]["recorded_sha256"]
-    assert plan["model"]["windowing"] == {"window_s": 2, "stride_s": 1, "frames_per_window": 8}
-    assert plan["window_policy"]["approved"] is True
-    assert plan["manifest_sha256"]  # manifest is content-addressed into the plan
 
 
 def test_plan_binds_comparator_spec(tmp_path):

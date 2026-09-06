@@ -1126,7 +1126,6 @@ def fig_cohorts() -> Path:
     ys = list(range(len(arms)))[::-1]
 
     hdd_test = coh["hdd"]["reference_test"]
-    vcdb_test = coh["vcdb"]["reference_test"]
     soccernet_cov = coh["soccernet"]["coverage"]
     aria_test = coh["aria"]["threshold_test"]
     vcdb_values = [a["vcdb"]["value"] for a in arms if a["vcdb"].get("value") is not None]
@@ -1212,8 +1211,9 @@ def fig_cohorts() -> Path:
         "descriptive: sampling, resolution, tokenization, and Aria readout vary.\n"
         "Internal-copy evaluation: no CIs. HDD: "
         f"{hdd_test['displayed_separated']}/{hdd_test['displayed_comparisons']} shown V-JEPA 2 "
-        f"contrasts exclude 0. VCDB: all {vcdb_test['source_comparisons']} registered reference "
-        "contrasts include 0.\nSoccerNet-v2 valid: 6,376 same-half queries / 100 matches; "
+        f"contrasts exclude 0. VCDB: shown rows span {vcdb_span:.4f} AP; no public paired "
+        "reference contrast is reported.\nSoccerNet-v2 valid: 6,376 same-half queries / "
+        "100 matches; "
         f"{soccernet_cov['scored_rows']}/{soccernet_cov['displayed_rows']} shown rows run; "
         f"95% CIs for {soccernet_cov['cells_with_ci']}/{soccernet_cov['scored_rows']}. "
         "Gaps = not run. Snapshot da580f9.",
@@ -1429,7 +1429,7 @@ def fig_evidence_map() -> Path:
     cards = [
         ("Internal synthetic copies", "5 points", "No paired intervals"),
         ("Honda HDD", "4 / 4", "Shown V-JEPA 2 peer\ncontrasts exclude zero"),
-        ("VCDB", "0 / 7", "Registered reference\ncontrasts exclude zero"),
+        ("VCDB", "0.0054", "AP spread across\nshown point estimates"),
         ("SoccerNet-v2", "−0.0014", "Ordered − unordered;\n95% CI crosses zero"),
         ("Project Aria", "0 / 5", "Shown readouts clear\nparity"),
     ]

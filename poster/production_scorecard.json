@@ -1,9 +1,9 @@
 {
   "_provenance": {
     "title": "DRT production-recipe scorecard",
-    "narrative_source": "paper/note2.md",
+    "narrative_source": "external narrative snapshot",
     "narrative_source_sha256": "49451c01d2a4d9bf5a8915e9e56a926cf3966f06de89c11eeb29749c937574a4",
-    "source_uri": "manifold://frl-scape-arjangt/tree/eval/cross_dataset/2026-09-01/cross_dataset_synthesis_v8.json",
+    "source_artifact": "cross_dataset_synthesis_v8.json (external)",
     "source_sha256": "91eaebaf0098ed1eca0ec69ba2475e2c86a1aa00f0edd2dbd8f0ad8be0346405",
     "source_identity_sha256": "00f74bfe2e89ae23586fcd0cfb325a04cdf113dd84e56df1f937c9bb9f60652b",
     "source_schema": "drt_video_cross_dataset_synthesis_v8",
@@ -15,23 +15,15 @@
       "cells_scored": 65,
       "complete": true
     },
-    "selection": "The poster shows six public-safe production recipes from the complete source matrix. DINOv3 selects the source's uncapped production recipe but is printed without a configuration suffix because the other task cells also belong to that full recipe. To keep excluded recipes entirely out of the public view, displayed ranks are recomputed only within the six shown recipes and labelled that way.",
-    "name_mapping": {
-      "InternVideo-Next": "InternVideo-Next L",
-      "PE-AV visual": "SAM3 Perception Encoder",
-      "VCE 16 uniform frames": "Internal copy detector",
-      "DINOv3 ViT-L uncapped": "DINOv3",
-      "V-JEPA2": "V-JEPA 2",
-      "LeVJEPA-VideoMix-Large": "LeVJEPA"
-    },
-    "excluded_arms": "SONAR2-PE and V-JEPA 2.1 are excluded because they are not public. DINO-RADIO, including every variant, is excluded by author decision. Additional DINOv3 and internal-copy scheduling variants are omitted to keep one production recipe per displayed family.",
-    "rank_rule": "Displayed rank 1 is best among the six shown recipes; higher values are better except for Aria false-merge rate, where lower is better. The source's ranks among all 13 recipes are retained as non-rendered provenance only.",
+    "selection": "The poster shows six disclosure-approved production recipes from the complete source matrix. Each recipe uses its public display label without a configuration suffix. Displayed ranks are recomputed only within the six shown recipes and labelled that way.",
+    "excluded_arms": "Non-public and author-excluded recipes are absent by design. Do not extend the public display without a fresh disclosure review. Additional scheduling variants are omitted to keep one production recipe per displayed family.",
+    "rank_rule": "Displayed rank 1 is best among the six shown recipes; higher values are better except for Aria false-merge rate, where lower is better. No ranks involving omitted recipes are retained.",
     "uncertainty": "The source scorecard reports point estimates and ranks without paired intervals. Poster ranks are descriptive and do not assert statistically established wins.",
-    "note_alignment": "paper/note2.md's Full Matrix agrees with all selected source values after six-decimal rounding.",
+    "note_alignment": "The external narrative snapshot agrees with all selected source values after six-decimal rounding.",
     "soccernet_qualification": "Later separately authorized single-vector cosine lane; reconstructed-plan result whose historical plan hash was not reproduced.",
     "protocol_boundary": "This scorecard is not the controlled frozen-matrix evaluation. Its HDD lane uses global-pair AP, VCDB uses matched random negatives, SoccerNet uses one normalized clip vector with cosine similarity, and Aria uses false merges at a transferred per-recipe threshold. Never attach the controlled matrix's chance floors, intervals, or order-sensitivity results to these cells.",
     "rectangle_completion_bundle": {
-      "uri": "manifold://frl-scape-arjangt/tree/eval/cross_dataset/2026-09-01/rectangle_completion_results_v1.json",
+      "artifact": "rectangle_completion_results_v1.json (external)",
       "sha256": "95414b8ce56da3791966d275b883286e0b563228afb23399b250acf874ed91fd",
       "identity_sha256": "59067fd8f3b79a23a63c766260b8739f5cd4438f2c2dac3aba09131d1dc04679"
     }
@@ -42,7 +34,7 @@
       "label": "Internal synthetic copies",
       "metric": "best F1",
       "higher_is_better": true,
-      "protocol": "Duration-balanced controlled edits; one whole-video vector per recipe."
+      "protocol": "Controlled synthetic-copy edits; one whole-video vector per recipe."
     },
     {
       "key": "vcdb",
@@ -77,20 +69,13 @@
     {
       "key": "internvideo_next_l",
       "label": "InternVideo-Next L",
-      "source_label": "InternVideo-Next",
+      "source_label": "InternVideo-Next L",
       "values": {
         "synthetic_copies": 0.9252,
         "vcdb": 0.978907,
         "soccernet": 0.200935,
         "hdd": 0.582158,
         "aria": 0.48562381900822227
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 1,
-        "vcdb": 3,
-        "soccernet": 5,
-        "hdd": 4,
-        "aria": 13
       },
       "ranks_among_shown": {
         "synthetic_copies": 1,
@@ -103,20 +88,13 @@
     {
       "key": "sam3_perception_encoder",
       "label": "SAM3 Perception Encoder",
-      "source_label": "PE-AV visual",
+      "source_label": "SAM3 Perception Encoder",
       "values": {
         "synthetic_copies": 0.9209,
         "vcdb": 0.974254,
         "soccernet": 0.239266,
         "hdd": 0.53848,
         "aria": 0.15710382513661203
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 2,
-        "vcdb": 6,
-        "soccernet": 4,
-        "hdd": 5,
-        "aria": 7
       },
       "ranks_among_shown": {
         "synthetic_copies": 2,
@@ -129,20 +107,13 @@
     {
       "key": "internal_copy_detector",
       "label": "Internal copy detector",
-      "source_label": "VCE 16 uniform frames",
+      "source_label": "Internal copy detector",
       "values": {
         "synthetic_copies": 0.9113,
         "vcdb": 0.958904,
         "soccernet": 0.169153,
         "hdd": 0.503157,
         "aria": 0.3392574434400695
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 3,
-        "vcdb": 8,
-        "soccernet": 10,
-        "hdd": 12,
-        "aria": 10
       },
       "ranks_among_shown": {
         "synthetic_copies": 3,
@@ -155,20 +126,13 @@
     {
       "key": "dinov3",
       "label": "DINOv3",
-      "source_label": "DINOv3 ViT-L uncapped",
+      "source_label": "DINOv3",
       "values": {
         "synthetic_copies": 0.8888,
         "vcdb": 0.978717,
         "soccernet": 0.198123,
         "hdd": 0.53069,
         "aria": 0.14248506204994638
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 5,
-        "vcdb": 5,
-        "soccernet": 7,
-        "hdd": 7,
-        "aria": 5
       },
       "ranks_among_shown": {
         "synthetic_copies": 4,
@@ -181,20 +145,13 @@
     {
       "key": "vjepa2",
       "label": "V-JEPA 2",
-      "source_label": "V-JEPA2",
+      "source_label": "V-JEPA 2",
       "values": {
         "synthetic_copies": 0.7048,
         "vcdb": 0.871464,
         "soccernet": 0.160708,
         "hdd": 0.822944,
         "aria": 0.08595066646238701
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 11,
-        "vcdb": 11,
-        "soccernet": 11,
-        "hdd": 1,
-        "aria": 2
       },
       "ranks_among_shown": {
         "synthetic_copies": 5,
@@ -207,20 +164,13 @@
     {
       "key": "levjepa",
       "label": "LeVJEPA",
-      "source_label": "LeVJEPA-VideoMix-Large",
+      "source_label": "LeVJEPA",
       "values": {
         "synthetic_copies": 0.6272965938411961,
         "vcdb": 0.8289369050525097,
         "soccernet": 0.13300178211268232,
         "hdd": 0.6446155521687,
         "aria": 0.04775037025688167
-      },
-      "ranks_among_13": {
-        "synthetic_copies": 12,
-        "vcdb": 12,
-        "soccernet": 13,
-        "hdd": 2,
-        "aria": 1
       },
       "ranks_among_shown": {
         "synthetic_copies": 6,

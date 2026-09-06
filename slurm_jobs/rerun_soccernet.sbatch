@@ -32,9 +32,8 @@ if [[ "$LIMIT" -gt 0 ]]; then
     FEATURE_CACHE="${FEATURE_CACHE%.pt}.canary.pt"  # canary cache can never shadow the full one
 fi
 
-# Frozen-feature line uses its OWN manifest, decoupled from the temporal-SDM line's shared
-# freeze (both bind the same [-2,+2] window but their own audit artifact; whoever writes the
-# shared manifest last would otherwise fail-close the other's re-grounding).
+# This frozen-feature evaluation uses a dedicated manifest so another experiment cannot
+# overwrite its locked window policy or invalidate the audit artifact.
 MANIFEST="${MANIFEST:-$SOCCERNET_DIR/replay_event_manifest_v1_seed42_frozenfeat.json}"
 
 # 1. Extraction — gated on the locked+re-grounded window policy via build_extraction_plan.

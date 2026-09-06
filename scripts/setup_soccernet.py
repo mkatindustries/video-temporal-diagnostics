@@ -43,18 +43,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 DEFAULT_SN_DIR = Path("/path/to/soccernet_v2_replay_grounding")
-# The confirmed SONAR2-PE *video* content-baseline checkpoint (recorded for
-# provenance; NOT the archived text-model hash). See the video plan.json.
-SONAR2PE = {
-    "model_path": "/path/to/sonar2-pe",
-    "model_sha256": "90d02aa2188b70743a4f75efdb90afaa102633fa9d5a0769cd5f03232fe353e8",
-    "protocol": "local_event_sonar2pe_sliding_2s_stride1_8frames",
-    "window_s": 2,
-    "stride_s": 1,
-    "n_frames": 8,
-    "feature_dim": 1024,
-    "inference_dtype": "float16",
-}
 MANIFEST_SCHEMA = "soccernet_replay_event_retrieval_v1"
 EXCLUDE_VISIBILITY = {"not shown"}
 REVIEW_VISIBILITY = {"not applicable", "default"}
@@ -264,7 +252,6 @@ def build_manifest(sn_dir: Path, seed: int) -> dict:
             },
             "group_unit": "game", "positive_key": "event_id",
             "window_policy": None,  # frozen later by the train-only canary
-            "sonar2pe_content_baseline": SONAR2PE,
             "counts": counts,
         },
         "matches": matches,
