@@ -5,7 +5,7 @@ snapshot of the immutable 13-by-5 production scorecard. The matched
 conditional/global diagnostic reads tracked JSONs under ``results/`` and is
 kept visually separate because it uses a different protocol.
 
-Figures are sized in real inches to match their slot on the 1400x1000 mm poster,
+Figures are sized in real inches to match their slot on the 36x24 inch poster,
 so matplotlib point sizes below ARE the printed point sizes.
 
     conda activate video_retrieval
@@ -30,8 +30,8 @@ import tokens as T  # noqa: E402
 # Figure heights in mm. The figures leave room for the evidence band at the
 # foot of the page.
 H = {
-    "scorecard": 235,
-    "diagnostic_pair": 205,
+    "scorecard": 160,
+    "diagnostic_pair": 115,
     "reversal_compact": 185,
     "schematic": 108,
     "reversal": 360,
@@ -49,6 +49,8 @@ RESULTS = ROOT / "results"
 OUT = Path(__file__).resolve().parent / "build"
 DPI = 300
 MM = 1.0 / 25.4  # mm -> inch
+SCORECARD_W_MM = 878.4
+DIAGNOSTIC_W_MM = 570.0
 
 # Type scale, in printed points. Figures are placed on the poster at 1:1, so a
 # point here is a point on paper. 20 pt is the floor for anything a reader is
@@ -84,7 +86,7 @@ def apply_style() -> None:
             "axes.facecolor": T.SURFACE,
             "savefig.facecolor": T.SURFACE,
             "axes.edgecolor": T.BASELINE,
-            "axes.linewidth": 1.1,
+            "axes.linewidth": 1.25,
             "axes.grid": False,
             "text.color": T.INK,
             "axes.labelcolor": T.INK_2,
@@ -393,7 +395,7 @@ def fig_scorecard() -> Path:
     datasets = d["datasets"]
     recipes = d["recipes"]
 
-    fig = plt.figure(figsize=(1320 * MM, H["scorecard"] * MM))
+    fig = plt.figure(figsize=(SCORECARD_W_MM * MM, H["scorecard"] * MM))
     ax = fig.add_axes((0, 0, 1, 1))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -433,14 +435,14 @@ def fig_scorecard() -> Path:
             metric,
             ha="center",
             va="center",
-            fontsize=17,
+            fontsize=18,
             color=T.INK_2,
         )
 
     label_lines = {
         "internvideo_next_l": "InternVideo-Next L",
-        "sam3_perception_encoder": "SAM3 Perception\nEncoder",
-        "internal_copy_detector": "Internal copy\ndetector",
+        "sam3_perception_encoder": "SAM3 Perception Encoder",
+        "internal_copy_detector": "Internal copy detector",
         "dinov3": "DINOv3",
         "vjepa2": "V-JEPA 2",
         "levjepa": "LeVJEPA*",
@@ -468,7 +470,7 @@ def fig_scorecard() -> Path:
             ha="left",
             va="center",
             fontsize=20,
-            fontweight="bold" if recipe["key"] in ("vjepa2", "levjepa") else "normal",
+            fontweight="normal",
             color=T.INK,
             linespacing=1.12,
         )
@@ -487,7 +489,7 @@ def fig_scorecard() -> Path:
                         boxstyle="round,pad=0.002,rounding_size=0.008",
                         facecolor=leader_fill,
                         edgecolor=T.ACCENT,
-                        linewidth=1.3,
+                        linewidth=1.75,
                         zorder=1,
                     )
                 )
@@ -498,7 +500,7 @@ def fig_scorecard() -> Path:
                 ha="center",
                 va="center",
                 fontsize=22,
-                fontweight="bold" if rank == 1 else "normal",
+                fontweight="bold",
                 color=T.ACCENT if rank == 1 else T.INK,
                 zorder=2,
             )
@@ -508,16 +510,16 @@ def fig_scorecard() -> Path:
                 f"rank {rank}/6 shown",
                 ha="center",
                 va="center",
-                fontsize=15,
+                fontsize=18,
                 color=T.INK_2,
                 zorder=2,
             )
 
     for j in range(len(datasets) + 1):
         x = left + j * col_w
-        ax.plot([x, x], [table_bottom, table_top], color=T.RULE, lw=0.9, zorder=0)
-    ax.plot([0.002, right], [table_top, table_top], color=T.BASELINE, lw=1.2)
-    ax.plot([0.002, right], [table_bottom, table_bottom], color=T.BASELINE, lw=1.2)
+        ax.plot([x, x], [table_bottom, table_top], color=T.RULE, lw=1.25, zorder=0)
+    ax.plot([0.002, right], [table_top, table_top], color=T.BASELINE, lw=1.5)
+    ax.plot([0.002, right], [table_bottom, table_bottom], color=T.BASELINE, lw=1.5)
 
     ax.text(
         0.012,
@@ -652,10 +654,13 @@ def fig_diagnostic_pair() -> Path:
         ("nuScenes · global", global_result(nf)),
     ]
 
-    fig = plt.figure(figsize=(900 * MM, H["diagnostic_pair"] * MM))
+    fig = plt.figure(figsize=(DIAGNOSTIC_W_MM * MM, H["diagnostic_pair"] * MM))
+
+    plot_bottom = 0.340
+    plot_height = 0.490
 
     # Left: the matched difference that changes sign when the gallery expands.
-    ax = fig.add_axes((0.135, 0.235, 0.255, 0.600))
+    ax = fig.add_axes((0.135, plot_bottom, 0.255, plot_height))
     ys = np.arange(len(forest_rows))[::-1]
     ax.axvline(0, color=T.ACCENT, lw=2.0, zorder=1)
     for (label, result), y in zip(forest_rows, ys):
@@ -664,27 +669,27 @@ def fig_diagnostic_pair() -> Path:
         color = T.OUT_RELEVANT if "conditional" in label else T.OUT_WRONG_PLACE
         ax.plot([lo, hi], [y, y], color=color, lw=4.0, solid_capstyle="round", zorder=3)
         ax.plot(
-            [diff], [y], "o", markersize=11, color=color,
-            markeredgecolor=T.SURFACE, markeredgewidth=1.6, zorder=4,
+            [diff], [y], "o", markersize=12, color=color,
+            markeredgecolor=T.SURFACE, markeredgewidth=1.75, zorder=4,
         )
         fig.text(
-            0.475,
-            0.235 + 0.600 * ((y + 0.08) / 3.58),
+            0.405,
+            plot_bottom + plot_height * ((y + 0.08) / 3.58),
             f"{diff:+.3f}  [{lo:+.3f}, {hi:+.3f}]",
-            ha="right",
+            ha="left",
             va="center",
-            fontsize=16,
+            fontsize=18,
             fontweight="bold",
             color=T.INK,
         )
-    ax.axhline(1.5, color=T.RULE, lw=1.1, zorder=0)
+    ax.axhline(1.5, color=T.RULE, lw=1.25, zorder=0)
     ax.set_yticks(ys)
     ax.set_yticklabels([r[0] for r in forest_rows], fontsize=18, color=T.INK)
     ax.tick_params(axis="y", length=0, pad=8)
     ax.set_ylim(-0.55, 3.55)
     ax.set_xlim(-0.26, 0.115)
     ax.set_xticks([-0.2, -0.1, 0.0, 0.1])
-    ax.set_xticklabels(["−0.2", "−0.1", "0", "+0.1"], fontsize=17)
+    ax.set_xticklabels(["−0.2", "−0.1", "0", "+0.1"], fontsize=18)
     ax.set_xlabel("DTW − pooled cosine  (mAP)", fontsize=19, color=T.INK_2, labelpad=6)
     ax.set_title("That it reverses", fontsize=22, fontweight="bold", color=T.INK,
                  pad=10, loc="left")
@@ -695,23 +700,24 @@ def fig_diagnostic_pair() -> Path:
     # visible as a real category even when it is too narrow to label directly.
     methods = [
         ("BoT", "bot"),
-        ("Encoder-seq DTW", "encoder_seq_dtw"),
+        ("Encoder DTW", "encoder_seq_dtw"),
         ("Residual DTW", "temporal_residual_dtw"),
     ]
     error_rows = []
     for dataset, result in (("HDD", hf), ("nuScenes", nf)):
         for method_label, key in methods:
             cell = result["ranked_outcome_composition"]["methods"][key]["1"]
+            row_label = f"{dataset} / {method_label}" if key == "bot" else method_label
             error_rows.append(
                 (
-                    f"{dataset} · {method_label}",
+                    row_label,
                     cell["relevant"]["mean"],
                     cell["same_cluster_wrong_label"]["mean"],
                     cell["wrong_cluster"]["mean"],
                 )
             )
 
-    ax2 = fig.add_axes((0.665, 0.235, 0.325, 0.600))
+    ax2 = fig.add_axes((0.690, plot_bottom, 0.300, plot_height))
     ys2 = np.arange(len(error_rows))[::-1]
     for (label, relevant, wrong_maneuver, wrong_place), y in zip(error_rows, ys2):
         left = 0.0
@@ -721,7 +727,7 @@ def fig_diagnostic_pair() -> Path:
             (wrong_place, T.OUT_WRONG_PLACE),
         ):
             ax2.barh(y, value, left=left, height=0.62, color=color, edgecolor="white",
-                     linewidth=0.8, zorder=3)
+                     linewidth=1.0, zorder=3)
             left += value
         if relevant >= 0.15:
             ax2.text(relevant / 2, y, f"{relevant * 100:.1f}%", ha="center", va="center",
@@ -730,13 +736,13 @@ def fig_diagnostic_pair() -> Path:
             ax2.text(1 - wrong_place / 2, y, f"{wrong_place * 100:.1f}%", ha="center",
                      va="center", fontsize=18, fontweight="bold", color="white", zorder=4)
 
-    ax2.axhline(2.5, color=T.RULE, lw=1.1, zorder=0)
+    ax2.axhline(2.5, color=T.RULE, lw=1.25, zorder=0)
     ax2.set_yticks(ys2)
-    ax2.set_yticklabels([r[0] for r in error_rows], fontsize=15, color=T.INK)
+    ax2.set_yticklabels([r[0] for r in error_rows], fontsize=18, color=T.INK)
     ax2.tick_params(axis="y", length=0, pad=7)
     ax2.set_xlim(0, 1)
     ax2.set_xticks([0, 0.5, 1.0])
-    ax2.set_xticklabels(["0%", "50%", "100%"], fontsize=17)
+    ax2.set_xticklabels(["0%", "50%", "100%"], fontsize=18)
     ax2.set_xlabel("share of top-1 retrievals", fontsize=19, color=T.INK_2, labelpad=6)
     ax2.set_title(
         "Where the global top-1 lands\ngreen = relevant  ·  red = wrong place",
@@ -751,11 +757,11 @@ def fig_diagnostic_pair() -> Path:
 
     fig.text(
         0.012,
-        0.040,
-        "Left: paired mean differences with 95% intersection-cluster intervals. Right: global "
-        "top-1 outcomes; ≥98.9% of errors are wrong-place, while right-place/wrong-maneuver "
-        "is ≤0.6% of all retrievals.",
-        fontsize=16,
+        0.035,
+        "Left: paired mean differences with 95% intersection-cluster intervals.\n"
+        "Right: ≥98.9% of global errors are wrong-place; same-place/wrong-maneuver "
+        "is ≤0.6% overall.",
+        fontsize=18,
         style="italic",
         color=T.INK_2,
         va="bottom",

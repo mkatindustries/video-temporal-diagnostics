@@ -35,7 +35,7 @@ Then, from anywhere:
 ```bash
 conda activate video_retrieval
 python poster/charts.py        # -> poster/build/p_*.png at 300 dpi
-python poster/build_poster.py  # -> poster/build/video4real_poster_1400x1000mm.pdf
+python poster/build_poster.py  # -> poster/build/video4real_poster_36x24in.pdf
 ```
 
 Both scripts resolve their paths from `__file__`, so the working directory does
@@ -56,15 +56,17 @@ numerically combined.
 
 ## Print specification
 
-Checked against the ECCV / Nordic Expo Service brief:
+The current build targets a standard North American 36 × 24 inch landscape
+poster. It is reflowed natively at 3:2; it is not a scaled version of the earlier
+1400 × 1000 mm artwork.
 
 | Requirement | Status |
 |---|---|
-| 1:1 scale, 1400 × 1000 mm landscape | explicit 1400 × 1000 mm TrimBox |
-| 5–10 mm bleed | explicit 1410 × 1010 mm BleedBox (5 mm each edge) |
-| Crop marks | complete 12 mm marks, offset 3 mm outside trim, in a 1432 × 1032 mm MediaBox |
+| 1:1 scale, 36 × 24 inch landscape | explicit 914.4 × 609.6 mm CropBox and TrimBox |
+| 5 mm bleed | explicit 924.4 × 619.6 mm BleedBox (5 mm each edge) |
+| Crop marks | complete 12 mm marks, offset 3 mm outside trim, in a 946.4 × 641.6 mm MediaBox |
 | Fonts embedded or outlined | 3 subset-embedded TrueType faces, no base-14 refs |
-| Images ≥ 100 DPI at 1:1 | charts at 300 DPI, QR at 342 DPI (700 px over 52 mm) |
+| Images ≥ 100 DPI at 1:1 | charts at 300 DPI; logo and QR exceed 300 effective DPI |
 | CMYK (Fogra 39) | **not applied — see below** |
 
 **Colour.** The PDF is RGB. A faithful Fogra 39 conversion needs that ICC
@@ -73,8 +75,9 @@ shift every hue. Give the print shop the RGB PDF and let them convert with the
 correct profile — that is the normal workflow and yields a better result than a
 blind conversion.
 
-**Filename.** The brief wants `{PAPER_ID}Lastname{WIDTH}x{HEIGHT}mm.pdf`. Rename
-on submission, e.g. `12_Talattof_1400x1000mm.pdf` (submission ID 12).
+**Print handling.** Send the 36 × 24 inch PDF at 100%. Its default CropBox is
+the exact finished size; the MediaBox retains bleed and crop marks for the shop.
+Do not use “fit to page,” crop to fill, or non-uniform scaling.
 
 Note that the ECCV on-site printing deadline was 21 August 2026 and has passed,
 so this most likely goes to a local printer instead.
@@ -86,9 +89,8 @@ so this most likely goes to a local printer instead.
 - `AUTHORS` — `Arjang Talattof`, sole author. No placeholders remain in the PDF.
 - `AFFIL` — empty, so no affiliation line is printed. Set the string to add one;
   it renders after the name.
-- `CODE_URL` — the GitHub URL, which the QR code encodes. The paper itself points
-  at an anonymised `anonymous.4open.science` mirror, so confirm this repository is
-  public and live before printing the QR.
+- `CODE_URL` — the public research landing page encoded by the QR. Confirm that
+  it is live before printing.
 
 ## Design
 

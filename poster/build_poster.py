@@ -6,10 +6,10 @@
 Needs reportlab and qrcode on top of the project env:
     conda install -n video_retrieval --freeze-installed -c conda-forge reportlab qrcode
 
-Output: poster/build/video4real_poster_1400x1000mm.pdf
+Output: poster/build/video4real_poster_36x24in.pdf
 
-Geometry follows the ECCV / Nordic Expo Service brief: 1400 x 1000 mm landscape
-trim, 1:1 scale, 5 mm bleed on every edge, and a separate slug for crop marks.
+Geometry targets a 36 x 24 inch landscape print: 914.4 x 609.6 mm trim at
+1:1 scale, 5 mm bleed on every edge, and a separate slug for crop marks.
 The PDF encodes distinct MediaBox, BleedBox, and TrimBox values. Fonts are embedded
 TrueType (DejaVu Sans), not base-14 references.
 
@@ -38,7 +38,7 @@ HERE = Path(__file__).resolve().parent
 BUILD = HERE / "build"
 
 # ---------------------------------------------------------------- geometry
-TRIM_W, TRIM_H = 1400.0, 1000.0
+TRIM_W, TRIM_H = 36 * 25.4, 24 * 25.4
 BLEED = 5.0
 MARK_LEN, MARK_OFF = 12.0, 3.0
 # The marks extend MARK_OFF + MARK_LEN outside trim.  One additional millimetre
@@ -48,21 +48,19 @@ MEDIA_MARGIN = MARK_OFF + MARK_LEN + 1.0
 PAGE_W = TRIM_W + 2 * MEDIA_MARGIN
 PAGE_H = TRIM_H + 2 * MEDIA_MARGIN
 
-MARGIN = 40.0
-COL_W = 300.0
-GUTTER = 40.0
-COL_X = [MARGIN + i * (COL_W + GUTTER) for i in range(4)]
+MARGIN = 18.0
+LOWER_LEFT_W = 570.0
+LOWER_GUTTER = 18.0
+LOWER_RIGHT_X = MARGIN + LOWER_LEFT_W + LOWER_GUTTER
+LOWER_RIGHT_W = TRIM_W - MARGIN - LOWER_RIGHT_X
 
 HEADER_TOP = TRIM_H
-# Tightened from 124 / 20 / 100 / 24. Trimming the top matter buys height in
-# every column at once, which is the only lever that does -- shrinking charts
-# hits column 1 almost immediately, since its only figure is the schematic.
-HEADER_H = 114.0
+HEADER_H = 86.0
 RULE_Y = TRIM_H - HEADER_H
-STATS_TOP = RULE_Y - 14.0
-STATS_H = 100.0
-BODY_TOP = STATS_TOP - STATS_H - 18.0
-FOOTER_Y = 34.0
+STATS_TOP = RULE_Y - 8.0
+STATS_H = 62.0
+BODY_TOP = STATS_TOP - STATS_H - 10.0
+FOOTER_Y = 14.0
 
 # ---------------------------------------------------------------- content
 AUTHORS = "Arjang Talattof"
@@ -78,22 +76,19 @@ TITLE = "When Conditional Sequence Matching Does Not\nTransfer to Global Video R
 VENUE = "Video4Real @ ECCV 2026"
 
 TAKEAWAY_BODY = (
-    "No frozen recipe is best across all five tasks. Strong copy or event-identity point "
-    "estimates do not guarantee maneuver retrieval or safe deletion. The next step is a "
-    "target-trained safety head or a fusion of appearance and temporal features, evaluated "
-    "under protocol-matched comparisons."
+    "Leaders change by task. Bridge the gap with task-trained safety heads or "
+    "appearance-temporal fusion under matched protocols."
 )
 SCOPE = (
-    "Scorecard snapshot 91eaebaf; six approved recipes shown from a complete 65/65 matrix. "
-    "Values and ranks are descriptive point estimates within the six shown; metrics have no "
-    "shared scale. The vision-tower inset and Section 2 are separate diagnostics; neither "
-    "reranks it."
+    "Snapshot 91eaebaf · Six approved recipes from a complete 65/65 matrix · Point estimates; "
+    "ranks only among six shown · Metrics are task-specific · The vision-tower inset and "
+    "Section 2 are separate diagnostics."
 )
 
-QR_SIZE = 52.0
-QR_Y = FOOTER_Y - 14.0
-FOOTER_CEIL = QR_Y + QR_SIZE + 6.0
-MIN_FOOTER_GAP = 8.0
+QR_SIZE = 40.0
+QR_Y = 14.0
+FOOTER_CEIL = QR_Y + QR_SIZE + 5.0
+MIN_FOOTER_GAP = 7.0
 
 
 def font(name: str) -> str:
@@ -170,21 +165,21 @@ def bullets(c, items, x, y, w, size=24, mult=1.30, gap=4.5) -> float:
 
 
 def section_head(c, n: int, text: str, x: float, y: float, w: float) -> float:
-    ind = 11.0
-    c.setFont("DejaVu-Bold", 26)
+    ind = 8.0
+    c.setFont("DejaVu-Bold", 22)
     c.setFillColor(HexColor(T.ACCENT))
-    c.drawString(X(x), Y(y - lh(38)), f"{n}")
-    c.setFont("DejaVu-Bold", 38)
+    c.drawString(X(x), Y(y - lh(32)), f"{n}")
+    c.setFont("DejaVu-Bold", 32)
     c.setFillColor(HexColor(T.INK))
     yy = y
-    for line in wrap(text, "DejaVu-Bold", 38, w - ind):
-        yy -= lh(38)
+    for line in wrap(text, "DejaVu-Bold", 32, w - ind):
+        yy -= lh(32)
         c.drawString(X(x + ind), Y(yy), line)
-    yy -= 7
+    yy -= 4
     c.setStrokeColor(HexColor(T.ACCENT))
-    c.setLineWidth(2.4)
+    c.setLineWidth(1.8)
     c.line(X(x), Y(yy), X(x + w), Y(yy))
-    return yy - 13
+    return yy - 8
 
 
 def h_para(text, w, size=25, mult=1.34, face="DejaVu") -> float:
@@ -292,9 +287,7 @@ def crop_marks(c) -> None:
 
 
 LOGO = HERE / "ECCV_Color Logo_2026.png"
-# 84 mm is the practical ceiling: the logo hangs 16 mm below HEADER_TOP and must
-# stay clear of the rule at RULE_Y, which leaves 14 mm of air at this height.
-LOGO_H = 84.0
+LOGO_H = 50.0
 
 
 def logo_trimmed():
@@ -334,26 +327,22 @@ def qr_png(url: str, path: Path) -> Path:
 
 # ---------------------------------------------------------------- sections
 def draw_header(c) -> None:
-    # Top offset and byline leading are tightened to keep the byline clear of the
-    # rule at RULE_Y. HEADER_H came down to 114 to free column height, which moved
-    # the rule up into the name; this buys the clearance back inside the header
-    # instead of taking it from the columns.
-    y = HEADER_TOP - 12
-    c.setFont("DejaVu-Bold", 26)
+    y = HEADER_TOP - 10
+    c.setFont("DejaVu-Bold", 20)
     c.setFillColor(HexColor(T.ACCENT))
-    y -= lh(26)
+    y -= lh(20)
     c.drawString(X(MARGIN), Y(y), VENUE.upper())
 
-    c.setFont("DejaVu-Bold", 76)
+    c.setFont("DejaVu-Bold", 60)
     c.setFillColor(HexColor(T.INK))
-    y -= 6
+    y -= 3
     for line in TITLE.split("\n"):
-        y -= lh(76, 1.16)
+        y -= lh(60, 1.07)
         c.drawString(X(MARGIN), Y(y), line)
 
-    c.setFont("DejaVu", 29)
+    c.setFont("DejaVu", 18)
     c.setFillColor(HexColor(T.INK_2))
-    y -= lh(29, 1.35)
+    y -= lh(18, 1.35)
     byline = f"{AUTHORS}      {AFFIL}".rstrip()
     c.drawString(X(MARGIN), Y(y), byline)
 
@@ -363,7 +352,7 @@ def draw_header(c) -> None:
     if lg is not None:
         path, aspect = lg
         w = LOGO_H * aspect
-        c.drawImage(str(path), X(TRIM_W - MARGIN - w), Y(HEADER_TOP - 16 - LOGO_H),
+        c.drawImage(str(path), X(TRIM_W - MARGIN - w), Y(HEADER_TOP - 13 - LOGO_H),
                     w * mm, LOGO_H * mm, mask="auto")
 
     c.setStrokeColor(HexColor(T.RULE))
@@ -374,69 +363,65 @@ def draw_header(c) -> None:
 def draw_context_strip(c) -> None:
     """Replace disconnected headline numbers with task and evidence context."""
     y = STATS_TOP - STATS_H
-    gap = 20.0
-    left_w = 790.0
+    gap = 18.0
+    left_w = 552.0
     right_x = MARGIN + left_w + gap
     right_w = TRIM_W - MARGIN - right_x
 
     panel(c, MARGIN, y, left_w, STATS_H, fill="#ffffff", stroke=T.RULE)
-    c.setFont("DejaVu-Bold", 24)
+    c.setFont("DejaVu-Bold", 20)
     c.setFillColor(HexColor(T.INK))
-    c.drawString(X(MARGIN + 14), Y(STATS_TOP - 18), "Five cohorts, four deployment decisions")
+    c.drawString(X(MARGIN + 10), Y(STATS_TOP - 14), "Five cohorts, four deployment decisions")
 
     task_cards = [
-        ("COPY IDENTITY", "Controlled + real copies", "Internal synthetic F1  ·  VCDB AP"),
-        ("EVENT IDENTITY", "Exact replay", "SoccerNet-v2 match-macro MRR"),
-        ("MANEUVER RETRIEVAL", "Global driving pairs", "Honda HDD global AP"),
-        ("DELETION SAFETY", "Confirmed negatives", "Project Aria false-merge rate ↓"),
+        ("Copy identity", "Internal + VCDB"),
+        ("Event identity", "SoccerNet-v2"),
+        ("Maneuver retrieval", "Honda HDD"),
+        ("Deletion safety", "Project Aria  ↓"),
     ]
-    inner_x = MARGIN + 14
-    inner_w = left_w - 28
+    inner_x = MARGIN + 10
+    inner_w = left_w - 20
     cell_w = inner_w / len(task_cards)
-    for i, (eyebrow, title, detail) in enumerate(task_cards):
+    for i, (title, detail) in enumerate(task_cards):
         cx = inner_x + i * cell_w
         if i:
             c.setStrokeColor(HexColor(T.RULE))
             c.setLineWidth(1.1)
-            c.line(X(cx - 9), Y(y + 14), X(cx - 9), Y(STATS_TOP - 31))
-        c.setFont("DejaVu-Bold", 16)
-        c.setFillColor(HexColor(T.ACCENT))
-        c.drawString(X(cx), Y(STATS_TOP - 39), eyebrow)
-        c.setFont("DejaVu-Bold", 22)
+            c.line(X(cx - 6), Y(y + 9), X(cx - 6), Y(STATS_TOP - 25))
+        c.setFont("DejaVu-Bold", 18)
         c.setFillColor(HexColor(T.INK))
-        c.drawString(X(cx), Y(STATS_TOP - 55), title)
-        para(c, detail, cx, STATS_TOP - 59, cell_w - 16, size=18, mult=1.20)
+        c.drawString(X(cx), Y(STATS_TOP - 35), title)
+        para(c, detail, cx, STATS_TOP - 38, cell_w - 10, size=16, mult=1.18)
 
     baselines = json.loads((HERE / "large_model_baselines.json").read_text())
     panel(c, right_x, y, right_w, STATS_H, fill="#f1efff", stroke=T.ACCENT)
-    c.setFont("DejaVu-Bold", 24)
+    c.setFont("DejaVu-Bold", 20)
     c.setFillColor(HexColor(T.ACCENT))
-    c.drawString(X(right_x + 14), Y(STATS_TOP - 18), "Large-model vision baselines")
-    c.setFont("DejaVu", 17)
+    c.drawString(X(right_x + 10), Y(STATS_TOP - 14), "Vision-tower baselines")
+    c.setFont("DejaVu", 16)
     c.setFillColor(HexColor(T.INK_2))
-    c.drawRightString(X(right_x + right_w - 14), Y(STATS_TOP - 18), "VCDB AP     HDD AP")
+    c.drawRightString(X(right_x + right_w - 10), Y(STATS_TOP - 14), "VCDB AP    HDD AP")
 
-    yy = STATS_TOP - 45
+    yy = STATS_TOP - 30
     for model in baselines["models"]:
-        c.setFont("DejaVu-Bold", 21)
+        c.setFont("DejaVu-Bold", 18)
         c.setFillColor(HexColor(T.INK))
-        c.drawString(X(right_x + 14), Y(yy), model["label"])
+        c.drawString(X(right_x + 10), Y(yy), model["label"])
         c.drawRightString(
-            X(right_x + right_w - 14),
+            X(right_x + right_w - 10),
             Y(yy),
-            f"{model['vcdb_ap']:.4f}       {model['hdd_ap']:.4f}",
+            f"{model['vcdb_ap']:.4f}      {model['hdd_ap']:.4f}",
         )
-        yy -= 18
+        yy -= 13
 
     para(
         c,
-        "Pooled vision towers, not language-model outputs; same scorecard populations and "
-        "metrics, separate source, excluded from v8 ranks.",
-        right_x + 14,
-        yy + 3,
-        right_w - 28,
-        size=17,
-        mult=1.18,
+        "Pooled vision towers · separate source · excluded from scorecard ranks.",
+        right_x + 10,
+        yy + 4,
+        right_w - 20,
+        size=16,
+        mult=1.15,
         color=T.INK_2,
     )
 
@@ -448,103 +433,64 @@ def draw_scorecard(c) -> float:
     y = para(
         c,
         "The complete scorecard evaluates 13 fixed recipes on five cohorts (65/65 cells). "
-        "We show six approved recipes from one immutable snapshot; every rank is explicitly "
-        "limited to the six shown.",
+        "Six approved recipes are shown; every rank is limited to those six.",
         x,
         y,
         w,
-        size=24,
+        size=20,
     )
-    y -= 8
+    y -= 5
     return image(c, "p_scorecard.png", x, y, w)
 
 
 def draw_reversal_panel(c, y_top: float) -> float:
-    x, w = MARGIN, 900.0
+    x, w = MARGIN, LOWER_LEFT_W
     y = section_head(c, 2, "Conditional gains reverse globally", x, y_top, w)
     y = para(
         c,
-        "A separate matched V-JEPA 2 diagnostic holds features, queries, relevance, and scorer "
-        "pair fixed; only the gallery expands. Left: the sign flips. Right: the global misses "
-        "shift overwhelmingly to other locations.",
+        "A matched V-JEPA 2 diagnostic holds features, queries, relevance, and scorer fixed; "
+        "only the gallery expands. Left: the sign flips. Right: global misses land elsewhere.",
         x,
         y,
         w,
-        size=23,
+        size=20,
         face="DejaVu-Oblique",
         color=T.INK,
     )
-    y -= 8
-    y = image(c, "p_diagnostic_pair.png", x, y, w)
-    y -= 8
-    return boxed(
-        c,
-        x,
-        y,
-        w,
-        "What the decomposition establishes",
-        "Across all six tracked method×dataset rows, at least 98.9% of top-1 errors are "
-        "wrong-location. This localizes the observed failure to place discrimination; it does "
-        "not establish a specific DTW scoring mechanism.",
-        bullet=False,
-        size=19,
-        title_size=23,
-        pad=13,
-    )
+    y -= 5
+    return image(c, "p_diagnostic_pair.png", x, y, w)
 
 
 def draw_synthesis(c, y_top: float) -> float:
-    x, w = 980.0, 380.0
+    x, w = LOWER_RIGHT_X, LOWER_RIGHT_W
     y = section_head(c, 3, "Open gap: identity, motion, safety", x, y_top, w)
     y = para(
         c,
-        "The highest shown point estimate changes by task: InternVideo-Next L on both copy "
-        "cohorts, SAM3 Perception Encoder on SoccerNet-v2, V-JEPA 2 on HDD, and LeVJEPA on "
-        "Aria.",
+        "Leaders vary by task: InternVideo-Next L on copies, SAM3 Perception Encoder on "
+        "SoccerNet-v2, V-JEPA 2 on HDD, and LeVJEPA on Aria.",
         x,
         y,
         w,
-        size=23,
+        size=20,
     )
-    y -= 8
+    y -= 5
     y = boxed(
         c,
         x,
         y,
         w,
-        "Separate evidence — do not mix",
-        [
-            "The scorecard is descriptive and recipe-level, not a controlled backbone "
-            "ablation; it has no common paired intervals.",
-            "Gemma 4 and LLaVA-Video above are pooled vision towers, not language-model "
-            "outputs, and are excluded from scorecard ranks.",
-            "Section 2 uses query-macro mAP with cluster resampling; its values and intervals "
-            "do not annotate the scorecard's global AP lane.",
-        ],
-        size=18,
-        title_size=24,
-        pad=13,
-    )
-    y -= 8
-    y = boxed(
-        c,
-        x,
-        y,
-        w,
-        "Controlled follow-ups",
-        [
-            "VCDB within-topic: 0/7 registered reference contrasts separate.",
-            "SoccerNet-v2 window Chamfer: ordered − unordered is −0.0014; its 95% CI "
-            "crosses zero.",
-            "Project Aria order sensitivity: 0/5 shown intervals clear parity.",
-        ],
-        size=18,
-        title_size=24,
-        pad=13,
+        "Evidence boundaries",
+        "Scorecard: recipe-level point estimates; no paired intervals.\n"
+        "Vision towers and Section 2 use separate sources and protocols.\n"
+        "Controlled checks: VCDB 0/7; SoccerNet CI crosses zero; Aria 0/5.",
+        bullet=False,
+        size=17,
+        title_size=20,
+        pad=9,
         fill="#ffffff",
         stroke=T.RULE,
     )
-    y -= 8
+    y -= 4
     return boxed(
         c,
         x,
@@ -553,9 +499,9 @@ def draw_synthesis(c, y_top: float) -> float:
         "Takeaway",
         TAKEAWAY_BODY,
         bullet=False,
-        size=21,
-        title_size=27,
-        pad=14,
+        size=20,
+        title_size=22,
+        pad=9,
         fill="#f1efff",
         stroke=T.ACCENT,
         title_color=T.ACCENT,
@@ -568,29 +514,35 @@ def draw_footer(c) -> None:
     qx = TRIM_W - MARGIN - QR_SIZE
     c.drawImage(str(qr), X(qx), Y(QR_Y), QR_SIZE * mm, QR_SIZE * mm)
 
-    c.setFont("DejaVu", 25)
+    c.setFont("DejaVu", 16)
     c.setFillColor(HexColor(T.INK_2))
     c.drawRightString(
         X(qx - 16),
-        Y(FOOTER_Y + 26),
+        Y(FOOTER_Y + 22),
         "MKAT INDUSTRIES LLC",
     )
-    c.setFont("DejaVu-Bold", 21)
+    c.setFont("DejaVu-Bold", 16)
     c.setFillColor(HexColor(T.ACCENT))
-    c.drawRightString(X(qx - 16), Y(FOOTER_Y - 2), CODE_URL)
+    c.drawRightString(X(qx - 10), Y(FOOTER_Y + 3), CODE_URL)
 
     # Scope fills the footer's empty left half and wraps to a readable measure.
-    para(c, SCOPE, MARGIN, FOOTER_Y + 34, 820.0, size=18, color=T.INK_2)
+    para(c, SCOPE, MARGIN, FOOTER_Y + 28, 640.0, size=16, color=T.INK_2)
 
 
 def main() -> None:
     BUILD.mkdir(parents=True, exist_ok=True)
     require_charts()
     register_fonts()
-    out = BUILD / "video4real_poster_1400x1000mm.pdf"
+    out = BUILD / "video4real_poster_36x24in.pdf"
     c = canvas.Canvas(
         str(out),
         pagesize=(PAGE_W * mm, PAGE_H * mm),
+        cropBox=(
+            MEDIA_MARGIN * mm,
+            MEDIA_MARGIN * mm,
+            (MEDIA_MARGIN + TRIM_W) * mm,
+            (MEDIA_MARGIN + TRIM_H) * mm,
+        ),
         trimBox=(
             MEDIA_MARGIN * mm,
             MEDIA_MARGIN * mm,
@@ -616,7 +568,7 @@ def main() -> None:
     draw_header(c)
     draw_context_strip(c)
     scorecard_bottom = draw_scorecard(c)
-    lower_top = scorecard_bottom - 16.0
+    lower_top = scorecard_bottom - 10.0
     bottoms = [draw_reversal_panel(c, lower_top), draw_synthesis(c, lower_top)]
     gap = min(bottoms) - FOOTER_CEIL
     if gap < MIN_FOOTER_GAP:
@@ -632,7 +584,7 @@ def main() -> None:
     c.showPage()
     c.save()
     print(f"wrote {out}")
-    print(f"  media {PAGE_W:.0f} x {PAGE_H:.0f} mm; trim {TRIM_W:.0f} x {TRIM_H:.0f} mm; "
+    print(f"  media {PAGE_W:.1f} x {PAGE_H:.1f} mm; trim {TRIM_W:.1f} x {TRIM_H:.1f} mm; "
           f"bleed {BLEED:.0f} mm each edge; crop-mark slug {MEDIA_MARGIN - BLEED:.0f} mm")
     print(f"  scorecard bottom {scorecard_bottom:.1f} mm; lower panels "
           + ", ".join(f"{i + 1}:{b:.1f}" for i, b in enumerate(bottoms))
